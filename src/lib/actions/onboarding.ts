@@ -11,6 +11,7 @@ export async function submitOnboarding(formData: FormData): Promise<string> {
   const brandToneRaw = (formData.get("brandTone") as string) ?? "[]";
   let brandTone: string[] = [];
   try { brandTone = JSON.parse(brandToneRaw); } catch { brandTone = []; }
+  const videoStyle = (formData.get("videoStyle") as string) || undefined;
 
   // Convert first uploaded image to a data URL we can pass around
   let productImageDataUrl: string | undefined;
@@ -28,6 +29,7 @@ export async function submitOnboarding(formData: FormData): Promise<string> {
     businessName,
     category,
     brandTone,
+    videoStyle,
     websiteUrl,
     instagramUrl,
     tiktokUrl,

@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils";
 import {
   FashionIcon, FoodIcon, BeautyIcon, HomeIcon, HealthIcon, TechIcon, ServicesIcon, OtherIcon,
   FriendlyIcon, PlayfulIcon, BoldIcon, PremiumIcon,
+  SpotlightIcon, SpinIcon, CinematicIcon, LifestyleIcon,
 } from "@/components/category-icons";
+import { VIDEO_STYLES as VIDEO_STYLE_DEFS, DEFAULT_VIDEO_STYLE } from "@/lib/video-styles";
 
 type CardIcon = React.ComponentType<{ className?: string }>;
 
@@ -23,6 +25,7 @@ type State = {
   category: string;
   categoryOther: string;
   brandTone: string[];
+  videoStyle: string;
   imageFiles: File[];
 };
 
@@ -34,6 +37,7 @@ const INITIAL: State = {
   category: "",
   categoryOther: "",
   brandTone: [],
+  videoStyle: DEFAULT_VIDEO_STYLE,
   imageFiles: [],
 };
 
@@ -41,10 +45,24 @@ const SECTIONS = [
   { label: "Account setup", steps: [0] },
   { label: "Category", steps: [1] },
   { label: "Brand tone", steps: [2] },
-  { label: "Photos", steps: [3] },
+  { label: "Video style", steps: [3] },
+  { label: "Photos", steps: [4] },
 ];
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 const MAX_TONES = 3;
+
+const VIDEO_STYLE_ICONS: Record<string, CardIcon> = {
+  product_spotlight: SpotlightIcon,
+  spin_360: SpinIcon,
+  cinematic_closeup: CinematicIcon,
+  lifestyle_motion: LifestyleIcon,
+};
+
+const VIDEO_STYLE_OPTIONS: Array<{ value: string; label: string; icon: CardIcon }> = VIDEO_STYLE_DEFS.map((s) => ({
+  value: s.key,
+  label: s.label,
+  icon: VIDEO_STYLE_ICONS[s.key] ?? SpotlightIcon,
+}));
 
 const CATEGORIES: Array<{ value: string; label: string; icon: CardIcon }> = [
   { value: "Fashion", label: "Fashion", icon: FashionIcon },
@@ -95,7 +113,8 @@ export function OnboardingWizard() {
       case 0: return state.name.trim().length > 0;
       case 1: return categoryValid;
       case 2: return state.brandTone.length > 0;
-      case 3: return state.imageFiles.length > 0;
+      case 3: return state.videoStyle.length > 0;
+      case 4: return state.imageFiles.length > 0;
       default: return false;
     }
   })();
@@ -116,6 +135,7 @@ export function OnboardingWizard() {
         fd.append("businessName", state.name);
         fd.append("category", finalCategory);
         fd.append("brandTone", JSON.stringify(state.brandTone));
+        fd.append("videoStyle", state.videoStyle);
         if (state.websiteUrl) fd.append("websiteUrl", state.websiteUrl);
         if (state.instagramUrl) fd.append("instagramUrl", state.instagramUrl);
         if (state.tiktokUrl) fd.append("tiktokUrl", state.tiktokUrl);
@@ -219,6 +239,15 @@ export function OnboardingWizard() {
             )}
 
             {step === 3 && (
+              <CardGrid
+                options={VIDEO_STYLE_OPTIONS}
+                selected={[state.videoStyle]}
+                onToggle={(v) => update("videoStyle", v)}
+                single
+              />
+            )}
+
+            {step === 4 && (
               <>
                 <ImageUpload files={state.imageFiles} onChange={(f) => update("imageFiles", f)} />
                 {error && <div className="mt-3 max-w-md rounded-xl bg-destructive/10 px-4 py-3 text-[14px] text-destructive">{error}</div>}
@@ -246,6 +275,7 @@ const SCREENS = [
   { title: "Welcome! Let's start with your company." },
   { title: "What category are you in?" },
   { title: "What's your brand tone?" },
+  { title: "Pick a video style." },
   { title: "Last step — upload some product photos." },
 ];
 

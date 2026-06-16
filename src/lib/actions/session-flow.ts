@@ -4,6 +4,9 @@ import { getSession } from "@/lib/session-store";
 import { buildEnrichedBrief } from "@/lib/enrichment";
 import { buildVideoPrompt } from "@/lib/enrichment/prompt-builder";
 import { getVideoProvider } from "@/lib/providers/video";
+import { DEFAULT_VIDEO_STYLE, getStyleDef } from "@/lib/video-styles";
+
+const VIDEO_DURATION_SECONDS = 10;
 
 // Stateless preview / generate actions that work with the in-memory session
 // store instead of the database. Used by /create on Vercel where Prisma can't
@@ -31,7 +34,8 @@ export async function previewFromSession(sessionId: string): Promise<SessionPrev
     productImagePath: session.productImageDataUrl,
   });
 
-  const pkg = await buildVideoPrompt(brief, "Product spotlight", 5);
+  const styleKey = getStyleDef(session.videoStyle).key;
+  const pkg = await buildVideoPrompt(brief, styleKey, VIDEO_DURATION_SECONDS);
   return {
     title: pkg.sceneDescription.title,
     paragraph: pkg.sceneDescription.paragraph,
@@ -61,7 +65,7 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
     return { status: "failed", provider: "unknown", errorMessage: "No product image uploaded." };
   }
 
-  // Build the enriched brief + Runway prompt
+  // Build the enriched brief + Runway prompt using the user's chosen style
   const brief = await buildEnrichedBrief({
     businessName: session.businessName,
     category: session.category,
@@ -71,7 +75,8 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
     tiktokUrl: session.tiktokUrl,
     productImagePath: session.productImageDataUrl,
   });
-  const promptPackage = await buildVideoPrompt(brief, "Product spotlight", 5);
+  const styleKey = getStyleDef(session.videoStyle).key;
+  const promptPackage = await buildVideoPrompt(brief, styleKey, VIDEO_DURATION_SECONDS);
 
   const provider = getVideoProvider();
   const result = await provider.generateVideo({
@@ -82,12 +87,12 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
     productName: `${session.businessName} product`,
     productImagePaths: [session.productImageDataUrl],
     platform: "instagram_reels",
-    videoStyle: "Product spotlight",
+    videoStyle: getStyleDef(styleKey).label,
     hook: "",
     storyboard: [],
     onScreenText: [],
     cta: "Shop now",
-    durationSeconds: 5,
+    durationSeconds: VIDEO_DURATION_SECONDS,
     aspectRatio: "9:16",
     overridePrompt: promptPackage.runwayPrompt,
   });

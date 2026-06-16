@@ -215,3 +215,69 @@ export function PremiumIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+// --- Video style icons (4) ---
+
+export function SpotlightIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Product cube */}
+      <rect x="32" y="44" width="32" height="28" rx="3" fill={FILL} stroke={STROKE} strokeWidth={STROKE_WIDTH} />
+      {/* Orbiting camera path (arc) */}
+      <path d="M16 58 Q48 18 80 58" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" strokeDasharray="3 4" />
+      {/* Camera dot */}
+      <circle cx="80" cy="58" r="4" fill={STROKE} />
+      {/* Light rays */}
+      <path d="M48 28 L48 40 M40 32 L44 42 M56 32 L52 42" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function SpinIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Turntable base */}
+      <ellipse cx="48" cy="74" rx="32" ry="6" fill={FILL} stroke={STROKE} strokeWidth={STROKE_WIDTH} />
+      {/* Product */}
+      <rect x="36" y="40" width="24" height="30" rx="3" fill={FILL} stroke={STROKE} strokeWidth={STROKE_WIDTH} />
+      {/* Rotation arrows */}
+      <path d="M22 36 Q22 22 36 22" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
+      <path d="M30 18 L36 22 L32 28" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M74 36 Q74 22 60 22" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
+      <path d="M66 18 L60 22 L64 28" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function CinematicIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Movie clapper */}
+      <rect x="16" y="36" width="64" height="40" rx="3" fill={FILL} stroke={STROKE} strokeWidth={STROKE_WIDTH} />
+      {/* Clapper top */}
+      <path d="M16 36 L24 22 L36 30 L40 16 L52 24 L56 12 L68 20 L80 14 L80 28 Z" fill="white" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinejoin="round" />
+      {/* Diagonal stripes on clapper top */}
+      <path d="M28 22 L24 30 M44 18 L40 26 M60 14 L56 22 M76 16 L72 24" stroke={STROKE} strokeWidth={STROKE_WIDTH * 0.7} strokeLinecap="round" />
+      {/* Aperture circle inside */}
+      <circle cx="48" cy="56" r="8" fill="white" stroke={STROKE} strokeWidth={STROKE_WIDTH} />
+      <circle cx="48" cy="56" r="3" fill={STROKE} />
+    </svg>
+  );
+}
+
+export function LifestyleIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 96 96" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Cup */}
+      <path d="M28 44 L28 70 Q28 78 36 78 L56 78 Q64 78 64 70 L64 44 Z" fill={FILL} stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinejoin="round" />
+      {/* Handle */}
+      <path d="M64 50 Q76 50 76 58 Q76 66 64 66" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
+      {/* Saucer */}
+      <ellipse cx="46" cy="80" rx="24" ry="3" fill={FILL} stroke={STROKE} strokeWidth={STROKE_WIDTH} />
+      {/* Steam wisps */}
+      <path d="M36 36 Q40 28 36 20 Q32 14 36 8" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
+      <path d="M46 36 Q50 28 46 20 Q42 14 46 8" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
+      <path d="M56 36 Q60 28 56 20 Q52 14 56 8" fill="none" stroke={STROKE} strokeWidth={STROKE_WIDTH} strokeLinecap="round" />
+    </svg>
+  );
+}

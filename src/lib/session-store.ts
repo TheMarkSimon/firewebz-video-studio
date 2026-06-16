@@ -10,6 +10,7 @@ export interface SessionData {
   businessName: string;
   category: string;
   brandTone: string[];
+  videoStyle?: string;
   websiteUrl?: string;
   instagramUrl?: string;
   tiktokUrl?: string;
