@@ -18,7 +18,7 @@ export interface SessionPreview {
 }
 
 export async function previewFromSession(sessionId: string): Promise<SessionPreview> {
-  const session = getSession(sessionId);
+  const session = await getSession(sessionId);
   if (!session) throw new Error("Session expired. Please start a new post.");
 
   const brief = await buildEnrichedBrief({
@@ -53,7 +53,7 @@ export interface SessionVideoResult {
 }
 
 export async function generateVideoFromSession(sessionId: string): Promise<SessionVideoResult> {
-  const session = getSession(sessionId);
+  const session = await getSession(sessionId);
   if (!session) {
     return { status: "failed", provider: "unknown", errorMessage: "Session expired. Please start a new post." };
   }

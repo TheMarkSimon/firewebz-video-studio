@@ -1,8 +1,10 @@
-// Lightweight in-memory store for onboarding session data.
-// Used as a workaround for Vercel's per-function-instance SQLite reset:
-// onboarding submit stashes the business + product image here under a session ID,
-// /create reads from it. Lives only as long as the function instance stays warm
-// (usually 5-15 min). Demo-grade; replace with a real KV or DB later.
+// Session store with two backends:
+//   - Upstash Redis (production, via env vars set by Vercel's KV/Redis integration)
+//   - In-memory Map (local dev, when no Redis env is set)
+//
+// Stores onboarding data (business info + product image as data URL) under a
+// session ID, used to bridge the onboarding submit → /create transition without
+// requiring a full database.
 
 export interface SessionData {
   businessName: string;
@@ -11,35 +13,77 @@ export interface SessionData {
   websiteUrl?: string;
   instagramUrl?: string;
   tiktokUrl?: string;
-  // Product image stored as data URL so it's portable across function calls
   productImageDataUrl?: string;
   createdAt: number;
 }
 
-const TTL_MS = 30 * 60 * 1000; // 30 min — beyond a function's typical warm life
+const TTL_SECONDS = 30 * 60; // 30 min
 
 declare global {
   // eslint-disable-next-line no-var
   var __firewebzSessions: Map<string, SessionData> | undefined;
 }
 
-const store: Map<string, SessionData> =
-  globalThis.__firewebzSessions ?? (globalThis.__firewebzSessions = new Map());
+function generateId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
-export function putSession(data: SessionData): string {
-  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-  store.set(id, { ...data, createdAt: Date.now() });
-  // Best-effort GC
+function redisConfigured(): boolean {
+  // Vercel's KV integration injects these env names; Upstash standalone uses the same names.
+  return Boolean(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
+async function getRedisClient() {
+  const { Redis } = await import("@upstash/redis");
+  return new Redis({
+    url: process.env.KV_REST_API_URL!,
+    token: process.env.KV_REST_API_TOKEN!,
+  });
+}
+
+function getMemoryStore(): Map<string, SessionData> {
+  return globalThis.__firewebzSessions ?? (globalThis.__firewebzSessions = new Map());
+}
+
+export async function putSession(data: Omit<SessionData, "createdAt">): Promise<string> {
+  const id = generateId();
+  const payload: SessionData = { ...data, createdAt: Date.now() };
+
+  if (redisConfigured()) {
+    try {
+      const redis = await getRedisClient();
+      await redis.set(`fw:session:${id}`, payload, { ex: TTL_SECONDS });
+      return id;
+    } catch (err) {
+      console.error("[session-store] Redis set failed, falling back to memory:", err);
+    }
+  }
+
+  const store = getMemoryStore();
+  store.set(id, payload);
+  // Best-effort GC of expired entries
   for (const [k, v] of store.entries()) {
-    if (Date.now() - v.createdAt > TTL_MS) store.delete(k);
+    if (Date.now() - v.createdAt > TTL_SECONDS * 1000) store.delete(k);
   }
   return id;
 }
 
-export function getSession(id: string): SessionData | null {
+export async function getSession(id: string): Promise<SessionData | null> {
+  if (redisConfigured()) {
+    try {
+      const redis = await getRedisClient();
+      const data = (await redis.get(`fw:session:${id}`)) as SessionData | null;
+      if (data) return data;
+      // Fall through to memory if not in Redis (e.g. local-written then deployed read)
+    } catch (err) {
+      console.error("[session-store] Redis get failed, falling back to memory:", err);
+    }
+  }
+
+  const store = getMemoryStore();
   const s = store.get(id);
   if (!s) return null;
-  if (Date.now() - s.createdAt > TTL_MS) {
+  if (Date.now() - s.createdAt > TTL_SECONDS * 1000) {
     store.delete(id);
     return null;
   }

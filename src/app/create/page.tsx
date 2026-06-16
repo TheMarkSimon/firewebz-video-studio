@@ -13,7 +13,7 @@ export default async function CreatePage({ searchParams }: { searchParams: Promi
     return <NotFound message="No session. Please start from onboarding." />;
   }
 
-  const session = getSession(sessionId);
+  const session = await getSession(sessionId);
   if (!session) {
     return <NotFound message="Your session expired or this server restarted. Start a new post." />;
   }

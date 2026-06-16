@@ -24,7 +24,7 @@ export async function submitOnboarding(formData: FormData): Promise<string> {
     break; // first usable image only
   }
 
-  return putSession({
+  return await putSession({
     businessName,
     category,
     brandTone,
@@ -32,6 +32,5 @@ export async function submitOnboarding(formData: FormData): Promise<string> {
     instagramUrl,
     tiktokUrl,
     productImageDataUrl,
-    createdAt: Date.now(),
   });
 }
