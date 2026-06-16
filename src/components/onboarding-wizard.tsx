@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppShell } from "@/components/app-shell";
-import { createBusiness, createProductWithImages } from "@/lib/actions/business";
+import { submitOnboarding } from "@/lib/actions/onboarding";
 import { Loader2, Upload, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -112,31 +112,16 @@ export function OnboardingWizard() {
     startTransition(async () => {
       try {
         const finalCategory = state.category === "Other" ? state.categoryOther : state.category;
-        const businessId = await createBusiness({
-          name: state.name,
-          websiteUrl: state.websiteUrl,
-          instagramHandle: state.instagramUrl || undefined,
-          tiktokHandle: state.tiktokUrl || undefined,
-          category: finalCategory,
-          description: "",
-          location: undefined,
-          targetAudience: "",
-          brandTone: state.brandTone,
-          goals: [],
-          platforms: ["instagram_reels"],
-        });
         const fd = new FormData();
-        fd.append("businessId", businessId);
-        fd.append("name", `${state.name} product`);
-        fd.append("description", "");
+        fd.append("businessName", state.name);
         fd.append("category", finalCategory);
-        fd.append("price", "");
-        fd.append("productUrl", "");
-        fd.append("keyBenefit", "");
-        fd.append("promotion", "");
+        fd.append("brandTone", JSON.stringify(state.brandTone));
+        if (state.websiteUrl) fd.append("websiteUrl", state.websiteUrl);
+        if (state.instagramUrl) fd.append("instagramUrl", state.instagramUrl);
+        if (state.tiktokUrl) fd.append("tiktokUrl", state.tiktokUrl);
         for (const f of state.imageFiles) fd.append("images", f);
-        const productId = await createProductWithImages(fd);
-        router.push(`/create?businessId=${businessId}&productId=${productId}`);
+        const sessionId = await submitOnboarding(fd);
+        router.push(`/create?session=${sessionId}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
       }

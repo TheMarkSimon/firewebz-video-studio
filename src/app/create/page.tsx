@@ -1,60 +1,56 @@
 import { AppShell } from "@/components/app-shell";
-import { prisma } from "@/lib/db";
-import { parseJsonArray } from "@/lib/utils";
+import { getSession } from "@/lib/session-store";
 import { CreateClient } from "@/components/create-client";
-import { notFound } from "next/navigation";
+import Link from "next/link";
 
 type SP = Record<string, string | string[] | undefined>;
 
 export default async function CreatePage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const businessId = typeof sp.businessId === "string" ? sp.businessId : undefined;
-  const productId = typeof sp.productId === "string" ? sp.productId : undefined;
-  if (!businessId || !productId) return notFound();
+  const sessionId = typeof sp.session === "string" ? sp.session : undefined;
 
-  const business = await prisma.business.findUnique({ where: { id: businessId } });
-  const product = await prisma.product.findUnique({ where: { id: productId } });
-  if (!business || !product) return notFound();
+  if (!sessionId) {
+    return <NotFound message="No session. Please start from onboarding." />;
+  }
 
-  // Most recent concept + video for this product (if any)
-  const concept = await prisma.videoConcept.findFirst({
-    where: { productId },
-    include: { videos: { orderBy: { createdAt: "desc" }, take: 1, include: { feedback: true } } },
-    orderBy: { createdAt: "desc" },
-  });
+  const session = getSession(sessionId);
+  if (!session) {
+    return <NotFound message="Your session expired or this server restarted. Start a new post." />;
+  }
 
   return (
     <AppShell>
       <CreateClient
         business={{
-          id: business.id,
-          name: business.name,
-          category: business.category,
-          brandTone: parseJsonArray(business.brandTone),
+          id: sessionId,
+          name: session.businessName,
+          category: session.category,
+          brandTone: session.brandTone,
+          websiteUrl: session.websiteUrl,
+          instagramUrl: session.instagramUrl,
+          tiktokUrl: session.tiktokUrl,
         }}
         product={{
-          id: product.id,
-          name: product.name,
-          imagePaths: parseJsonArray(product.imagePaths),
+          id: sessionId,
+          name: `${session.businessName} product`,
+          imagePaths: session.productImageDataUrl ? [session.productImageDataUrl] : [],
         }}
-        existingConcept={concept ? {
-          id: concept.id,
-          hook: concept.hook,
-          caption: concept.caption,
-          hashtags: parseJsonArray(concept.hashtags),
-          cta: concept.cta,
-          platform: concept.platform,
-          videoStyle: concept.videoStyle,
-          video: concept.videos[0] ? {
-            id: concept.videos[0].id,
-            status: concept.videos[0].status,
-            filePath: concept.videos[0].filePath,
-            provider: concept.videos[0].provider,
-            errorMessage: concept.videos[0].errorMessage,
-            hasFeedback: concept.videos[0].feedback.length > 0,
-          } : null,
-        } : null}
+        existingConcept={null}
       />
+    </AppShell>
+  );
+}
+
+function NotFound({ message }: { message: string }) {
+  return (
+    <AppShell>
+      <div className="mx-auto max-w-md py-16 text-center">
+        <h1 className="font-display text-[28px] font-bold text-fw-text">Session not found</h1>
+        <p className="mt-2 text-[15px] text-fw-darkGray">{message}</p>
+        <Link href="/onboarding" className="mt-6 inline-block rounded-pill bg-fw-purple px-6 py-3 text-[14px] font-semibold text-white">
+          Start a new post
+        </Link>
+      </div>
     </AppShell>
   );
 }
