@@ -42,22 +42,26 @@ export async function describeImageWithVision(imageRef: string): Promise<VisionD
     }
 
     const { GoogleGenAI } = await import("@google/genai");
+    const { withGeminiRetry } = await import("@/lib/providers/llm/retry");
     const ai = new GoogleGenAI({ apiKey });
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{
-        role: "user",
-        parts: [
-          { text: VISION_PROMPT },
-          { inlineData: { data: base64, mimeType } },
-        ],
-      }],
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.3,
-      },
-    });
+    const response = await withGeminiRetry(
+      () => ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{
+          role: "user",
+          parts: [
+            { text: VISION_PROMPT },
+            { inlineData: { data: base64, mimeType } },
+          ],
+        }],
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.3,
+        },
+      }),
+      { label: "vision" },
+    );
 
     const text = response.text ?? "";
     const cleaned = text.replace(/^```json\s*|\s*```$/g, "").trim();

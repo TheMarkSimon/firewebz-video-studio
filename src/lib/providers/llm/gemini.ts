@@ -1,5 +1,6 @@
 import type { LlmProvider, ConceptInput } from ".";
 import type { ConceptDraft } from "@/lib/types";
+import { withGeminiRetry } from "./retry";
 
 const SYSTEM_PROMPT = `You are an expert short-form video strategist for small businesses.
 You write hooks, storyboards, captions, and CTAs that drive views and saves on Instagram Reels, TikTok, and YouTube Shorts.
@@ -50,15 +51,18 @@ export const geminiLlm: LlmProvider = {
     const { GoogleGenAI } = await import("@google/genai");
     const ai = new GoogleGenAI({ apiKey });
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts: [{ text: buildPrompt(input) }] }],
-      config: {
-        systemInstruction: SYSTEM_PROMPT,
-        responseMimeType: "application/json",
-        temperature: 0.9,
-      },
-    });
+    const response = await withGeminiRetry(
+      () => ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [{ role: "user", parts: [{ text: buildPrompt(input) }] }],
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          responseMimeType: "application/json",
+          temperature: 0.9,
+        },
+      }),
+      { label: "concept" },
+    );
 
     const text = response.text ?? "";
     const cleaned = text.replace(/^```json\s*|\s*```$/g, "").trim();
