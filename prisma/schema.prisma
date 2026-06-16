@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id              String     @id @default(cuid())
+  name            String
+  websiteUrl      String?
+  instagramHandle String?
+  tiktokHandle    String?
+  category        String
+  description     String
+  location        String?
+  targetAudience  String
+  brandTone       String     // JSON array
+  goals           String     // JSON array
+  platforms       String     // JSON array
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  products        Product[]
+  concepts        VideoConcept[]
+  calendarItems   CalendarItem[]
+}
+
+model Product {
+  id           String   @id @default(cuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
+  category     String?
+  price        String?
+  productUrl   String?
+  keyBenefit   String?
+  promotion    String?
+  imagePaths   String   // JSON array of relative paths
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  concepts     VideoConcept[]
+}
+
+model VideoConcept {
+  id                    String   @id @default(cuid())
+  businessId            String
+  business              Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productId             String
+  product               Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  platform              String
+  videoStyle            String
+  title                 String
+  hook                  String
+  storyboard            String   // JSON array
+  onScreenText          String   // JSON array
+  voiceoverScript       String?
+  caption               String
+  hashtags              String   // JSON array
+  cta                   String
+  performanceHypothesis String
+  status                String   @default("draft") // draft | approved | rejected
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  videos                GeneratedVideo[]
+  calendarItems         CalendarItem[]
+}
+
+model GeneratedVideo {
+  id                  String   @id @default(cuid())
+  conceptId           String
+  concept             VideoConcept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  provider            String
+  providerJobId       String?
+  status              String   // processing | completed | failed
+  filePath            String?
+  previewPath         String?
+  durationSeconds     Float?
+  aspectRatio         String?
+  errorMessage        String?
+  rawProviderResponse String?  // JSON
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  feedback            Feedback[]
+  calendarItems       CalendarItem[]
+}
+
+model Feedback {
+  id                String   @id @default(cuid())
+  generatedVideoId  String
+  generatedVideo    GeneratedVideo @relation(fields: [generatedVideoId], references: [id], onDelete: Cascade)
+  rating            Int
+  wouldPost         String   // yes | maybe | no
+  rejectionReasons  String   // JSON array
+  notes             String?
+  createdAt         DateTime @default(now())
+}
+
+model CalendarItem {
+  id                String   @id @default(cuid())
+  businessId        String
+  business          Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  conceptId         String?
+  concept           VideoConcept? @relation(fields: [conceptId], references: [id])
+  generatedVideoId  String?
+  generatedVideo    GeneratedVideo? @relation(fields: [generatedVideoId], references: [id])
+  scheduledDate     DateTime
+  platform          String
+  status            String   @default("concept") // concept | video_generated | approved | rejected | exported
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

@@ -1,0 +1,21 @@
+node_modules
+.next
+out
+dist
+*.log
+.env
+.env.local
+.env*.local
+dev.db
+dev.db-journal
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/generated-videos/*
+!storage/generated-videos/.gitkeep
+.DS_Store
+
+# Claude Code local state — contains workspace-specific permission cache
+.claude/
+
+# Tsbuildinfo cache
+tsconfig.tsbuildinfo
