@@ -168,20 +168,18 @@ export const runwayVideo: VideoGenerationProvider = {
         return { provider: "runway", status: "failed", errorMessage: "Runway succeeded but returned no output URL", providerJobId: taskId, rawResponse: task };
       }
 
-      // 3. Download the MP4 to local storage (retry up to 3 times — CloudFront edge nodes
-      //    occasionally drop the first TLS handshake from Node fetch).
+      // 3. On serverless platforms (Vercel) the filesystem is read-only, so skip
+      //    the local download entirely and just serve the CDN URL. Also avoids
+      //    any network restrictions on the local dev machine (Zscaler etc.).
+      const isServerless = Boolean(process.env.VERCEL) || process.env.SKIP_VIDEO_DOWNLOAD === "1";
       const outDir = process.env.GENERATED_VIDEO_DIR ?? "./storage/generated-videos";
-      await fs.mkdir(outDir, { recursive: true });
       const filename = `runway-${Date.now()}.mp4`;
       const absPath = path.resolve(outDir, filename);
-
-      // On serverless platforms (Vercel) the filesystem is ephemeral, so skip
-      // the local download and just serve the CDN URL. Also avoids any
-      // network restrictions on the local dev machine (Zscaler etc.).
-      const isServerless = Boolean(process.env.VERCEL) || process.env.SKIP_VIDEO_DOWNLOAD === "1";
       let downloadOk = false;
       let downloadErr = isServerless ? "skipped (serverless)" : "";
       if (!isServerless) {
+        // Only touch the filesystem when running locally — Vercel's FS is read-only.
+        await fs.mkdir(outDir, { recursive: true });
         for (let attempt = 1; attempt <= 3; attempt++) {
           try {
             await downloadToFile(videoUrl, absPath);
