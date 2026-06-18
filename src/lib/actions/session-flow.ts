@@ -3,10 +3,12 @@
 import { getSession } from "@/lib/session-store";
 import { buildEnrichedBrief } from "@/lib/enrichment";
 import { buildVideoPrompt } from "@/lib/enrichment/prompt-builder";
+import { generateLifestyleScene } from "@/lib/enrichment/scene-generator";
 import { getVideoProvider } from "@/lib/providers/video";
-import { DEFAULT_VIDEO_STYLE, getStyleDef } from "@/lib/video-styles";
+import { DEFAULT_VIDEO_STYLE, getStyleDef, type VideoStyleKey } from "@/lib/video-styles";
 
 const VIDEO_DURATION_SECONDS = 10;
+const USE_TWO_STAGE = process.env.USE_TWO_STAGE_VIDEO === "1";
 
 // Stateless preview / generate actions that work with the in-memory session
 // store instead of the database. Used by /create on Vercel where Prisma can't
@@ -48,6 +50,11 @@ export async function previewFromSession(sessionId: string): Promise<SessionPrev
 export interface SessionVideoResult {
   status: "completed" | "failed";
   videoUrl?: string;
+  // When two-stage generation runs, the AI-generated lifestyle scene shown
+  // as the first frame. Useful for the result UI to display "the scene we
+  // created from your photo".
+  lifestyleSceneUrl?: string;
+  lifestyleSceneDescription?: string;
   errorMessage?: string;
   provider: string;
   hook?: string;
@@ -75,7 +82,28 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
     tiktokUrl: session.tiktokUrl,
     productImagePath: session.productImageDataUrl,
   });
-  const styleKey = getStyleDef(session.videoStyle).key;
+  const styleKey: VideoStyleKey = getStyleDef(session.videoStyle).key;
+
+  // Stage 1 (optional): generate a lifestyle scene image with Imagen.
+  // When enabled, this image becomes the starting frame for Runway instead
+  // of the user's raw product photo — dramatically more interesting output.
+  let frameImageForRunway = session.productImageDataUrl;
+  let lifestyleSceneUrl: string | undefined;
+  let lifestyleSceneDescription: string | undefined;
+  if (USE_TWO_STAGE) {
+    try {
+      const scene = await generateLifestyleScene(brief, styleKey);
+      if (scene?.imageDataUrl) {
+        frameImageForRunway = scene.imageDataUrl;
+        lifestyleSceneUrl = scene.imageDataUrl;
+        lifestyleSceneDescription = scene.sceneDescription;
+      }
+    } catch (err) {
+      console.error("[session-flow] lifestyle scene generation failed, falling back to product photo:", err);
+    }
+  }
+
+  // Build the runway prompt with the (possibly upgraded) frame in context
   const promptPackage = await buildVideoPrompt(brief, styleKey, VIDEO_DURATION_SECONDS);
 
   const provider = getVideoProvider();
@@ -85,7 +113,7 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
     brandTone: session.brandTone.join(", "),
     targetAudience: "",
     productName: `${session.businessName} product`,
-    productImagePaths: [session.productImageDataUrl],
+    productImagePaths: [frameImageForRunway],
     platform: "instagram_reels",
     videoStyle: getStyleDef(styleKey).label,
     hook: "",
@@ -133,6 +161,8 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
   return {
     status: "completed",
     videoUrl: result.videoFilePath,
+    lifestyleSceneUrl,
+    lifestyleSceneDescription,
     provider: provider.name,
     hook,
     caption,

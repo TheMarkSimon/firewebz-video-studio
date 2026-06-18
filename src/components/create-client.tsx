@@ -268,9 +268,21 @@ function ResultPhase({
               </a>
             </Button>
           )}
-          {productImageUrl && !videoUrl && (
+          {result.lifestyleSceneUrl && (
             <div className="mt-3">
-              <p className="text-[11px] uppercase tracking-wider text-fw-darkGray">Source photo</p>
+              <p className="text-[11px] uppercase tracking-wider text-fw-darkGray">AI-generated scene</p>
+              <img src={result.lifestyleSceneUrl} alt="" className="mt-1 w-full rounded-lg border border-fw-border" />
+              {result.lifestyleSceneDescription && (
+                <p className="mt-1.5 text-[11px] text-fw-darkGray italic">{result.lifestyleSceneDescription}</p>
+              )}
+              <p className="mt-1.5 text-[10px] text-fw-lightGray">
+                Small product details may vary from your original photo.
+              </p>
+            </div>
+          )}
+          {productImageUrl && (
+            <div className="mt-3">
+              <p className="text-[11px] uppercase tracking-wider text-fw-darkGray">Your source photo</p>
               <img src={productImageUrl} alt="" className="mt-1 w-full rounded-lg border border-fw-border" />
             </div>
           )}
