@@ -384,10 +384,26 @@ function DiagnosticsPanel({ diagnostics: d }: { diagnostics: NonNullable<Session
               {d.imagenSceneDescription}
             </DiagBlock>
           )}
+          {d.imagenModelUsed && (
+            <DiagRow label="Image model used" value={d.imagenModelUsed} ok="ok" />
+          )}
+
           {d.imagenError && (
-            <DiagBlock label="Imagen error" tone="error">
+            <DiagBlock label="Image generation error (every model that was tried + why it failed)" tone="error">
               {d.imagenError}
             </DiagBlock>
+          )}
+
+          {d.imagenAttempts && d.imagenAttempts.length > 0 && !d.imagenModelUsed && (
+            <div className="rounded-lg bg-fw-yellow/20 px-3 py-2 text-[11px] text-fw-text">
+              ⚠️ Setup needed for image generation. The most common cause is:
+              <ol className="ml-4 mt-1 list-decimal space-y-1">
+                <li>Enable the <strong>Generative Language API</strong> on your Google Cloud project at <code className="rounded bg-white px-1">console.cloud.google.com/apis/library/generativelanguage.googleapis.com</code></li>
+                <li>Enable the <strong>Vertex AI API</strong> at <code className="rounded bg-white px-1">console.cloud.google.com/apis/library/aiplatform.googleapis.com</code></li>
+                <li>Make sure billing is active on the same project (you said you did this — verify the key was made under the right project)</li>
+                <li>Some Imagen models are allowlist-gated; if all attempts say PERMISSION_DENIED or NOT_FOUND, request access at <code className="rounded bg-white px-1">aistudio.google.com</code></li>
+              </ol>
+            </div>
           )}
 
           {/* Stage 2 status */}

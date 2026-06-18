@@ -55,6 +55,8 @@ export interface SessionVideoDiagnostics {
   imagenSceneDescription?: string;
   imagenDurationMs?: number;
   imagenError?: string;
+  imagenModelUsed?: string;
+  imagenAttempts?: Array<{ model: string; error: string }>;
   runwayPrompt?: string;
   runwayModel?: string;
   runwayDurationMs?: number;
@@ -120,6 +122,8 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
       diagnostics.imagenDurationMs = Date.now() - imagenStart;
       diagnostics.imagenPrompt = scene?.imagePrompt;
       diagnostics.imagenSceneDescription = scene?.sceneDescription;
+      diagnostics.imagenAttempts = scene?.attempts;
+      diagnostics.imagenModelUsed = scene?.modelUsed;
       if (scene?.imageDataUrl) {
         frameImageForRunway = scene.imageDataUrl;
         lifestyleSceneUrl = scene.imageDataUrl;

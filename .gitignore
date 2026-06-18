@@ -19,3 +19,5 @@ storage/generated-videos/*
 
 # Tsbuildinfo cache
 tsconfig.tsbuildinfo
+.vercel
+.env*
