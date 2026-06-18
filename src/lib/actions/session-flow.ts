@@ -47,6 +47,22 @@ export async function previewFromSession(sessionId: string): Promise<SessionPrev
   };
 }
 
+export interface SessionVideoDiagnostics {
+  twoStageEnabled: boolean;
+  twoStageUsed: boolean;
+  twoStageFallbackReason?: string;
+  imagenPrompt?: string;
+  imagenSceneDescription?: string;
+  imagenDurationMs?: number;
+  imagenError?: string;
+  runwayPrompt?: string;
+  runwayModel?: string;
+  runwayDurationMs?: number;
+  runwayTaskId?: string;
+  totalDurationMs?: number;
+  videoStyleKey?: string;
+}
+
 export interface SessionVideoResult {
   status: "completed" | "failed";
   videoUrl?: string;
@@ -61,6 +77,7 @@ export interface SessionVideoResult {
   caption?: string;
   hashtags?: string[];
   cta?: string;
+  diagnostics?: SessionVideoDiagnostics;
 }
 
 export async function generateVideoFromSession(sessionId: string): Promise<SessionVideoResult> {
@@ -83,6 +100,12 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
     productImagePath: session.productImageDataUrl,
   });
   const styleKey: VideoStyleKey = getStyleDef(session.videoStyle).key;
+  const pipelineStart = Date.now();
+  const diagnostics: SessionVideoDiagnostics = {
+    twoStageEnabled: USE_TWO_STAGE,
+    twoStageUsed: false,
+    videoStyleKey: styleKey,
+  };
 
   // Stage 1 (optional): generate a lifestyle scene image with Imagen.
   // When enabled, this image becomes the starting frame for Runway instead
@@ -91,21 +114,38 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
   let lifestyleSceneUrl: string | undefined;
   let lifestyleSceneDescription: string | undefined;
   if (USE_TWO_STAGE) {
+    const imagenStart = Date.now();
     try {
       const scene = await generateLifestyleScene(brief, styleKey);
+      diagnostics.imagenDurationMs = Date.now() - imagenStart;
+      diagnostics.imagenPrompt = scene?.imagePrompt;
+      diagnostics.imagenSceneDescription = scene?.sceneDescription;
       if (scene?.imageDataUrl) {
         frameImageForRunway = scene.imageDataUrl;
         lifestyleSceneUrl = scene.imageDataUrl;
         lifestyleSceneDescription = scene.sceneDescription;
+        diagnostics.twoStageUsed = true;
+      } else {
+        diagnostics.imagenError = scene?.error ?? "Imagen returned no image (silent failure)";
+        diagnostics.twoStageFallbackReason = diagnostics.imagenError;
       }
     } catch (err) {
+      diagnostics.imagenDurationMs = Date.now() - imagenStart;
+      const msg = err instanceof Error ? err.message : String(err);
+      diagnostics.imagenError = msg;
+      diagnostics.twoStageFallbackReason = `Exception: ${msg}`;
       console.error("[session-flow] lifestyle scene generation failed, falling back to product photo:", err);
     }
+  } else {
+    diagnostics.twoStageFallbackReason = "USE_TWO_STAGE_VIDEO env var is not set to '1'";
   }
 
   // Build the runway prompt with the (possibly upgraded) frame in context
   const promptPackage = await buildVideoPrompt(brief, styleKey, VIDEO_DURATION_SECONDS);
+  diagnostics.runwayPrompt = promptPackage.runwayPrompt;
+  diagnostics.runwayModel = process.env.RUNWAY_MODEL ?? "gen4_turbo";
 
+  const runwayStart = Date.now();
   const provider = getVideoProvider();
   const result = await provider.generateVideo({
     businessName: session.businessName,
@@ -124,6 +164,9 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
     aspectRatio: "9:16",
     overridePrompt: promptPackage.runwayPrompt,
   });
+  diagnostics.runwayDurationMs = Date.now() - runwayStart;
+  diagnostics.runwayTaskId = result.providerJobId;
+  diagnostics.totalDurationMs = Date.now() - pipelineStart;
 
   // Also generate caption/hook/hashtags via the existing LLM provider — these
   // are cheap text generations that won't hit the DB.
@@ -155,6 +198,7 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
       status: "failed",
       provider: provider.name,
       errorMessage: result.errorMessage,
+      diagnostics,
     };
   }
 
@@ -168,5 +212,6 @@ export async function generateVideoFromSession(sessionId: string): Promise<Sessi
     caption,
     hashtags,
     cta,
+    diagnostics,
   };
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { previewFromSession, generateVideoFromSession, type SessionPreview, type SessionVideoResult } from "@/lib/actions/session-flow";
-import { Loader2, Sparkles, Download, RotateCw, Instagram, Music } from "lucide-react";
+import { Loader2, Sparkles, Download, RotateCw, Instagram, Music, ChevronDown, ChevronUp, AlertCircle, CheckCircle } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn, assetUrl } from "@/lib/utils";
 
@@ -335,6 +335,117 @@ function ResultPhase({
           </div>
         </div>
       </div>
+
+      {result.diagnostics && <DiagnosticsPanel diagnostics={result.diagnostics} />}
+    </div>
+  );
+}
+
+function DiagnosticsPanel({ diagnostics: d }: { diagnostics: NonNullable<SessionVideoResult["diagnostics"]> }) {
+  const [open, setOpen] = useState(false);
+  const fmtMs = (ms?: number) => (ms == null ? "—" : ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
+
+  return (
+    <div className="mt-8 rounded-2xl border border-fw-border bg-fw-disabled/50">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-5 py-3 text-left text-[13px] font-semibold text-fw-text"
+      >
+        <span className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-fw-purple" />
+          Show diagnostics (what just happened behind the scenes)
+        </span>
+        {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </button>
+
+      {open && (
+        <div className="space-y-4 border-t border-fw-border px-5 py-4 text-[12px] text-fw-text">
+          {/* Stage 1 status */}
+          <DiagRow
+            label="Stage 1 — Imagen (lifestyle scene)"
+            value={
+              !d.twoStageEnabled
+                ? "DISABLED (USE_TWO_STAGE_VIDEO env var not set to '1')"
+                : d.twoStageUsed
+                  ? `OK — Imagen generated a lifestyle scene in ${fmtMs(d.imagenDurationMs)}`
+                  : `FAILED — ${d.twoStageFallbackReason ?? "unknown"} (fell back to original product photo)`
+            }
+            ok={!d.twoStageEnabled ? "warn" : d.twoStageUsed ? "ok" : "fail"}
+          />
+
+          {d.imagenPrompt && (
+            <DiagBlock label="Imagen prompt (what we asked the image model to create)">
+              {d.imagenPrompt}
+            </DiagBlock>
+          )}
+          {d.imagenSceneDescription && (
+            <DiagBlock label="Imagen scene description (what we told the user)">
+              {d.imagenSceneDescription}
+            </DiagBlock>
+          )}
+          {d.imagenError && (
+            <DiagBlock label="Imagen error" tone="error">
+              {d.imagenError}
+            </DiagBlock>
+          )}
+
+          {/* Stage 2 status */}
+          <DiagRow
+            label={`Stage 2 — Runway (${d.runwayModel ?? "?"})`}
+            value={`Completed in ${fmtMs(d.runwayDurationMs)} · task ${d.runwayTaskId ?? "?"}`}
+            ok="ok"
+          />
+
+          {d.runwayPrompt && (
+            <DiagBlock label="Runway prompt (what we asked the video model to do with the first frame)">
+              {d.runwayPrompt}
+            </DiagBlock>
+          )}
+
+          <DiagRow label="Style picked" value={d.videoStyleKey ?? "?"} ok="ok" />
+          <DiagRow label="Total time" value={fmtMs(d.totalDurationMs)} ok="ok" />
+
+          {!d.twoStageEnabled && (
+            <div className="rounded-lg bg-fw-yellow/20 px-3 py-2 text-[11px] text-fw-text">
+              ⚠️ Two-stage is OFF on this deployment. Runway only saw your original product photo, so the video can only be subtle motion of that exact photo. Set <code className="rounded bg-white px-1">USE_TWO_STAGE_VIDEO=1</code> in Vercel env vars and redeploy.
+            </div>
+          )}
+          {d.twoStageEnabled && !d.twoStageUsed && (
+            <div className="rounded-lg bg-destructive/15 px-3 py-2 text-[11px] text-destructive">
+              ⚠️ Two-stage is enabled but Imagen failed. Runway got your original photo as fallback, which is why output looks like a basic catalog animation. The Imagen error above tells you why it failed (most common cause: billing not enabled on the Google Cloud project tied to GEMINI_API_KEY).
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DiagRow({ label, value, ok }: { label: string; value: string; ok: "ok" | "warn" | "fail" }) {
+  const icon =
+    ok === "ok" ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> :
+    ok === "warn" ? <AlertCircle className="h-3.5 w-3.5 text-amber-500" /> :
+    <AlertCircle className="h-3.5 w-3.5 text-destructive" />;
+  return (
+    <div className="flex items-start gap-2">
+      <div className="mt-0.5">{icon}</div>
+      <div className="flex-1">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-fw-darkGray">{label}</div>
+        <div className="text-[12px] text-fw-text">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function DiagBlock({ label, children, tone = "info" }: { label: string; children: React.ReactNode; tone?: "info" | "error" }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-fw-darkGray">{label}</div>
+      <pre className={cn(
+        "mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg p-3 text-[11px] leading-relaxed",
+        tone === "error" ? "bg-destructive/10 text-destructive" : "bg-white text-fw-text"
+      )}>{children}</pre>
     </div>
   );
 }
