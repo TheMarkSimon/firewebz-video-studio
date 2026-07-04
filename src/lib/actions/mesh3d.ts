@@ -45,7 +45,11 @@ export async function generateMesh3dFromSession(sessionId: string): Promise<Mesh
   }
 
   const provider = getMesh3dProvider();
-  const caption = `${session.category} product for ${session.businessName}. Photorealistic, isolated on white background.`;
+  // Prompt intentionally describes only product identity + texture quality.
+  // Camera angle, rotation, and viewpoint are controlled by the frontend
+  // <model-viewer> in generate-client.tsx — never in this prompt.
+  const productLabel = session.category ? `${session.category} product` : "product";
+  const caption = `${productLabel} for ${session.businessName}, high-fidelity 3D asset for e-commerce, clean topology, realistic PBR materials.`;
 
   const result = await provider.generate({
     frontImageDataUrl: photos.front,

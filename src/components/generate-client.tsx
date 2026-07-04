@@ -27,6 +27,12 @@ declare global {
           "environment-image"?: string;
           poster?: string;
           "auto-rotate-delay"?: string | number;
+          "camera-orbit"?: string;
+          "min-camera-orbit"?: string;
+          "max-camera-orbit"?: string;
+          "interaction-prompt"?: string;
+          "disable-zoom"?: boolean;
+          "disable-pan"?: boolean;
         },
         HTMLElement
       >;
@@ -200,12 +206,26 @@ function ResultPhase({
         <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4">
           {succeeded && result.glbUrl ? (
             <>
+              {/*
+                Camera setup:
+                  - camera-orbit "theta phi radius" — initial view: rotated 0deg, tilted 15deg down (phi=75deg), auto-fit radius
+                  - Locking vertical rotation: min-camera-orbit and max-camera-orbit both pin phi at 75deg, so the user can't
+                    flip the product upside down or look underneath it. Horizontal (theta) is left fully free with 'auto'
+                    on the min/max so 360deg spin works both ways.
+                  - Disable pan and zoom to keep the interaction to a pure product spin.
+              */}
               <model-viewer
                 ref={(el) => { viewerRef.current = el; }}
                 src={result.glbUrl}
                 alt={`3D view of ${businessName} product`}
                 camera-controls
                 auto-rotate
+                disable-pan
+                disable-zoom
+                camera-orbit="0deg 75deg auto"
+                min-camera-orbit="auto 75deg auto"
+                max-camera-orbit="auto 75deg auto"
+                interaction-prompt="none"
                 shadow-intensity="1"
                 exposure="1"
                 style={{ width: "100%", height: "520px", background: "#f8f7ff", borderRadius: "12px" }}
@@ -216,7 +236,7 @@ function ResultPhase({
                     <Download className="h-4 w-4" /> Download GLB
                   </a>
                 </Button>
-                <span className="text-[12px] text-fw-lightGray">Drag to rotate · pinch to zoom</span>
+                <span className="text-[12px] text-fw-lightGray">Drag left/right to spin</span>
               </div>
             </>
           ) : (
