@@ -269,7 +269,7 @@ function ConceptCard({ concept, businessId }: { concept: Concept; businessId?: s
               <video src={videoUrl} controls className="mx-auto aspect-[9/16] max-h-[400px] w-auto rounded-xl bg-black" />
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
-                  <a href={videoUrl} download={`firewebz-${latestVideo.id}.mp4`}>
+                  <a href={videoUrl} download={`spinr-${latestVideo.id}.mp4`}>
                     <Download className="h-4 w-4" /> Download
                   </a>
                 </Button>

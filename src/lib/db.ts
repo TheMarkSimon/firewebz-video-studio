@@ -11,7 +11,7 @@ function resolveDatabaseUrl(): string {
   if (explicit && explicit.length) return explicit;
 
   if (process.env.VERCEL) {
-    const tmpDb = "/tmp/firewebz.db";
+    const tmpDb = "/tmp/spinr.db";
     try {
       if (!existsSync(tmpDb)) {
         const seedDb = path.resolve(process.cwd(), "prisma/seed.db");

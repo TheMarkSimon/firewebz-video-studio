@@ -232,7 +232,7 @@ function ResultPhase({
               />
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <Button asChild variant="outline" className="h-9 px-4 text-[13px]">
-                  <a href={result.glbUrl} download={`firewebz-${businessName.replace(/\s+/g, "-")}.glb`}>
+                  <a href={result.glbUrl} download={`spinr-${businessName.replace(/\s+/g, "-")}.glb`}>
                     <Download className="h-4 w-4" /> Download GLB
                   </a>
                 </Button>

@@ -29,7 +29,7 @@ const TTL_SECONDS = 30 * 60; // 30 min
 
 declare global {
   // eslint-disable-next-line no-var
-  var __firewebzSessions: Map<string, SessionData> | undefined;
+  var __spinrSessions: Map<string, SessionData> | undefined;
 }
 
 function generateId(): string {
@@ -50,7 +50,7 @@ async function getRedisClient() {
 }
 
 function getMemoryStore(): Map<string, SessionData> {
-  return globalThis.__firewebzSessions ?? (globalThis.__firewebzSessions = new Map());
+  return globalThis.__spinrSessions ?? (globalThis.__spinrSessions = new Map());
 }
 
 export async function putSession(data: Omit<SessionData, "createdAt">): Promise<string> {

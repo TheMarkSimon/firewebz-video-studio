@@ -93,7 +93,7 @@ export function CalendarClient({ items, platformLabels }: { items: Item[]; platf
                       <div className="text-xs font-medium text-muted-foreground">{day}</div>
                       <div className="mt-1 space-y-1">
                         {dayItems.map((it) => (
-                          <div key={it.id} className="rounded-md bg-firewebz-gradient/20 p-1.5 text-[10px] leading-tight">
+                          <div key={it.id} className="rounded-md bg-fw-purple/20 p-1.5 text-[10px] leading-tight">
                             <div className="font-semibold">{it.conceptTitle.slice(0, 28)}</div>
                             <div className="text-muted-foreground">{platformLabels[it.platform] ?? it.platform}</div>
                           </div>

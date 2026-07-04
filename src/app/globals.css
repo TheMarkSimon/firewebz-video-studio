@@ -5,10 +5,10 @@
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Palanquin:wght@400;500;600;700&display=swap");
 
 :root {
-  /* Firewebz palette (Lemonade-style: mostly white + one accent color) */
+  /* Spinr palette (Lemonade-style: mostly white + one accent color) */
   --fw-page: 0 0% 100%;             /* pure white */
   --fw-card: 0 0% 100%;
-  --fw-purple: 248 100% 75%;        /* #9381FF — Firewebz accent (Lemonade equivalent of their pink) */
+  --fw-purple: 248 100% 75%;        /* #9381FF — Spinr accent */
   --fw-purple-dark: 248 60% 60%;
   --fw-purple-soft: 248 100% 97%;   /* very light purple tint for backgrounds */
   --fw-turquoise: 172 79% 49%;

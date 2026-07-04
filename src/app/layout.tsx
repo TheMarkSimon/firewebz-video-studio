@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Firewebz Video Studio",
-  description: "Turn your products into ready-to-post Reels and TikToks.",
+  title: "Spinr",
+  description: "Turn 3 product photos into an interactive 360° view.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

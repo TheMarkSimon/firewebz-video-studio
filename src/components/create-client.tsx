@@ -263,7 +263,7 @@ function ResultPhase({
           </div>
           {videoUrl && (
             <Button asChild variant="outline" className="mt-3 w-full h-9 text-[13px]">
-              <a href={videoUrl} download={`firewebz-${business.name.replace(/\s+/g, "-")}.mp4`}>
+              <a href={videoUrl} download={`spinr-${business.name.replace(/\s+/g, "-")}.mp4`}>
                 <Download className="h-4 w-4" /> Download MP4
               </a>
             </Button>

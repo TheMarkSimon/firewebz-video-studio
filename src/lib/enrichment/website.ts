@@ -33,7 +33,7 @@ async function fetchWithTimeout(url: string, ms: number): Promise<Response> {
     return await fetch(url, {
       signal: controller.signal,
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; Firewebz/0.1; +https://firewebz.io)",
+        "User-Agent": "Mozilla/5.0 (compatible; Spinr/0.1; +https://spinr.app)",
         Accept: "text/html,application/xhtml+xml",
       },
       redirect: "follow",

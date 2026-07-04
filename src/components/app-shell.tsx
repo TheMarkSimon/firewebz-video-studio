@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { FirewebzLogo } from "@/components/firewebz-logo";
+import { BrandLogo } from "@/components/brand-logo";
 import { MoreHorizontal, X, LayoutDashboard, Sparkles, Calendar, Settings, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +29,7 @@ export function AppShell({
     <div className="min-h-screen bg-white">
       <header className="flex h-16 items-center justify-between px-6 lg:px-8">
         <Link href="/">
-          <FirewebzLogo />
+          <BrandLogo />
         </Link>
         <button
           onClick={() => setMenuOpen(true)}

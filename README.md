@@ -1,8 +1,8 @@
-# Firewebz Video Studio — Local MVP
+# Spinr — Local MVP
 
 Your AI video marketing assistant for turning product images into ready-to-post Reels and TikToks.
 
-This is a **validation MVP** — a local-first single-user app designed to demo the Firewebz Video Studio experience to your partner and 3–5 friendly SMBs. It is not production-grade. No auth, no payments, no publishing.
+This is a **validation MVP** — a local-first single-user app designed to demo the Spinr 360° product view experience to your partner and 3–5 friendly SMBs. It is not production-grade. No auth, no payments, no publishing.
 
 ---
 
