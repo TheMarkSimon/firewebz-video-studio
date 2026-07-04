@@ -5,17 +5,17 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AppShell } from "@/components/app-shell";
-import { submitOnboarding } from "@/lib/actions/onboarding";
-import { Loader2, Upload, X, Check } from "lucide-react";
+import { submitOnboarding3d } from "@/lib/actions/onboarding3d";
+import { Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   FashionIcon, FoodIcon, BeautyIcon, HomeIcon, HealthIcon, TechIcon, ServicesIcon, OtherIcon,
-  FriendlyIcon, PlayfulIcon, BoldIcon, PremiumIcon,
-  SpotlightIcon, SpinIcon, CinematicIcon, LifestyleIcon,
 } from "@/components/category-icons";
-import { VIDEO_STYLES as VIDEO_STYLE_DEFS, DEFAULT_VIDEO_STYLE } from "@/lib/video-styles";
+import { PhotoSlot, type SlotKind } from "@/components/photo-slot";
 
 type CardIcon = React.ComponentType<{ className?: string }>;
+
+type PhotoEntry = { raw: string | null; processed: string | null };
 
 type State = {
   name: string;
@@ -24,9 +24,7 @@ type State = {
   tiktokUrl: string;
   category: string;
   categoryOther: string;
-  brandTone: string[];
-  videoStyle: string;
-  imageFiles: File[];
+  photos: Record<SlotKind, PhotoEntry>;
 };
 
 const INITIAL: State = {
@@ -36,33 +34,20 @@ const INITIAL: State = {
   tiktokUrl: "",
   category: "",
   categoryOther: "",
-  brandTone: [],
-  videoStyle: DEFAULT_VIDEO_STYLE,
-  imageFiles: [],
+  photos: {
+    front: { raw: null, processed: null },
+    back: { raw: null, processed: null },
+    left: { raw: null, processed: null },
+    right: { raw: null, processed: null },
+  },
 };
 
 const SECTIONS = [
-  { label: "Account setup", steps: [0] },
+  { label: "About you", steps: [0] },
   { label: "Category", steps: [1] },
-  { label: "Brand tone", steps: [2] },
-  { label: "Video style", steps: [3] },
-  { label: "Photos", steps: [4] },
+  { label: "Photos", steps: [2] },
 ];
-const TOTAL_STEPS = 5;
-const MAX_TONES = 3;
-
-const VIDEO_STYLE_ICONS: Record<string, CardIcon> = {
-  product_spotlight: SpotlightIcon,
-  spin_360: SpinIcon,
-  cinematic_closeup: CinematicIcon,
-  lifestyle_motion: LifestyleIcon,
-};
-
-const VIDEO_STYLE_OPTIONS: Array<{ value: string; label: string; icon: CardIcon }> = VIDEO_STYLE_DEFS.map((s) => ({
-  value: s.key,
-  label: s.label,
-  icon: VIDEO_STYLE_ICONS[s.key] ?? SpotlightIcon,
-}));
+const TOTAL_STEPS = 3;
 
 const CATEGORIES: Array<{ value: string; label: string; icon: CardIcon }> = [
   { value: "Fashion", label: "Fashion", icon: FashionIcon },
@@ -75,11 +60,11 @@ const CATEGORIES: Array<{ value: string; label: string; icon: CardIcon }> = [
   { value: "Other", label: "Other", icon: OtherIcon },
 ];
 
-const TONES: Array<{ value: string; label: string; icon: CardIcon }> = [
-  { value: "Friendly", label: "Friendly", icon: FriendlyIcon },
-  { value: "Playful", label: "Playful", icon: PlayfulIcon },
-  { value: "Bold", label: "Bold", icon: BoldIcon },
-  { value: "Premium", label: "Premium", icon: PremiumIcon },
+const SLOTS: Array<{ kind: SlotKind; label: string; required: boolean }> = [
+  { kind: "front", label: "Front", required: true },
+  { kind: "back",  label: "Back",  required: true },
+  { kind: "left",  label: "Left side",  required: true },
+  { kind: "right", label: "Right side", required: false },
 ];
 
 function sectionIndexForStep(step: number): number {
@@ -97,24 +82,22 @@ export function OnboardingWizard() {
   function update<K extends keyof State>(key: K, value: State[K]) {
     setState((s) => ({ ...s, [key]: value }));
   }
-  function toggleTone(val: string) {
-    setState((s) => {
-      const present = s.brandTone.includes(val);
-      if (present) return { ...s, brandTone: s.brandTone.filter((v) => v !== val) };
-      if (s.brandTone.length >= MAX_TONES) return s;
-      return { ...s, brandTone: [...s.brandTone, val] };
-    });
+  function updatePhoto(kind: SlotKind, raw: string | null, processed: string | null) {
+    setState((s) => ({
+      ...s,
+      photos: { ...s.photos, [kind]: { raw, processed } },
+    }));
   }
 
   const categoryValid = state.category !== "" && (state.category !== "Other" || state.categoryOther.trim().length > 0);
+  const requiredPhotos: SlotKind[] = ["front", "back", "left"];
+  const photosValid = requiredPhotos.every((k) => Boolean(state.photos[k].processed || state.photos[k].raw));
 
   const valid = ((): boolean => {
     switch (step) {
       case 0: return state.name.trim().length > 0;
       case 1: return categoryValid;
-      case 2: return state.brandTone.length > 0;
-      case 3: return state.videoStyle.length > 0;
-      case 4: return state.imageFiles.length > 0;
+      case 2: return photosValid;
       default: return false;
     }
   })();
@@ -134,14 +117,16 @@ export function OnboardingWizard() {
         const fd = new FormData();
         fd.append("businessName", state.name);
         fd.append("category", finalCategory);
-        fd.append("brandTone", JSON.stringify(state.brandTone));
-        fd.append("videoStyle", state.videoStyle);
         if (state.websiteUrl) fd.append("websiteUrl", state.websiteUrl);
         if (state.instagramUrl) fd.append("instagramUrl", state.instagramUrl);
         if (state.tiktokUrl) fd.append("tiktokUrl", state.tiktokUrl);
-        for (const f of state.imageFiles) fd.append("images", f);
-        const sessionId = await submitOnboarding(fd);
-        router.push(`/create?session=${sessionId}`);
+        for (const slot of SLOTS) {
+          const p = state.photos[slot.kind];
+          const chosen = p.processed || p.raw;
+          if (chosen) fd.append(`photo_${slot.kind}`, chosen);
+        }
+        const sessionId = await submitOnboarding3d(fd);
+        router.push(`/generate?session=${sessionId}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
       }
@@ -154,7 +139,6 @@ export function OnboardingWizard() {
   return (
     <AppShell variant="onboarding" onReset={reset}>
       <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6 lg:gap-10 pt-4 lg:pt-6">
-        {/* Left section rail (Lemonade-style) */}
         <aside className="hidden lg:block">
           <div className="relative pl-8">
             <div className="absolute left-[11px] top-3 bottom-3 w-px bg-fw-lighterGray" />
@@ -167,21 +151,21 @@ export function OnboardingWizard() {
                   type="button"
                   onClick={() => isDone && setStep(SECTIONS[i].steps[0])}
                   disabled={!isDone && !isActive}
-                  className="relative mb-7 block w-full text-left"
+                  className="relative mb-6 block w-full text-left"
                 >
                   <span
                     className={cn(
-                      "absolute -left-[31px] top-[3px] flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 bg-white",
-                      isActive ? "border-fw-purple" :
-                      isDone   ? "border-fw-purple bg-fw-purple" :
-                                 "border-fw-lightGray"
+                      "absolute -left-6 top-[2px] flex h-4 w-4 items-center justify-center rounded-full border-2",
+                      isActive ? "border-fw-purple bg-fw-purple" :
+                      isDone   ? "border-fw-purple bg-white" :
+                                 "border-fw-lightGray bg-white"
                     )}
                   >
-                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-fw-purple" />}
-                    {isDone && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                    {isDone && <Check className="h-2.5 w-2.5 text-fw-purple" strokeWidth={3} />}
                   </span>
                   <span className={cn(
-                    "text-[16px] font-semibold",
+                    "text-[14px] font-semibold",
                     isActive || isDone ? "text-fw-text" : "text-fw-lightGray"
                   )}>
                     {s.label}
@@ -192,13 +176,14 @@ export function OnboardingWizard() {
           </div>
         </aside>
 
-        {/* Center content column */}
-        <div className="w-full max-w-[760px]">
+        <div className="w-full max-w-[820px]">
           <div key={step} className="fw-screen-enter">
-            {/* Left-aligned heading (avatar removed for compactness) */}
-            <h1 className="mb-6 text-left text-[20px] font-bold leading-[1.4] text-fw-text">
+            <h1 className="mb-2 text-left text-[22px] font-bold leading-[1.4] text-fw-text">
               {meta.title}
             </h1>
+            {meta.subtitle && (
+              <p className="mb-6 text-[14px] text-fw-darkGray">{meta.subtitle}</p>
+            )}
 
             {step === 0 && (
               <div className="space-y-3 max-w-md">
@@ -231,32 +216,38 @@ export function OnboardingWizard() {
             )}
 
             {step === 2 && (
-              <CardGrid
-                options={TONES}
-                selected={state.brandTone}
-                onToggle={toggleTone}
-              />
-            )}
+              <div className="space-y-6">
+                <div className="rounded-xl bg-fw-purpleSoft/50 p-4 text-[13px] leading-relaxed text-fw-text">
+                  <strong>3 mandatory photos, 1 optional.</strong> Backgrounds are auto-removed in your browser — you can see the result before we build the 3D model. Snap in a standard warehouse or store, natural light is fine.
+                </div>
 
-            {step === 3 && (
-              <CardGrid
-                options={VIDEO_STYLE_OPTIONS}
-                selected={[state.videoStyle]}
-                onToggle={(v) => update("videoStyle", v)}
-                single
-              />
-            )}
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                  {SLOTS.map((s) => {
+                    const p = state.photos[s.kind];
+                    return (
+                      <PhotoSlot
+                        key={s.kind}
+                        label={s.label}
+                        kind={s.kind}
+                        required={s.required}
+                        value={p.processed}
+                        rawValue={p.raw}
+                        onChange={(raw, processed) => updatePhoto(s.kind, raw, processed)}
+                        processing={false}
+                      />
+                    );
+                  })}
+                </div>
 
-            {step === 4 && (
-              <>
-                <ImageUpload files={state.imageFiles} onChange={(f) => update("imageFiles", f)} />
-                {error && <div className="mt-3 max-w-md rounded-xl bg-destructive/10 px-4 py-3 text-[14px] text-destructive">{error}</div>}
-              </>
+                {error && (
+                  <div className="rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
+                )}
+              </div>
             )}
 
             <div className="mt-8 flex items-center gap-4">
               <Button disabled={!valid || isPending} onClick={next} className="h-11 px-8">
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (step === TOTAL_STEPS - 1 ? "Generate concept" : "Next")}
+                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : (step === TOTAL_STEPS - 1 ? "Generate 3D view" : "Next")}
               </Button>
               {step > 0 && (
                 <button onClick={back} disabled={isPending} className="text-[14px] text-fw-darkGray hover:text-fw-text">
@@ -271,12 +262,10 @@ export function OnboardingWizard() {
   );
 }
 
-const SCREENS = [
-  { title: "Welcome! Let's start with your company." },
-  { title: "What category are you in?" },
-  { title: "What's your brand tone?" },
-  { title: "Pick a video style." },
-  { title: "Last step — upload some product photos." },
+const SCREENS: Array<{ title: string; subtitle?: string }> = [
+  { title: "Let's start with your company.", subtitle: "Business name is required. Social links help us understand your brand." },
+  { title: "What category is your product in?", subtitle: "Pick the closest match." },
+  { title: "Upload photos of your product.", subtitle: "3 required (front, back, left), 1 optional. We'll clean the backgrounds automatically." },
 ];
 
 function CardGrid({
@@ -292,20 +281,17 @@ function CardGrid({
       {options.map((opt) => {
         const isSel = selected.includes(opt.value);
         const Icon = opt.icon;
-        const atMax = !single && !isSel && selected.length >= MAX_TONES;
         return (
           <button
             key={opt.value}
             type="button"
-            onClick={() => !atMax && onToggle(opt.value)}
-            disabled={atMax}
+            onClick={() => onToggle(opt.value)}
             className={cn(
               "group relative flex flex-col items-center justify-between rounded-xl border bg-white p-4 transition-all",
               "h-[180px] w-full max-w-[200px]",
               isSel
                 ? "border-fw-purple bg-fw-purpleSoft shadow-[0_0_0_4px_rgba(147,129,255,0.18)]"
                 : "border-[#E2E8F0] hover:border-fw-purple/40",
-              atMax && "opacity-40 cursor-not-allowed"
             )}
           >
             <div className="flex flex-1 items-center justify-center">
@@ -328,36 +314,6 @@ function CardGrid({
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function ImageUpload({ files, onChange }: { files: File[]; onChange: (f: File[]) => void }) {
-  return (
-    <div className="flex flex-col gap-3 max-w-xl">
-      <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-fw-lighterGray bg-white p-8 hover:border-fw-purple hover:bg-fw-purpleSoft/30">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-fw-purple">
-          <Upload className="h-5 w-5 text-white" />
-        </div>
-        <p className="text-[14px] font-semibold text-fw-text">Click to upload photos</p>
-        <p className="text-[12px] text-fw-darkGray">JPG, PNG, or WebP</p>
-        <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onChange([...files, ...Array.from(e.target.files ?? [])])} />
-      </label>
-      {files.length > 0 && (
-        <div className="grid grid-cols-4 gap-2">
-          {files.map((f, i) => {
-            const url = URL.createObjectURL(f);
-            return (
-              <div key={i} className="relative aspect-square overflow-hidden rounded-lg border border-fw-border bg-fw-disabled">
-                <img src={url} alt={f.name} className="h-full w-full object-cover" />
-                <button type="button" onClick={() => onChange(files.filter((_, j) => j !== i))} className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-fw-text shadow hover:bg-destructive hover:text-white">
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

@@ -15,6 +15,13 @@ export interface SessionData {
   instagramUrl?: string;
   tiktokUrl?: string;
   productImageDataUrl?: string;
+  // 3D pivot: four angle photos (all data URLs), background-removed by the client
+  productPhotos?: {
+    front?: string;
+    back?: string;
+    left?: string;
+    right?: string;
+  };
   createdAt: number;
 }
 
