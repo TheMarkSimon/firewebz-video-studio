@@ -81,7 +81,13 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  const previewSrc = value ?? rawValue;
+  // Cleaned image is now a fal.media URL (see remove-bg.ts) — route through
+  // /api/proxy so Zscaler doesn't block it in the browser. Raw uploads remain
+  // data URLs and pass through untouched.
+  const previewSrc =
+    value && !value.startsWith("data:")
+      ? `/api/proxy?url=${encodeURIComponent(value)}`
+      : (value ?? rawValue);
   const showingImage = Boolean(previewSrc);
   const isBusy = status === "processing" || status === "queued";
   const isFailed = status === "failed";

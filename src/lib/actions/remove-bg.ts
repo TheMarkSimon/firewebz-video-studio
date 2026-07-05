@@ -79,25 +79,18 @@ async function removeBgOnFal(imageDataUrl: string): Promise<RemoveBgResult> {
       };
     }
 
-    // Fetch the cleaned PNG and re-encode as data URL so the client can
-    // display it and pass it downstream without a round-trip via CDN.
-    const res = await fetch(cleanedUrl);
-    if (!res.ok) {
-      return {
-        status: "failed",
-        errorMessage: `Failed to download cleaned image: HTTP ${res.status}`,
-        errorCode: "other",
-        provider: "fal-birefnet-v2",
-        durationMs: Date.now() - started,
-      };
-    }
-    const buf = Buffer.from(await res.arrayBuffer());
-    const mime = res.headers.get("content-type") ?? "image/png";
-    const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
-
+    // Return the cleaned image as a plain URL (not a data URL).
+    // Rationale: session payloads go to Upstash Redis via a REST call, and
+    // multi-MB base64 data URLs blow past the request-size budget → the write
+    // silently falls back to in-memory storage, which doesn't persist across
+    // Vercel function invocations → downstream reads all see "Session not
+    // found". Passing a ~200-byte fal.media URL keeps the session tiny.
+    // The 3D provider re-uploads to fal via `image_url`, so it accepts URLs
+    // natively; the client renders the preview through /api/proxy?url=... to
+    // bypass Zscaler.
     return {
       status: "completed",
-      cleanedDataUrl: dataUrl,
+      cleanedDataUrl: cleanedUrl,
       durationMs: Date.now() - started,
       attempts: 1,
       provider: "fal-birefnet-v2",

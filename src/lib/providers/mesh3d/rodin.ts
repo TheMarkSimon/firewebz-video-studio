@@ -34,6 +34,20 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([Buffer.from(m[2], "base64")], { type: m[1] });
 }
 
+// Accepts either a data URL (legacy path) or a plain http(s) URL — bg removal
+// now returns fal.media URLs directly to keep session payloads under Redis'
+// request-size limit. When given a URL we just forward it to Rodin; when
+// given a data URL we upload to fal storage first.
+async function toFalUrl(
+  fal: { storage: { upload: (blob: Blob) => Promise<string> } },
+  input: string,
+): Promise<string> {
+  if (input.startsWith("data:")) {
+    return fal.storage.upload(dataUrlToBlob(input));
+  }
+  return input;
+}
+
 export const falRodin: Mesh3dProvider = {
   name: "fal-hyper3d-rodin",
   isConfigured: () => Boolean(process.env.FAL_KEY ?? process.env.FAL_API_TOKEN),
@@ -55,11 +69,13 @@ export const falRodin: Mesh3dProvider = {
       // Upload every provided angle. Rodin's condition_mode="concat" treats
       // all URLs in input_image_urls as different views of the same object,
       // which is exactly the multi-view fidelity guarantee our pivot needs.
+      // toFalUrl accepts either a data URL (upload to fal storage) or an
+      // http(s) URL (pass through) — bg removal returns fal.media URLs now.
       const uploads: Array<Promise<string>> = [];
-      uploads.push(fal.storage.upload(dataUrlToBlob(input.frontImageDataUrl)));
-      if (input.backImageDataUrl) uploads.push(fal.storage.upload(dataUrlToBlob(input.backImageDataUrl)));
-      if (input.leftImageDataUrl) uploads.push(fal.storage.upload(dataUrlToBlob(input.leftImageDataUrl)));
-      if (input.rightImageDataUrl) uploads.push(fal.storage.upload(dataUrlToBlob(input.rightImageDataUrl)));
+      uploads.push(toFalUrl(fal, input.frontImageDataUrl));
+      if (input.backImageDataUrl) uploads.push(toFalUrl(fal, input.backImageDataUrl));
+      if (input.leftImageDataUrl) uploads.push(toFalUrl(fal, input.leftImageDataUrl));
+      if (input.rightImageDataUrl) uploads.push(toFalUrl(fal, input.rightImageDataUrl));
       const inputImageUrls = await Promise.all(uploads);
 
       // HighPack is off by default in the schema; USE_HIGH_PACK=1 turns it on

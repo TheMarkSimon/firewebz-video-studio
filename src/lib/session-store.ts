@@ -60,6 +60,15 @@ export async function putSession(data: Omit<SessionData, "createdAt">): Promise<
   if (redisConfigured()) {
     try {
       const redis = await getRedisClient();
+      // Upstash's REST client rejects payloads over ~1 MB. Anything close to
+      // that is almost certainly a data URL leak — surface it loudly instead
+      // of silently falling through to in-memory (which won't persist across
+      // Vercel function invocations and shows up as "Session not found").
+      const size = JSON.stringify(payload).length;
+      if (size > 800_000) {
+        console.error(`[session-store] payload too large for Redis: ${size} bytes — refusing to fall back to memory`);
+        throw new Error(`Session payload too large (${size} bytes). This usually means a photo was stored as a data URL instead of a fal.media URL.`);
+      }
       await redis.set(`fw:session:${id}`, payload, { ex: TTL_SECONDS });
       return id;
     } catch (err) {
