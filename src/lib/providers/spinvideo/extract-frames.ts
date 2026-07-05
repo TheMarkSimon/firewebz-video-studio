@@ -1,12 +1,13 @@
-// Frame extraction: MP4 → N × WebP frames, uploaded to fal storage.
+// Frame extraction: MP4 → N × JPEG frames, uploaded to fal storage.
 //
 // Why not scrub the raw MP4 in <video>? Mobile Safari stutters on
 // video.currentTime updates (keyframe-snapping + slow reverse decode). A
-// pre-decoded WebP sequence blitted to <canvas> is instant on every device.
+// pre-decoded JPEG sequence blitted to <canvas> is instant on every device.
 //
 // Runs server-side in a Vercel serverless function. ffmpeg binary is shipped
-// via @ffmpeg-installer/ffmpeg (~30 MB). Extraction of a 10s 720p clip into
-// 60 WebP frames takes ~4-6 seconds cold, ~2-3 seconds warm.
+// via @ffmpeg-installer/ffmpeg (~30 MB) — note it's a minimal build without
+// WebP encoder support, so we use JPEG (nearly identical size for photo
+// content). Extraction of a 10s 720p clip into 60 JPEGs takes ~4-6s cold.
 //
 // Falls back to `undefined` on failure — the caller keeps the videoUrl and
 // the UI drops back to video scrubbing rather than breaking generation.
@@ -58,21 +59,30 @@ export async function extractFramesFromVideo(
     //    Using select filter over 1/fps: cleaner sampling at exact intervals
     //    than -r flag (which fights with frame timing).
     const ffmpeg = await loadFfmpeg();
-    const framePattern = join(tmp, "f%03d.webp");
+    const framePattern = join(tmp, "f%03d.jpg");
+    // Kling clips are always ~10s. Sample TARGET_FRAME_COUNT frames evenly.
+    // If we ever support variable-length clips, ffprobe first — but the
+    // installer's binary lacks it, so hardcoded 10s covers current usage.
+    const KLING_DURATION = 10;
+    const fps = TARGET_FRAME_COUNT / KLING_DURATION;
     await new Promise<void>((resolve, reject) => {
+      const stderrLines: string[] = [];
       ffmpeg(videoPath)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .outputOptions([
-          "-vf", `select='not(mod(n\\,round(N/${TARGET_FRAME_COUNT})))',setpts=N/TB`,
-          "-vsync", "vfr",
+          "-vf", `fps=${fps.toFixed(4)}`,
           "-frames:v", String(TARGET_FRAME_COUNT),
-          "-q:v", "80", // WebP quality
+          "-q:v", "3",
         ])
         .output(framePattern)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .on("stderr", (line: string) => stderrLines.push(line))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .on("end", () => resolve())
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .on("error", (err: unknown) => reject(err))
+        .on("error", (err: unknown) => {
+          const msg = err instanceof Error ? err.message : String(err);
+          reject(new Error(`ffmpeg failed: ${msg}\n${stderrLines.slice(-5).join("\n")}`));
+        })
         .run();
     });
 
@@ -83,11 +93,11 @@ export async function extractFramesFromVideo(
     fal.config({ credentials: falKey });
     const { readdir } = await import("node:fs/promises");
     const files = (await readdir(tmp))
-      .filter((f) => f.startsWith("f") && f.endsWith(".webp"))
+      .filter((f) => f.startsWith("f") && f.endsWith(".jpg"))
       .sort();
     const uploads = files.map(async (name) => {
       const buf = await readFile(join(tmp!, name));
-      return fal.storage.upload(new Blob([new Uint8Array(buf)], { type: "image/webp" }));
+      return fal.storage.upload(new Blob([new Uint8Array(buf)], { type: "image/jpeg" }));
     });
     const frameUrls = await Promise.all(uploads);
 
