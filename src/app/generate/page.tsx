@@ -9,27 +9,15 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
   const sp = await searchParams;
   const sessionId = typeof sp.session === "string" ? sp.session : undefined;
 
-  if (!sessionId) {
-    return <NotFound message="No session. Please start from onboarding." />;
-  }
-
+  if (!sessionId) return <NotFound message="No session. Please start from onboarding." />;
   const session = await getSession(sessionId);
-  if (!session) {
-    return <NotFound message="Your session expired. Start a new post." />;
-  }
+  if (!session) return <NotFound message="Your session expired. Start a new spin." />;
 
   return (
     <AppShell>
       <GenerateClient
         sessionId={sessionId}
-        businessName={session.businessName}
-        category={session.category}
-        photos={{
-          front: session.productPhotos?.front ?? null,
-          back: session.productPhotos?.back ?? null,
-          left: session.productPhotos?.left ?? null,
-          right: session.productPhotos?.right ?? null,
-        }}
+        frontPhotoUrl={session.productPhotos?.front ?? null}
       />
     </AppShell>
   );
@@ -42,7 +30,7 @@ function NotFound({ message }: { message: string }) {
         <h1 className="font-display text-[28px] font-bold text-fw-text">Session not found</h1>
         <p className="mt-2 text-[15px] text-fw-darkGray">{message}</p>
         <Link href="/onboarding" className="mt-6 inline-block rounded-pill bg-fw-purple px-6 py-3 text-[14px] font-semibold text-white">
-          Start a new post
+          Start a new spin
         </Link>
       </div>
     </AppShell>

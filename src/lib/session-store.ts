@@ -15,7 +15,8 @@ export interface SessionData {
   instagramUrl?: string;
   tiktokUrl?: string;
   productImageDataUrl?: string;
-  // 3D pivot: four angle photos (all data URLs), background-removed by the client
+  // Single bg-removed front photo (fal.media URL). back/left/right kept
+  // optional so older sessions in Redis deserialize without error.
   productPhotos?: {
     front?: string;
     back?: string;

@@ -15,7 +15,6 @@
   "dependencies": {
     "@fal-ai/client": "^1.10.1",
     "@google/genai": "^0.7.0",
-    "@google/model-viewer": "^4.3.1",
     "@hookform/resolvers": "^3.9.1",
     "@prisma/client": "^5.22.0",
     "@radix-ui/react-dialog": "^1.1.2",
