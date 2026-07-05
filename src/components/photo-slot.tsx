@@ -59,14 +59,14 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
 
     try {
       const res = await removeBackgroundServerSide(rawUrl);
-      if (res.status === "completed" && res.cleanedDataUrl) {
+      if (res && res.status === "completed" && res.cleanedDataUrl) {
         onChange(rawUrl, res.cleanedDataUrl, "ready", null);
       } else {
         // Fail loudly — do NOT set processed. Parent gates Generate on status="ready".
         const friendly =
-          res.errorCode === "rate_limited"
-            ? "Replicate rate-limited us. Wait a few seconds and retry — or top up Replicate credit to remove the throttle."
-            : res.errorMessage ?? "Background removal failed. Try a different photo.";
+          res?.errorCode === "rate_limited"
+            ? "Rate-limited. Wait a few seconds and retry."
+            : res?.errorMessage ?? "Background removal failed. Try a different photo.";
         onChange(rawUrl, null, "failed", friendly);
       }
     } catch (err) {

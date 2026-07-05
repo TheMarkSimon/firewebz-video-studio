@@ -106,7 +106,13 @@ async function removeBgOnFal(imageDataUrl: string): Promise<RemoveBgResult> {
     const e = err as { message?: string; status?: number; body?: unknown };
     const status = e?.status ?? "";
     const msg = e?.message ?? String(err);
-    const body = e?.body ? ` | body: ${JSON.stringify(e.body).slice(0, 200)}` : "";
+    // JSON.stringify can throw on Response objects or values with circular refs;
+    // fall back to String() so the catch handler itself can't crash.
+    let body = "";
+    if (e?.body != null) {
+      try { body = ` | body: ${JSON.stringify(e.body).slice(0, 200)}`; }
+      catch { body = ` | body: ${String(e.body).slice(0, 200)}`; }
+    }
     return {
       status: "failed",
       errorMessage: `${status ? `[${status}] ` : ""}${msg}${body}`.slice(0, 500),
@@ -207,9 +213,34 @@ async function removeBgOnReplicate(imageDataUrl: string): Promise<RemoveBgResult
 // --- Public entry -----------------------------------------------------------
 
 export async function removeBackgroundServerSide(imageDataUrl: string): Promise<RemoveBgResult> {
-  if (!imageDataUrl?.startsWith("data:")) {
-    return { status: "failed", errorMessage: "Expected a data URL", errorCode: "content" };
+  try {
+    if (!imageDataUrl?.startsWith("data:")) {
+      return { status: "failed", errorMessage: "Expected a data URL", errorCode: "content" };
+    }
+    const result =
+      BG_PROVIDER === "replicate"
+        ? await removeBgOnReplicate(imageDataUrl)
+        : await removeBgOnFal(imageDataUrl);
+    // Defensive: some SDK error paths could theoretically return undefined
+    // and Next.js server actions swallow that into a client-side crash.
+    if (!result || typeof result !== "object" || !("status" in result)) {
+      return {
+        status: "failed",
+        errorMessage: "Background removal returned no result. Try again or use a different photo.",
+        errorCode: "other",
+      };
+    }
+    return result;
+  } catch (err) {
+    // Catch anything the providers didn't — SDK import failures, network
+    // exceptions with circular refs, out-of-memory on huge images, etc.
+    // Returning a plain object guarantees the client always gets a valid
+    // RemoveBgResult instead of `undefined`.
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      status: "failed",
+      errorMessage: `Background removal crashed: ${msg}`.slice(0, 500),
+      errorCode: "other",
+    };
   }
-  if (BG_PROVIDER === "replicate") return removeBgOnReplicate(imageDataUrl);
-  return removeBgOnFal(imageDataUrl);
 }
