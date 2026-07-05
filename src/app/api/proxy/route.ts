@@ -12,7 +12,10 @@ const ALLOWED_HOSTS = new Set([
   "replicate.delivery",
   "pbxt.replicate.delivery",
   "tjzk.replicate.delivery",
-  "dnznrvs05pmza.cloudfront.net", // Runway output CDN (still useful if we bring video back)
+  "dnznrvs05pmza.cloudfront.net", // Runway output CDN
+  "fal.media",
+  "v3b.fal.media",
+  "v3.fal.media",
 ]);
 
 export const runtime = "nodejs";
@@ -34,7 +37,9 @@ export async function GET(req: NextRequest) {
   const hostAllowed =
     ALLOWED_HOSTS.has(host) ||
     host.endsWith(".replicate.delivery") ||
-    host.endsWith(".cloudfront.net");
+    host.endsWith(".cloudfront.net") ||
+    host.endsWith(".fal.media") ||
+    host.endsWith(".fal.run");
   if (!hostAllowed) {
     return new Response(`Host not allowed: ${host}`, { status: 403 });
   }
