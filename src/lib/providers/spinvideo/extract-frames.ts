@@ -57,8 +57,9 @@ export async function extractFramesFromVideo(
 
   try {
     // 1. Download the MP4 to a temp dir. Vercel's /tmp is writable and lives
-    //    for the lifetime of the function instance.
-    const res = await fetch(videoUrl);
+    //    for the lifetime of the function instance. no-store keeps Next.js
+    //    from trying to fetch-cache the 19 MB body (fails with "over 2MB").
+    const res = await fetch(videoUrl, { cache: "no-store" });
     if (!res.ok) return null;
     const bytes = Buffer.from(await res.arrayBuffer());
 

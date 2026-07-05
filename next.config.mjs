@@ -2,6 +2,10 @@
 const nextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "25mb" },
+    // Keep ffmpeg-related packages external so webpack doesn't try to bundle
+    // the native binary or the installer's dynamic platform require(). Under
+    // Next 15+ this moves to top-level `serverExternalPackages`.
+    serverComponentsExternalPackages: ["@ffmpeg-installer/ffmpeg", "fluent-ffmpeg"],
   },
   images: { remotePatterns: [{ protocol: "https", hostname: "**" }] },
   outputFileTracingIncludes: {
@@ -14,9 +18,6 @@ const nextConfig = {
       "./node_modules/@ffmpeg-installer/**/*",
     ],
   },
-  // Keep ffmpeg-related packages external so Next doesn't try to bundle
-  // the native binary through webpack (it'd choke on the ELF file).
-  serverExternalPackages: ["@ffmpeg-installer/ffmpeg", "fluent-ffmpeg"],
   // /embed/* is meant to be iframed by merchant storefronts. Override the
   // default X-Frame-Options: SAMEORIGIN so third-party pages can embed us.
   async headers() {
