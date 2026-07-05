@@ -1,7 +1,11 @@
 "use server";
 
-// Server-side background removal via Replicate (rembg). Runs in ~2-5 seconds
-// per image, costs ~$0.001. Called from the photo-upload step in onboarding.
+// Server-side background removal via Replicate 851-labs/background-remover.
+// Model is pinned by version — Replicate community models don't have a
+// stable version-less endpoint.
+
+const BG_MODEL = "851-labs/background-remover";
+const BG_VERSION = "a029dff38972b5fda4ec5d75d7d1cd25aeff621d2cf4946a41055d7db66b80bc";
 
 export interface RemoveBgResult {
   status: "completed" | "failed";
@@ -20,42 +24,49 @@ export async function removeBackgroundServerSide(imageDataUrl: string): Promise<
   }
 
   const started = Date.now();
+  const modelDescriptor = `${BG_MODEL}:${BG_VERSION}`;
+
   try {
     const { default: Replicate } = await import("replicate");
     const replicate = new Replicate({ auth: token });
 
-    // 851-labs/background-remover is fast (~2-5s), accepts data URLs directly,
-    // returns a PNG with transparent background.
-    const model = "851-labs/background-remover";
+    // Schema (verified from Replicate): { image: uri, format?, threshold?, reverse?, background_type? }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const output: any = await replicate.run(model as `${string}/${string}`, {
-      input: { image: imageDataUrl },
+    const output: any = await replicate.run(modelDescriptor as `${string}/${string}:${string}`, {
+      input: {
+        image: imageDataUrl,
+        format: "png",
+        background_type: "rgba",
+      },
     });
 
-    // Normalize output: can be a URL string, an array with a URL, or a
-    // FileOutput object with .url() and .blob() methods.
+    // Output: URL string, FileOutput object, or array containing either.
     let url: string | undefined;
     if (typeof output === "string") {
       url = output;
-    } else if (Array.isArray(output) && typeof output[0] === "string") {
-      url = output[0];
-    } else if (output && typeof output.url === "function") {
-      const u = output.url();
-      url = typeof u === "string" ? u : u?.href;
-    } else if (Array.isArray(output) && output[0] && typeof output[0].url === "function") {
-      const u = output[0].url();
-      url = typeof u === "string" ? u : u?.href;
+    } else if (Array.isArray(output) && output.length > 0) {
+      const first = output[0];
+      if (typeof first === "string") url = first;
+      else if (first && typeof first.url === "function") {
+        const u = first.url();
+        url = typeof u === "string" ? u : u?.href;
+      }
+    } else if (output && typeof output === "object") {
+      if (typeof output.url === "function") {
+        const u = output.url();
+        url = typeof u === "string" ? u : u?.href;
+      }
     }
 
     if (!url) {
       return {
         status: "failed",
-        errorMessage: `Unexpected Replicate output shape: ${JSON.stringify(output).slice(0, 400)}`,
+        errorMessage: `Unexpected Replicate output: ${JSON.stringify(output).slice(0, 400)}`,
         durationMs: Date.now() - started,
       };
     }
 
-    // Fetch the cleaned image and re-encode as data URL so the client can
+    // Fetch the cleaned PNG and re-encode as data URL so the client can
     // display it without a follow-up round-trip.
     const res = await fetch(url);
     if (!res.ok) {
@@ -75,7 +86,14 @@ export async function removeBackgroundServerSide(imageDataUrl: string): Promise<
       durationMs: Date.now() - started,
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return { status: "failed", errorMessage: msg, durationMs: Date.now() - started };
+    const e = err as { message?: string; status?: number; cause?: unknown };
+    const status = e?.status ?? "";
+    const msg = e?.message ?? String(err);
+    const cause = e?.cause ? ` | cause: ${JSON.stringify(e.cause).slice(0, 300)}` : "";
+    return {
+      status: "failed",
+      errorMessage: `${status ? `[${status}] ` : ""}${msg}${cause}`,
+      durationMs: Date.now() - started,
+    };
   }
 }
