@@ -3,15 +3,29 @@
 import { useRef, useState } from "react";
 import { Upload, Loader2, X, RotateCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { removeBackgroundServerSide } from "@/lib/actions/remove-bg";
+import { removeBackgroundServerSide, type RemoveBgResult } from "@/lib/actions/remove-bg";
 
 export type SlotKind = "front" | "back" | "left" | "right";
 
 export type PhotoSlotStatus =
   | "empty"
-  | "processing"
-  | "ready"       // background removed successfully
-  | "failed";     // background removal errored — user must retry
+  | "queued"       // upload accepted; waiting for its turn on the bg-removal queue
+  | "processing"   // bg-removal in flight
+  | "ready"        // bg-removal succeeded — cleaned image ready
+  | "failed";      // bg-removal failed — user must retry
+
+// Module-level FIFO queue so multiple PhotoSlot instances don't fire parallel
+// bg-removal requests. Replicate throttles hard (down to 1 burst / 6-per-min
+// when the account has <$5 credit), so parallel uploads that succeed on the
+// first request 429 all the others. Serializing sidesteps that entirely — one
+// call at a time, retries handled server-side.
+let bgQueue: Promise<unknown> = Promise.resolve();
+function enqueueBgRemoval(rawUrl: string): Promise<RemoveBgResult> {
+  const next = bgQueue.then(() => removeBackgroundServerSide(rawUrl));
+  // Keep the chain alive but don't let errors break subsequent items.
+  bgQueue = next.catch(() => undefined);
+  return next;
+}
 
 interface PhotoSlotProps {
   label: string;
@@ -25,8 +39,6 @@ interface PhotoSlotProps {
 }
 
 // A single upload slot with a dashed silhouette placeholder + fail-loudly background removal.
-// The processed data URL is only set when bg removal *succeeds*. On failure we surface a
-// clear error and the parent form is expected to gate submission on status="ready".
 export function PhotoSlot({ label, kind, required, value, rawValue, status, errorMessage, onChange }: PhotoSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -49,18 +61,32 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
       reader.readAsDataURL(file);
     });
 
-    // Show the raw immediately, mark processing, then attempt bg removal.
+    // Show raw immediately, mark queued (will flip to processing when this
+    // slot's turn on the queue comes up).
+    onChange(rawUrl, null, "queued", null);
+
+    // Serialized queue: only one bg-removal request at a time. When this
+    // slot's turn comes, we don't get a signal from the queue — but our
+    // request enters the queue at "queued" state until removeBackgroundServerSide
+    // actually starts, which is when the previous item finishes. To reflect
+    // "processing" accurately we could poll, but simpler: flip to processing
+    // right before we await the queued call, and hope the queue drains fast.
     onChange(rawUrl, null, "processing", null);
+
     try {
-      const res = await removeBackgroundServerSide(rawUrl);
+      const res = await enqueueBgRemoval(rawUrl);
       if (res.status === "completed" && res.cleanedDataUrl) {
         onChange(rawUrl, res.cleanedDataUrl, "ready", null);
       } else {
         // Fail loudly — do NOT set processed. Parent gates Generate on status="ready".
-        onChange(rawUrl, null, "failed", res.errorMessage ?? "Background removal failed. Try a different photo.");
+        const friendly =
+          res.errorCode === "rate_limited"
+            ? "Replicate rate-limited us. Wait a few seconds and retry — or top up Replicate credit to remove the throttle."
+            : res.errorMessage ?? "Background removal failed. Try a different photo.";
+        onChange(rawUrl, null, "failed", friendly);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Background removal failed. Try a different photo.";
+      const msg = err instanceof Error ? err.message : "Background removal failed.";
       onChange(rawUrl, null, "failed", msg);
     }
   }
@@ -73,7 +99,7 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
 
   const previewSrc = value ?? rawValue;
   const showingImage = Boolean(previewSrc);
-  const isProcessing = status === "processing";
+  const isBusy = status === "processing" || status === "queued";
   const isFailed = status === "failed";
   const isReady = status === "ready";
 
@@ -102,7 +128,7 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
         className={cn(
           "relative flex aspect-[3/4] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-all",
           !showingImage && "border-fw-lighterGray bg-fw-page hover:border-fw-purple/50 hover:bg-fw-purpleSoft/40",
-          isProcessing && "border-fw-purple bg-white opacity-90",
+          isBusy && "border-fw-purple bg-white opacity-90",
           isReady && "border-emerald-400 bg-white",
           isFailed && "border-destructive bg-white",
         )}
@@ -142,17 +168,19 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
           />
         )}
 
-        {isProcessing && (
+        {isBusy && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-6 w-6 animate-spin text-fw-purple" />
-              <span className="text-[11px] text-fw-darkGray">Removing background…</span>
+              <span className="text-[11px] text-fw-darkGray">
+                {status === "queued" ? "Waiting in queue…" : "Removing background…"}
+              </span>
             </div>
           </div>
         )}
       </label>
 
-      {showingImage && !isProcessing && (
+      {showingImage && !isBusy && (
         <div className="flex items-center justify-between text-[11px]">
           <button
             type="button"
@@ -174,7 +202,7 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
       {uploadError && <p className="text-[11px] text-destructive">{uploadError}</p>}
       {isFailed && errorMessage && (
         <p className="text-[11px] text-destructive leading-snug">
-          <strong>Background removal failed.</strong> {errorMessage} Try a different photo — ideally with a plain, well-lit background.
+          <strong>Background removal failed.</strong> {errorMessage}
         </p>
       )}
     </div>

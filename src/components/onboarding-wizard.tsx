@@ -54,7 +54,10 @@ export function OnboardingWizard() {
   // Fail-loudly gate: every required slot must be status="ready" (background
   // removal succeeded). A raw upload with no cleaning is NOT acceptable — that
   // was the silent-failure path polluting Hunyuan3D input with raw backgrounds.
-  const anyProcessing = SLOTS.some((s) => photos[s.kind].status === "processing");
+  const anyProcessing = SLOTS.some((s) => {
+    const st = photos[s.kind].status;
+    return st === "processing" || st === "queued";
+  });
   const anyRequiredFailed = requiredPhotos.some((k) => photos[k].status === "failed");
   const allRequiredReady = requiredPhotos.every((k) => photos[k].status === "ready");
   // Optional slot: if the user uploaded one but it failed, block until they fix or remove it.
