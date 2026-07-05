@@ -154,7 +154,10 @@ function CanvasFlipbook({
       if (!s) return;
       const revolutionPx = pixelsPerRevolution ?? s.widgetWidth;
       const delta = e.clientX - s.startX;
-      const framesDelta = (delta / revolutionPx) * frameUrls.length;
+      // Negate so a right-drag advances the video forward (which the trained
+      // Kling turntable renders as the product rotating right-to-left, i.e.,
+      // the shopper "grabs" the near edge and pushes it in the drag direction).
+      const framesDelta = -(delta / revolutionPx) * frameUrls.length;
       let next = s.startFloat + framesDelta;
       next = ((next % frameUrls.length) + frameUrls.length) % frameUrls.length;
       frameFloatRef.current = next;
@@ -270,7 +273,7 @@ function VideoScrubber({
       if (!s || !v || !v.duration) return;
       const revolutionPx = pixelsPerRevolution ?? s.widgetWidth;
       const delta = e.clientX - s.startX;
-      let t = s.startTime + (delta / revolutionPx) * v.duration;
+      let t = s.startTime - (delta / revolutionPx) * v.duration;
       t = ((t % v.duration) + v.duration) % v.duration;
       v.currentTime = t;
     };
