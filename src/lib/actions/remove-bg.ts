@@ -31,12 +31,21 @@ export async function removeBackgroundServerSide(imageDataUrl: string): Promise<
     const replicate = new Replicate({ auth: token });
 
     // Schema (verified from Replicate): { image: uri, format?, threshold?, reverse?, background_type? }
+    //
+    // threshold=0.5 forces a HARD alpha cut — any pixel <50% confident of
+    // being foreground becomes fully transparent. This kills the two failure
+    // modes hurting 3D quality:
+    //   - Drop shadows around the product surviving removal as semi-transparent
+    //     pixels, which Hunyuan then reconstructs as a phantom floor mesh.
+    //   - Soft edge halos around mesh/laces/fur, which Hunyuan interprets as
+    //     ambiguous surfaces and turns into blob geometry.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const output: any = await replicate.run(modelDescriptor as `${string}/${string}:${string}`, {
       input: {
         image: imageDataUrl,
         format: "png",
         background_type: "rgba",
+        threshold: 0.5,
       },
     });
 

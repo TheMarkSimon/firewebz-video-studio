@@ -1,74 +1,81 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Upload, Loader2, X, RotateCw } from "lucide-react";
+import { Upload, Loader2, X, RotateCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { removeBackgroundServerSide } from "@/lib/actions/remove-bg";
 
 export type SlotKind = "front" | "back" | "left" | "right";
 
+export type PhotoSlotStatus =
+  | "empty"
+  | "processing"
+  | "ready"       // background removed successfully
+  | "failed";     // background removal errored — user must retry
+
 interface PhotoSlotProps {
   label: string;
   kind: SlotKind;
   required?: boolean;
-  value: string | null;              // data URL of the CURRENT (background-removed) image
-  rawValue: string | null;           // data URL of the raw uploaded image
-  onChange: (raw: string | null, processed: string | null) => void;
-  processing: boolean;
+  value: string | null;              // data URL of the cleaned image (only set when status="ready")
+  rawValue: string | null;           // data URL of the raw uploaded image (for preview during processing)
+  status: PhotoSlotStatus;
+  errorMessage: string | null;
+  onChange: (raw: string | null, processed: string | null, status: PhotoSlotStatus, errorMessage: string | null) => void;
 }
 
-// A single upload slot with a dashed silhouette placeholder + background-removal.
-export function PhotoSlot({ label, kind, required, value, rawValue, onChange, processing }: PhotoSlotProps) {
+// A single upload slot with a dashed silhouette placeholder + fail-loudly background removal.
+// The processed data URL is only set when bg removal *succeeds*. On failure we surface a
+// clear error and the parent form is expected to gate submission on status="ready".
+export function PhotoSlot({ label, kind, required, value, rawValue, status, errorMessage, onChange }: PhotoSlotProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [localProcessing, setLocalProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   async function handleFile(file: File) {
-    setError(null);
+    setUploadError(null);
     if (!file.type.startsWith("image/")) {
-      setError("Please upload an image file.");
+      setUploadError("Please upload an image file.");
       return;
     }
     if (file.size > 8_000_000) {
-      setError("Please upload an image under 8 MB.");
+      setUploadError("Please upload an image under 8 MB.");
       return;
     }
 
-    // Read raw file to data URL
     const rawUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
-    // Immediately show the raw image, kick off background removal async
-    onChange(rawUrl, rawUrl);
-    setLocalProcessing(true);
+
+    // Show the raw immediately, mark processing, then attempt bg removal.
+    onChange(rawUrl, null, "processing", null);
     try {
       const res = await removeBackgroundServerSide(rawUrl);
       if (res.status === "completed" && res.cleanedDataUrl) {
-        onChange(rawUrl, res.cleanedDataUrl);
+        onChange(rawUrl, res.cleanedDataUrl, "ready", null);
       } else {
-        console.warn("[photo-slot] background removal failed, using raw image:", res.errorMessage);
-        setError("Background removal failed — using the original image.");
-        onChange(rawUrl, rawUrl);
+        // Fail loudly — do NOT set processed. Parent gates Generate on status="ready".
+        onChange(rawUrl, null, "failed", res.errorMessage ?? "Background removal failed. Try a different photo.");
       }
     } catch (err) {
-      console.error("[photo-slot] background removal failed:", err);
-      setError("Background removal failed — using the original image.");
-      onChange(rawUrl, rawUrl);
-    } finally {
-      setLocalProcessing(false);
+      const msg = err instanceof Error ? err.message : "Background removal failed. Try a different photo.";
+      onChange(rawUrl, null, "failed", msg);
     }
   }
 
   function clear() {
-    setError(null);
-    onChange(null, null);
+    setUploadError(null);
+    onChange(null, null, "empty", null);
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  const showingImage = value || rawValue;
+  const previewSrc = value ?? rawValue;
+  const showingImage = Boolean(previewSrc);
+  const isProcessing = status === "processing";
+  const isFailed = status === "failed";
+  const isReady = status === "ready";
 
   return (
     <div className="flex flex-col gap-2">
@@ -79,13 +86,25 @@ export function PhotoSlot({ label, kind, required, value, rawValue, onChange, pr
         ) : (
           <span className="rounded-full bg-fw-lighterGray/30 px-2 py-0.5 text-[10px] font-semibold text-fw-darkGray">Optional</span>
         )}
+        {isReady && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
+            <CheckCircle2 className="h-3 w-3" /> Clean
+          </span>
+        )}
+        {isFailed && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] font-semibold text-destructive">
+            <AlertCircle className="h-3 w-3" /> Retry
+          </span>
+        )}
       </div>
 
       <label
         className={cn(
           "relative flex aspect-[3/4] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-all",
-          showingImage ? "border-fw-purple bg-white" : "border-fw-lighterGray bg-fw-page hover:border-fw-purple/50 hover:bg-fw-purpleSoft/40",
-          (processing || localProcessing) && "opacity-90"
+          !showingImage && "border-fw-lighterGray bg-fw-page hover:border-fw-purple/50 hover:bg-fw-purpleSoft/40",
+          isProcessing && "border-fw-purple bg-white opacity-90",
+          isReady && "border-emerald-400 bg-white",
+          isFailed && "border-destructive bg-white",
         )}
       >
         <input
@@ -101,7 +120,6 @@ export function PhotoSlot({ label, kind, required, value, rawValue, onChange, pr
 
         {!showingImage && (
           <>
-            {/* Generic silhouette placeholder */}
             <SilhouettePlaceholder kind={kind} />
             <div className="mt-3 flex items-center gap-1.5 text-[12px] text-fw-darkGray">
               <Upload className="h-3.5 w-3.5" />
@@ -112,7 +130,7 @@ export function PhotoSlot({ label, kind, required, value, rawValue, onChange, pr
 
         {showingImage && (
           <img
-            src={value ?? rawValue ?? ""}
+            src={previewSrc ?? ""}
             alt={label}
             className="h-full w-full object-contain p-4"
             style={{
@@ -124,7 +142,7 @@ export function PhotoSlot({ label, kind, required, value, rawValue, onChange, pr
           />
         )}
 
-        {(processing || localProcessing) && (
+        {isProcessing && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/70">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-6 w-6 animate-spin text-fw-purple" />
@@ -134,7 +152,7 @@ export function PhotoSlot({ label, kind, required, value, rawValue, onChange, pr
         )}
       </label>
 
-      {showingImage && !localProcessing && (
+      {showingImage && !isProcessing && (
         <div className="flex items-center justify-between text-[11px]">
           <button
             type="button"
@@ -153,13 +171,16 @@ export function PhotoSlot({ label, kind, required, value, rawValue, onChange, pr
         </div>
       )}
 
-      {error && <p className="text-[11px] text-destructive">{error}</p>}
+      {uploadError && <p className="text-[11px] text-destructive">{uploadError}</p>}
+      {isFailed && errorMessage && (
+        <p className="text-[11px] text-destructive leading-snug">
+          <strong>Background removal failed.</strong> {errorMessage} Try a different photo — ideally with a plain, well-lit background.
+        </p>
+      )}
     </div>
   );
 }
 
-// Very simple generic silhouettes — a rounded rectangle with a directional
-// arrow / label to indicate which angle goes here. Not category-specific yet.
 function SilhouettePlaceholder({ kind }: { kind: SlotKind }) {
   const arrow = { front: "↑", back: "↓", left: "→", right: "←" }[kind];
   return (
