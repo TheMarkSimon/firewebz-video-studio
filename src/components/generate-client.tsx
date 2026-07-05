@@ -4,26 +4,69 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { generateSpinVideoFromSession, type SpinVideoGenerationResult } from "@/lib/actions/spinvideo";
 import { SpinScrubber } from "@/components/spin-scrubber";
-import { Loader2, Sparkles, Download, RotateCw, ChevronDown, ChevronUp, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Download,
+  RotateCw,
+  ChevronDown,
+  ChevronUp,
+  AlertCircle,
+  CheckCircle,
+  Copy,
+  ExternalLink,
+} from "lucide-react";
+
+export interface CachedResult {
+  videoUrl?: string;
+  frameUrls?: string[];
+  modelUsed?: string;
+  durationMs?: number;
+}
 
 export function GenerateClient({
   sessionId,
   frontPhotoUrl,
+  cachedResult,
 }: {
   sessionId: string;
   frontPhotoUrl: string | null;
+  cachedResult: CachedResult | null;
 }) {
-  const [phase, setPhase] = useState<"preview" | "generating" | "result">("preview");
-  const [result, setResult] = useState<SpinVideoGenerationResult | null>(null);
+  // If the session already has a cached spin, jump straight to the result
+  // phase — no click, no cost, no wait. This is what makes reopening the
+  // page (or sharing the link) instant and free.
+  const initialResult: SpinVideoGenerationResult | null = cachedResult?.videoUrl
+    ? {
+        status: "completed",
+        videoUrl: cachedResult.videoUrl,
+        frameUrls: cachedResult.frameUrls,
+        modelUsed: cachedResult.modelUsed,
+        durationMs: cachedResult.durationMs,
+        cached: true,
+        diagnostics: {
+          provider: "fal-kling-v3-pro",
+          modelUsed: cachedResult.modelUsed,
+          durationMs: cachedResult.durationMs,
+          frontPhotoPresent: true,
+          cached: true,
+        },
+      }
+    : null;
+
+  const [phase, setPhase] = useState<"preview" | "generating" | "result">(
+    initialResult ? "result" : "preview",
+  );
+  const [result, setResult] = useState<SpinVideoGenerationResult | null>(initialResult);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  function generate() {
+  function generate(force = false) {
     setError(null);
     setPhase("generating");
     startTransition(async () => {
       try {
-        const res = await generateSpinVideoFromSession(sessionId);
+        const res = await generateSpinVideoFromSession(sessionId, { force });
         setResult(res);
         setPhase("result");
       } catch (e) {
@@ -38,11 +81,11 @@ export function GenerateClient({
     : frontPhotoUrl;
 
   return (
-    <div className="mx-auto max-w-4xl pt-4 lg:pt-6">
+    <div className="mx-auto max-w-5xl px-4 pt-4 lg:pt-6">
       {phase === "preview" && (
         <PreviewPhase
           photoUrl={proxiedPhoto}
-          onGenerate={generate}
+          onGenerate={() => generate(false)}
           isPending={isPending}
           error={error}
         />
@@ -50,9 +93,10 @@ export function GenerateClient({
       {phase === "generating" && <GeneratingPhase />}
       {phase === "result" && result && (
         <ResultPhase
+          sessionId={sessionId}
           photoUrl={proxiedPhoto}
           result={result}
-          onRegenerate={generate}
+          onRegenerate={() => generate(true)}
           isPending={isPending}
         />
       )}
@@ -70,17 +114,25 @@ function PreviewPhase({
 }) {
   return (
     <div>
-      <h1 className="mb-2 text-[22px] font-bold text-fw-text">Ready to build your spin</h1>
-      <p className="mb-6 text-[15px] text-fw-darkGray">One product photo · 360° spin video</p>
+      <h1 className="mb-2 font-display text-[28px] font-bold text-fw-text">
+        Ready to build your 360° spin
+      </h1>
+      <p className="mb-6 text-[15px] text-fw-darkGray">
+        We'll turn this photo into a full turntable rotation your shoppers can drag.
+      </p>
 
-      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-6">
-        <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">Source photo</p>
-        <div className="mt-3 max-w-[240px]">
+      <div className="rounded-2xl border border-fw-border bg-white p-6">
+        <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">
+          Source photo
+        </p>
+        <div className="mt-3 max-w-[260px]">
           <div className="aspect-[3/4] overflow-hidden rounded-lg border border-fw-border bg-fw-disabled">
             {photoUrl ? (
-              <img src={photoUrl} alt="front" className="h-full w-full object-contain p-2" />
+              <img src={photoUrl} alt="Product front view" className="h-full w-full object-contain p-2" />
             ) : (
-              <div className="flex h-full items-center justify-center text-[11px] text-fw-lightGray">Not provided</div>
+              <div className="flex h-full items-center justify-center text-[11px] text-fw-lightGray">
+                Not provided
+              </div>
             )}
           </div>
         </div>
@@ -93,7 +145,7 @@ function PreviewPhase({
       <div className="mt-6 flex items-center gap-3">
         <Button onClick={onGenerate} disabled={isPending} className="h-11 px-8">
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          Build spin
+          Build my spin
         </Button>
         <span className="text-[12px] text-fw-lightGray">Usually 2-3 minutes.</span>
       </div>
@@ -103,20 +155,24 @@ function PreviewPhase({
 
 function GeneratingPhase() {
   return (
-    <div className="flex flex-col items-center justify-center py-24">
+    <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="relative flex h-16 w-16 items-center justify-center">
         <div className="absolute inset-0 rounded-full border-4 border-fw-purpleSoft" />
         <Loader2 className="h-10 w-10 animate-spin text-fw-purple" />
       </div>
-      <p className="mt-6 text-[16px] font-semibold text-fw-text">Building your 360° spin…</p>
-      <p className="mt-1 text-[12px] text-fw-lightGray">Kling v3 Pro takes 2-3 minutes.</p>
+      <p className="mt-6 text-[18px] font-semibold text-fw-text">Building your 360° spin…</p>
+      <p className="mt-2 max-w-md text-[13px] text-fw-lightGray">
+        Our AI is rendering a full turntable rotation, then slicing it into 60 frames for
+        instant scrubbing. This usually takes 2–3 minutes.
+      </p>
     </div>
   );
 }
 
 function ResultPhase({
-  photoUrl, result, onRegenerate, isPending,
+  sessionId, photoUrl, result, onRegenerate, isPending,
 }: {
+  sessionId: string;
   photoUrl: string | null;
   result: SpinVideoGenerationResult;
   onRegenerate: () => void;
@@ -128,18 +184,25 @@ function ResultPhase({
 
   return (
     <div>
-      <div className="mb-4 flex items-end justify-between">
-        <h1 className="text-[22px] font-bold text-fw-text">
-          {succeeded ? "Your 360° spin is ready" : "Generation failed"}
-        </h1>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[28px] font-bold text-fw-text md:text-[32px]">
+            {succeeded ? "Your 360° spin is live." : "Generation failed"}
+          </h1>
+          {succeeded && (
+            <p className="mt-1 text-[15px] text-fw-darkGray">
+              Drag it below to test. Then copy the snippet to embed it on your storefront.
+            </p>
+          )}
+        </div>
         <Button variant="outline" onClick={onRegenerate} disabled={isPending} className="h-10 px-5 text-[13px]">
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCw className="h-4 w-4" />}
           Regenerate
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="rounded-2xl border border-fw-border bg-white p-4">
           {succeeded && proxiedVideo ? (
             <>
               <SpinScrubber
@@ -167,20 +230,116 @@ function ResultPhase({
           )}
         </div>
 
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-4">
-          <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">Source photo</p>
-          <div className="mt-3 aspect-[3/4] overflow-hidden rounded-lg border border-fw-border bg-fw-disabled">
-            {photoUrl ? (
-              <img src={photoUrl} alt="front" className="h-full w-full object-contain p-2" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-[10px] text-fw-lightGray">—</div>
-            )}
-          </div>
+        <div className="flex flex-col gap-4">
+          <SourcePhotoCard photoUrl={photoUrl} />
+          {succeeded && <EmbedCard sessionId={sessionId} />}
         </div>
       </div>
 
+      {succeeded && <NextStepsCard sessionId={sessionId} />}
+
       <DiagnosticsPanel result={result} />
     </div>
+  );
+}
+
+function SourcePhotoCard({ photoUrl }: { photoUrl: string | null }) {
+  return (
+    <div className="rounded-2xl border border-fw-border bg-white p-4">
+      <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">Source photo</p>
+      <div className="mt-3 aspect-[3/4] overflow-hidden rounded-lg border border-fw-border bg-fw-disabled">
+        {photoUrl ? (
+          <img src={photoUrl} alt="Product" className="h-full w-full object-contain p-2" />
+        ) : (
+          <div className="flex h-full items-center justify-center text-[10px] text-fw-lightGray">—</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmbedCard({ sessionId }: { sessionId: string }) {
+  const [copied, setCopied] = useState<null | "snippet" | "link">(null);
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const embedLink = `${origin}/embed/${sessionId}`;
+  const snippet =
+    `<div data-spinr="${sessionId}" style="height:520px;max-width:640px;margin:0 auto"></div>\n` +
+    `<script src="${origin}/embed/spin.js" defer></script>`;
+
+  function copy(text: string, kind: "snippet" | "link") {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(kind);
+      setTimeout(() => setCopied(null), 1500);
+    });
+  }
+
+  return (
+    <div className="rounded-2xl border border-fw-purple/30 bg-gradient-to-br from-fw-purpleSoft/50 to-white p-4">
+      <p className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-fw-purple">
+        <Sparkles className="h-3.5 w-3.5" /> Ship it to Shopify
+      </p>
+      <p className="mt-2 text-[13px] leading-[20px] text-fw-text">
+        Paste this into any Shopify product page (or any HTML page). One line — done.
+      </p>
+      <pre className="mt-3 max-h-40 overflow-auto rounded-lg border border-fw-border bg-white p-3 text-[11px] leading-[16px] text-fw-text whitespace-pre-wrap break-all">
+{snippet}
+      </pre>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button
+          onClick={() => copy(snippet, "snippet")}
+          className="h-9 px-3 text-[12px]"
+        >
+          <Copy className="h-3.5 w-3.5" />
+          {copied === "snippet" ? "Copied!" : "Copy snippet"}
+        </Button>
+        <Button
+          onClick={() => copy(embedLink, "link")}
+          variant="outline"
+          className="h-9 px-3 text-[12px]"
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          {copied === "link" ? "Copied!" : "Copy link"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function NextStepsCard({ sessionId }: { sessionId: string }) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  return (
+    <div className="mt-8 rounded-2xl border border-fw-border bg-white p-6">
+      <h2 className="text-[18px] font-bold text-fw-text">How to put this on your Shopify page</h2>
+      <ol className="mt-4 space-y-3 text-[13px] leading-[20px] text-fw-text">
+        <Step n={1}>
+          In your Shopify admin, open the product you want to add the spin to.
+        </Step>
+        <Step n={2}>
+          Edit the product description and switch to <strong>HTML view</strong> (the <code>&lt;/&gt;</code> icon).
+        </Step>
+        <Step n={3}>
+          Paste the snippet from the card above wherever you want the spin to appear.
+        </Step>
+        <Step n={4}>
+          Save. Preview the storefront page — shoppers can now drag your product to spin it.
+        </Step>
+      </ol>
+      <p className="mt-4 text-[12px] text-fw-lightGray">
+        Prefer a direct link? <a className="font-medium text-fw-purple hover:underline" href={`/embed/${sessionId}`} target="_blank" rel="noreferrer">Open the spin standalone at {origin}/embed/{sessionId}</a>
+      </p>
+    </div>
+  );
+}
+
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-fw-purpleSoft text-[11px] font-bold text-fw-purple">
+        {n}
+      </span>
+      <span>{children}</span>
+    </li>
   );
 }
 
@@ -208,6 +367,7 @@ function DiagnosticsPanel({ result }: { result: SpinVideoGenerationResult }) {
           <DiagRow label="Provider" value={d.provider} ok="ok" />
           {d.modelUsed && <DiagRow label="Model" value={d.modelUsed} ok="ok" />}
           <DiagRow label="Duration" value={fmtMs(d.durationMs)} ok="ok" />
+          <DiagRow label="Cached" value={d.cached ? "✓ served from cache (free)" : "fresh generation"} ok="ok" />
           <DiagRow label="Front photo" value={d.frontPhotoPresent ? "✓ provided" : "— missing"} ok={d.frontPhotoPresent ? "ok" : "fail"} />
           <DiagRow label="Status" value={result.status.toUpperCase()} ok={ok} />
           {result.videoUrl && (

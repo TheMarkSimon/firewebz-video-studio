@@ -24,23 +24,22 @@ export async function generateMetadata() {
 export default async function EmbedPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
   const session = await getSession(sessionId);
-  if (!session) {
-    return <EmbedError message="Spin not found or expired." />;
+  if (!session) return <EmbedError message="Spin not found or expired." />;
+
+  // Only serve pre-generated spins on the embed path. Merchants embed a
+  // finalized spin after they've already generated it in the dashboard —
+  // this route MUST NOT trigger a $3 Kling call on every shopper pageview.
+  const cached = session.spinResult;
+  if (!cached?.videoUrl) {
+    return <EmbedError message="Spin is still being prepared." />;
   }
 
-  // If the session has a cached video URL (future field), render straight
-  // away. Otherwise generate on demand. In production we'd persist the
-  // generated MP4 URL into the session to avoid re-generating on every embed
-  // load — hooking that up is a small follow-up.
-  const result = await generateSpinVideoFromSession(sessionId);
-  if (result.status !== "completed" || !result.videoUrl) {
-    return <EmbedError message={result.errorMessage ?? "Spin unavailable."} />;
-  }
+  const proxiedVideo = `/api/proxy?url=${encodeURIComponent(cached.videoUrl)}`;
+  const proxiedFrames = cached.frameUrls?.map((u) => `/api/proxy?url=${encodeURIComponent(u)}`);
 
-  const proxied = `/api/proxy?url=${encodeURIComponent(result.videoUrl)}`;
   return (
     <div className="h-screen w-screen bg-transparent">
-      <SpinScrubber videoUrl={proxied} className="h-full w-full" />
+      <SpinScrubber frameUrls={proxiedFrames} videoUrl={proxiedVideo} className="h-full w-full" />
     </div>
   );
 }

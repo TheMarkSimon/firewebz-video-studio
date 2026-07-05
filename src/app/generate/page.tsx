@@ -13,11 +13,21 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
   const session = await getSession(sessionId);
   if (!session) return <NotFound message="Your session expired. Start a new spin." />;
 
+  const cached = session.spinResult?.videoUrl
+    ? {
+        videoUrl: session.spinResult.videoUrl,
+        frameUrls: session.spinResult.frameUrls,
+        modelUsed: session.spinResult.modelUsed,
+        durationMs: session.spinResult.durationMs,
+      }
+    : null;
+
   return (
     <AppShell>
       <GenerateClient
         sessionId={sessionId}
         frontPhotoUrl={session.productPhotos?.front ?? null}
+        cachedResult={cached}
       />
     </AppShell>
   );

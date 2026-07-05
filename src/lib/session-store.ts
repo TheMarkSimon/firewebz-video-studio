@@ -23,10 +23,23 @@ export interface SessionData {
     left?: string;
     right?: string;
   };
+  // Cached spin generation result. Written after the first successful Kling
+  // call so re-viewing /generate or /embed doesn't burn $3 per pageview.
+  spinResult?: {
+    videoUrl?: string;
+    frameUrls?: string[];
+    modelUsed?: string;
+    durationMs?: number;
+    completedAt: number;
+  };
   createdAt: number;
 }
 
-const TTL_SECONDS = 30 * 60; // 30 min
+// Sessions live 24h — merchants share embed links with real shoppers, so
+// the underlying session (and its cached spin) needs to survive at least a
+// day. Bumped from 30m; if it turns out we need forever-persistence, this
+// moves to a real DB.
+const TTL_SECONDS = 24 * 60 * 60;
 
 declare global {
   // eslint-disable-next-line no-var
@@ -84,6 +97,23 @@ export async function putSession(data: Omit<SessionData, "createdAt">): Promise<
     if (Date.now() - v.createdAt > TTL_SECONDS * 1000) store.delete(k);
   }
   return id;
+}
+
+export async function updateSession(id: string, patch: Partial<SessionData>): Promise<void> {
+  const existing = await getSession(id);
+  if (!existing) throw new Error(`Session ${id} not found`);
+  const merged: SessionData = { ...existing, ...patch };
+
+  if (redisConfigured()) {
+    try {
+      const redis = await getRedisClient();
+      await redis.set(`fw:session:${id}`, merged, { ex: TTL_SECONDS });
+      return;
+    } catch (err) {
+      console.error("[session-store] Redis update failed, falling back to memory:", err);
+    }
+  }
+  getMemoryStore().set(id, merged);
 }
 
 export async function getSession(id: string): Promise<SessionData | null> {

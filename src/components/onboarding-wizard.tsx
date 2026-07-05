@@ -48,16 +48,19 @@ export function OnboardingWizard() {
 
   return (
     <AppShell variant="onboarding" onReset={() => { setPhoto(INITIAL_PHOTO); setError(null); }}>
-      <div className="mx-auto w-full max-w-[560px] pt-4 lg:pt-8">
-        <h1 className="text-[22px] font-bold text-fw-text">Upload a photo of your product</h1>
-        <p className="mt-1 text-[14px] text-fw-darkGray">
-          One clean front-facing photo. Background is removed automatically. We'll turn it into
-          a 360° spin you can embed on your storefront.
+      <div className="mx-auto w-full max-w-[720px] pt-4 lg:pt-8">
+        <h1 className="font-display text-[28px] font-bold text-fw-text md:text-[32px]">
+          One photo. A 360° spin. Three minutes.
+        </h1>
+        <p className="mt-2 text-[15px] leading-[24px] text-fw-darkGray">
+          Upload your product photo below. We'll remove the background, generate a full
+          360° rotation, and hand you back a one-line snippet you can paste on any Shopify
+          product page.
         </p>
 
-        <div className="mt-6 max-w-[320px]">
+        <div className="mt-8 grid gap-6 md:grid-cols-[320px_minmax(0,1fr)]">
           <PhotoSlot
-            label="Front"
+            label="Product photo"
             kind="front"
             required
             value={photo.processed}
@@ -68,23 +71,56 @@ export function OnboardingWizard() {
               setPhoto({ raw, processed, status, errorMessage })
             }
           />
+
+          <div className="rounded-2xl border border-fw-border bg-white p-5">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">
+              For the best spin
+            </p>
+            <ul className="mt-3 space-y-2.5 text-[13px] leading-[20px] text-fw-text">
+              <Tip>
+                <strong>3/4 view works best.</strong> Angle the product ~30° off dead-front so
+                one side is fully visible.
+              </Tip>
+              <Tip>
+                <strong>Fill the frame.</strong> Product should take up 70–85% of the image.
+              </Tip>
+              <Tip>
+                <strong>Even, front-side lighting.</strong> No dramatic shadows or backlight.
+              </Tip>
+              <Tip>
+                <strong>Any background is fine.</strong> We remove it automatically.
+              </Tip>
+              <Tip>
+                <strong>Big is better.</strong> Ideally 1024px or larger on the long edge.
+              </Tip>
+            </ul>
+          </div>
         </div>
 
         {error && (
-          <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
+          <div className="mt-6 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
         )}
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Button disabled={!canGenerate || isPending} onClick={submit} className="h-11 px-8">
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Generate spin
+            Generate my spin
           </Button>
           {blockReason && <span className="text-[12px] text-fw-darkGray">{blockReason}</span>}
           {canGenerate && !isPending && (
-            <span className="text-[12px] text-fw-lightGray">Usually 2-3 minutes.</span>
+            <span className="text-[12px] text-fw-lightGray">Usually finishes in 2-3 minutes.</span>
           )}
         </div>
       </div>
     </AppShell>
+  );
+}
+
+function Tip({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-2.5">
+      <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-fw-purple" />
+      <span>{children}</span>
+    </li>
   );
 }
