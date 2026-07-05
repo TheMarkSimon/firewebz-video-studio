@@ -2,33 +2,204 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Horizontal drag-to-scrub 360° widget over an MP4.
-// Vertical drag is intentionally ignored — this widget is a rotation, not a
-// video player. No autoplay controls, no timeline UI. Loops seamlessly by
-// wrapping currentTime around video.duration.
+// Horizontal drag-to-spin widget.
 //
-// Design notes:
-//   - preload="auto" so the whole MP4 buffers before interaction. Kling clips
-//     are ~14 MB → ~1-2s on typical broadband. Show "Loading…" until ready.
-//   - Sensitivity: default 1 full rotation per widget-width of drag. Tunable
-//     via `pixelsPerRevolution` prop for merchants who want stiffer/looser feel.
-//   - Touch and mouse share the same math via pointer events.
+// Preferred mode: canvas flipbook over N pre-decoded WebP frames. This is
+// what makes it feel instant on mobile Safari — no video decoding on the
+// interaction path, just Image → canvas blit.
+//
+// Fallback mode: HTML5 <video> currentTime scrubbing. Used when frame
+// extraction failed server-side. Laggy on iOS, acceptable on desktop.
+//
+// Vertical drag is intentionally ignored (rotation only). Auto-rotates
+// slowly when idle. Same props whichever mode ends up active.
 
 interface SpinScrubberProps {
-  videoUrl: string;
+  frameUrls?: string[];          // preferred: WebP frame sequence
+  videoUrl?: string;             // fallback: MP4 for currentTime scrubbing
   className?: string;
-  pixelsPerRevolution?: number; // default = clientWidth
-  autoRotate?: boolean;         // slow idle rotation when not interacting
-  autoRotateSpeed?: number;     // revolutions per second when idle
+  pixelsPerRevolution?: number;  // default = container width
+  autoRotate?: boolean;
+  autoRotateSpeed?: number;      // revolutions per second when idle
 }
 
-export function SpinScrubber({
+export function SpinScrubber(props: SpinScrubberProps) {
+  if (props.frameUrls && props.frameUrls.length > 1) {
+    return <CanvasFlipbook {...props} frameUrls={props.frameUrls} />;
+  }
+  if (props.videoUrl) {
+    return <VideoScrubber {...props} videoUrl={props.videoUrl} />;
+  }
+  return <div className={`flex items-center justify-center bg-fw-disabled ${props.className ?? ""}`}>No spin available</div>;
+}
+
+// -----------------------------------------------------------------------------
+// Canvas flipbook (preferred)
+// -----------------------------------------------------------------------------
+
+function CanvasFlipbook({
+  frameUrls,
+  className = "",
+  pixelsPerRevolution,
+  autoRotate = true,
+  autoRotateSpeed = 0.1,
+}: Required<Pick<SpinScrubberProps, "frameUrls">> & SpinScrubberProps) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const imagesRef = useRef<HTMLImageElement[]>([]);
+  const [loadedCount, setLoadedCount] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const currentFrameRef = useRef<number>(0);
+  const dragStateRef = useRef<{ startX: number; startFrame: number; widgetWidth: number } | null>(null);
+  const idleAnimRef = useRef<number | null>(null);
+  const lastFrameTimeRef = useRef<number>(0);
+
+  // Preload all frames.
+  useEffect(() => {
+    setLoadedCount(0);
+    imagesRef.current = [];
+    let cancelled = false;
+    let loaded = 0;
+    frameUrls.forEach((url, i) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = url;
+      img.onload = () => {
+        if (cancelled) return;
+        imagesRef.current[i] = img;
+        loaded++;
+        setLoadedCount(loaded);
+        if (i === 0) drawFrame(0); // as soon as frame 0 is ready, paint it
+      };
+      img.onerror = () => {
+        if (cancelled) return;
+        loaded++;
+        setLoadedCount(loaded);
+      };
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameUrls]);
+
+  function drawFrame(index: number) {
+    const canvas = canvasRef.current;
+    const img = imagesRef.current[index];
+    if (!canvas || !img) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    // Size the canvas to match the image (once). Redraw everything.
+    if (canvas.width !== img.naturalWidth || canvas.height !== img.naturalHeight) {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    currentFrameRef.current = index;
+  }
+
+  // Idle auto-rotate: only when not dragging and all frames loaded.
+  const allLoaded = loadedCount === frameUrls.length;
+  useEffect(() => {
+    if (!autoRotate || !allLoaded || isDragging) {
+      if (idleAnimRef.current) cancelAnimationFrame(idleAnimRef.current);
+      lastFrameTimeRef.current = 0;
+      return;
+    }
+    const tick = (t: number) => {
+      if (lastFrameTimeRef.current === 0) lastFrameTimeRef.current = t;
+      const dt = (t - lastFrameTimeRef.current) / 1000;
+      lastFrameTimeRef.current = t;
+      // revolutionsPerSec × dt = fraction of a revolution to advance.
+      // fraction × frameCount = frames to advance.
+      const advance = autoRotateSpeed * dt * frameUrls.length;
+      const next = (currentFrameRef.current + advance) % frameUrls.length;
+      drawFrame(Math.floor(next < 0 ? next + frameUrls.length : next));
+      idleAnimRef.current = requestAnimationFrame(tick);
+    };
+    idleAnimRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (idleAnimRef.current) cancelAnimationFrame(idleAnimRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRotate, autoRotateSpeed, allLoaded, isDragging, frameUrls.length]);
+
+  // Pointer events (mouse + touch).
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !allLoaded) return;
+
+    const onDown = (e: PointerEvent) => {
+      el.setPointerCapture(e.pointerId);
+      dragStateRef.current = {
+        startX: e.clientX,
+        startFrame: currentFrameRef.current,
+        widgetWidth: el.clientWidth,
+      };
+      setIsDragging(true);
+    };
+    const onMove = (e: PointerEvent) => {
+      const s = dragStateRef.current;
+      if (!s) return;
+      const revolutionPx = pixelsPerRevolution ?? s.widgetWidth;
+      const delta = e.clientX - s.startX;
+      // Advance one full frameUrls.length per revolutionPx of drag.
+      const framesDelta = (delta / revolutionPx) * frameUrls.length;
+      let next = s.startFrame + framesDelta;
+      next = ((next % frameUrls.length) + frameUrls.length) % frameUrls.length;
+      drawFrame(Math.floor(next));
+    };
+    const onUp = (e: PointerEvent) => {
+      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+      dragStateRef.current = null;
+      setIsDragging(false);
+    };
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
+    };
+  }, [allLoaded, pixelsPerRevolution, frameUrls.length]);
+
+  const loadPct = Math.round((loadedCount / frameUrls.length) * 100);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative select-none touch-none ${isDragging ? "cursor-grabbing" : "cursor-grab"} ${className}`}
+      style={{ touchAction: "none" }}
+    >
+      <canvas
+        ref={canvasRef}
+        className="h-full w-full object-contain pointer-events-none"
+      />
+      {!allLoaded && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 text-[13px] text-fw-darkGray">
+          <div>Loading spin… {loadPct}%</div>
+          <div className="mt-2 h-1 w-32 overflow-hidden rounded-full bg-fw-lighterGray/60">
+            <div className="h-full bg-fw-purple transition-all" style={{ width: `${loadPct}%` }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Video scrubber (fallback when frame extraction failed)
+// -----------------------------------------------------------------------------
+
+function VideoScrubber({
   videoUrl,
   className = "",
   pixelsPerRevolution,
   autoRotate = true,
   autoRotateSpeed = 0.1,
-}: SpinScrubberProps) {
+}: Required<Pick<SpinScrubberProps, "videoUrl">> & SpinScrubberProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isReady, setIsReady] = useState(false);
@@ -37,18 +208,15 @@ export function SpinScrubber({
   const idleAnimRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
 
-  // Load: fire once, mark ready when we have enough to scrub.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
     const onReady = () => setIsReady(true);
-    // readyState 4 = HAVE_ENOUGH_DATA — safe to scrub anywhere in the clip.
     if (v.readyState >= 4) onReady();
     v.addEventListener("canplaythrough", onReady);
     return () => v.removeEventListener("canplaythrough", onReady);
   }, [videoUrl]);
 
-  // Idle auto-rotate: only when not dragging and video is ready.
   useEffect(() => {
     if (!autoRotate || !isReady || isDragging) {
       if (idleAnimRef.current) cancelAnimationFrame(idleAnimRef.current);
@@ -63,7 +231,6 @@ export function SpinScrubber({
       if (lastFrameTimeRef.current === 0) lastFrameTimeRef.current = t;
       const dt = (t - lastFrameTimeRef.current) / 1000;
       lastFrameTimeRef.current = t;
-      // autoRotateSpeed = revolutions per second → advance dt * duration * speed
       const newTime = (v.currentTime + dt * v.duration * autoRotateSpeed) % v.duration;
       v.currentTime = newTime < 0 ? newTime + v.duration : newTime;
       idleAnimRef.current = requestAnimationFrame(tick);
@@ -75,52 +242,40 @@ export function SpinScrubber({
     };
   }, [autoRotate, autoRotateSpeed, isReady, isDragging]);
 
-  // Pointer events (unified for mouse + touch).
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !isReady) return;
-
-    const onPointerDown = (e: PointerEvent) => {
+    const el = containerRef.current;
+    if (!el || !isReady) return;
+    const onDown = (e: PointerEvent) => {
       const v = videoRef.current;
       if (!v || !v.duration) return;
-      container.setPointerCapture(e.pointerId);
-      dragStateRef.current = {
-        startX: e.clientX,
-        startTime: v.currentTime,
-        widgetWidth: container.clientWidth,
-      };
+      el.setPointerCapture(e.pointerId);
+      dragStateRef.current = { startX: e.clientX, startTime: v.currentTime, widgetWidth: el.clientWidth };
       setIsDragging(true);
     };
-
-    const onPointerMove = (e: PointerEvent) => {
-      const state = dragStateRef.current;
+    const onMove = (e: PointerEvent) => {
+      const s = dragStateRef.current;
       const v = videoRef.current;
-      if (!state || !v || !v.duration) return;
-      const revolutionPx = pixelsPerRevolution ?? state.widgetWidth;
-      const deltaX = e.clientX - state.startX;
-      const revolutionFraction = deltaX / revolutionPx;
-      // deltaTime = revolutionFraction * duration; positive drag = forward.
-      let newTime = state.startTime + revolutionFraction * v.duration;
-      // Wrap around: negative → +duration, > duration → mod.
-      newTime = ((newTime % v.duration) + v.duration) % v.duration;
-      v.currentTime = newTime;
+      if (!s || !v || !v.duration) return;
+      const revolutionPx = pixelsPerRevolution ?? s.widgetWidth;
+      const delta = e.clientX - s.startX;
+      let t = s.startTime + (delta / revolutionPx) * v.duration;
+      t = ((t % v.duration) + v.duration) % v.duration;
+      v.currentTime = t;
     };
-
-    const onPointerUp = (e: PointerEvent) => {
-      if (container.hasPointerCapture(e.pointerId)) container.releasePointerCapture(e.pointerId);
+    const onUp = (e: PointerEvent) => {
+      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
       dragStateRef.current = null;
       setIsDragging(false);
     };
-
-    container.addEventListener("pointerdown", onPointerDown);
-    container.addEventListener("pointermove", onPointerMove);
-    container.addEventListener("pointerup", onPointerUp);
-    container.addEventListener("pointercancel", onPointerUp);
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
     return () => {
-      container.removeEventListener("pointerdown", onPointerDown);
-      container.removeEventListener("pointermove", onPointerMove);
-      container.removeEventListener("pointerup", onPointerUp);
-      container.removeEventListener("pointercancel", onPointerUp);
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
     };
   }, [isReady, pixelsPerRevolution]);
 
@@ -128,7 +283,6 @@ export function SpinScrubber({
     <div
       ref={containerRef}
       className={`relative select-none touch-none ${isDragging ? "cursor-grabbing" : "cursor-grab"} ${className}`}
-      // touch-action:none tells the browser not to scroll/zoom on horizontal drag.
       style={{ touchAction: "none" }}
     >
       <video
@@ -137,8 +291,6 @@ export function SpinScrubber({
         preload="auto"
         muted
         playsInline
-        // We control frames manually via currentTime; do NOT let the browser
-        // auto-play or show controls.
         className="w-full h-full object-contain pointer-events-none"
       />
       {!isReady && (

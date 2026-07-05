@@ -124,6 +124,7 @@ function ResultPhase({
 }) {
   const succeeded = result.status === "completed" && !!result.videoUrl;
   const proxiedVideo = result.videoUrl ? `/api/proxy?url=${encodeURIComponent(result.videoUrl)}` : undefined;
+  const proxiedFrames = result.frameUrls?.map((u) => `/api/proxy?url=${encodeURIComponent(u)}`);
 
   return (
     <div>
@@ -142,6 +143,7 @@ function ResultPhase({
           {succeeded && proxiedVideo ? (
             <>
               <SpinScrubber
+                frameUrls={proxiedFrames}
                 videoUrl={proxiedVideo}
                 className="h-[520px] w-full rounded-lg bg-[#f8f7ff]"
               />

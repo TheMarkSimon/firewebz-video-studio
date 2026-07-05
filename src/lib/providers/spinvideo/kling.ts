@@ -4,6 +4,7 @@
 // 360° rotation with acceptable end-of-clip stability.
 
 import type { SpinVideoInput, SpinVideoProvider, SpinVideoResult } from "./types";
+import { extractFramesFromVideo } from "./extract-frames";
 
 const MODEL_ID = "fal-ai/kling-video/v3/pro/image-to-video";
 
@@ -73,9 +74,15 @@ export const falKling: SpinVideoProvider = {
         };
       }
 
+      // Extract WebP frames from the MP4 so the client can flipbook-scrub
+      // them on canvas. Falls back to null on any ffmpeg failure — the
+      // UI degrades gracefully to video scrubbing.
+      const frames = await extractFramesFromVideo(videoUrl, key);
+
       return {
         status: "completed",
         videoUrl,
+        frameUrls: frames?.frameUrls,
         modelUsed: MODEL_ID,
         providerJobId: result?.requestId,
         durationMs: Date.now() - started,
@@ -83,6 +90,8 @@ export const falKling: SpinVideoProvider = {
           model: MODEL_ID,
           duration: input.durationSeconds ?? 10,
           cfgScale: 0.5,
+          frameCount: frames?.frameCount ?? 0,
+          extractionMs: frames?.durationMs ?? 0,
         },
       };
     } catch (err) {

@@ -11,6 +11,9 @@ export interface SpinVideoInput {
 export interface SpinVideoResult {
   status: "completed" | "failed";
   videoUrl?: string;
+  // WebP frames extracted from the MP4 for the canvas-flipbook scrubber.
+  // Absent on failure to extract — client falls back to videoUrl scrubbing.
+  frameUrls?: string[];
   providerJobId?: string;
   errorMessage?: string;
   durationMs?: number;
