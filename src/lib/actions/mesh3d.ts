@@ -1,7 +1,7 @@
 "use server";
 
 import { getSession } from "@/lib/session-store";
-import { getMesh3dProvider } from "@/lib/providers/mesh3d/replicate";
+import { getMesh3dProvider } from "@/lib/providers/mesh3d";
 
 export interface Mesh3dGenerationResult {
   status: "completed" | "failed";

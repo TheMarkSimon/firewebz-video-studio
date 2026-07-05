@@ -1,35 +1,8 @@
-// Replicate provider — Microsoft TRELLIS via firtoz/trellis.
+// Replicate provider — Microsoft TRELLIS via firtoz/trellis. Kept as a
+// fallback / A-B option; the primary provider is fal.ai's Hunyuan3D v2 MV.
 // Docs: https://replicate.com/firtoz/trellis
-//
-// Why TRELLIS: it accepts multiple input images (front/back/left/right)
-// AND produces a textured GLB in a single pass. That's the exact
-// combination the pivot needs. Previous pick (tencent/hunyuan3d-2mv)
-// only generated geometry — no colors, hence the grey clay output.
 
-export interface Mesh3dInput {
-  frontImageDataUrl: string;
-  backImageDataUrl?: string;
-  leftImageDataUrl?: string;
-  rightImageDataUrl?: string;
-  caption?: string;
-}
-
-export interface Mesh3dResult {
-  status: "completed" | "failed";
-  glbUrl?: string;
-  previewImageUrl?: string;
-  providerJobId?: string;
-  errorMessage?: string;
-  durationMs?: number;
-  modelUsed?: string;
-  rawInput?: unknown;
-}
-
-export interface Mesh3dProvider {
-  name: string;
-  isConfigured(): boolean;
-  generate(input: Mesh3dInput): Promise<Mesh3dResult>;
-}
+import type { Mesh3dInput, Mesh3dProvider, Mesh3dResult } from "./types";
 
 const TRELLIS_MODEL = "firtoz/trellis";
 const TRELLIS_VERSION = "e8f6c45206993f297372f5436b90350817bd9b4a0d52d2a76df50c1c8afa2b3c";
@@ -159,6 +132,3 @@ export const replicateTrellis: Mesh3dProvider = {
   },
 };
 
-export function getMesh3dProvider(): Mesh3dProvider {
-  return replicateTrellis;
-}
