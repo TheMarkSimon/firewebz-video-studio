@@ -66,7 +66,9 @@ export async function GET(req: NextRequest) {
   if (contentLength) headers.set("Content-Length", contentLength);
   if (contentRange) headers.set("Content-Range", contentRange);
   headers.set("Accept-Ranges", acceptRanges);
-  headers.set("Cache-Control", "public, max-age=3600");
+  // fal.media URLs are content-addressed and immutable. Cache aggressively
+  // so frame flipbooks don't re-fetch every scrub.
+  headers.set("Cache-Control", "public, max-age=86400, immutable");
 
   return new Response(upstream.body, {
     status: upstream.status,

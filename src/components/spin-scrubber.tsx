@@ -33,6 +33,14 @@ export function SpinScrubber(props: SpinScrubberProps) {
   return <div className={`flex items-center justify-center bg-fw-disabled ${props.className ?? ""}`}>No spin available</div>;
 }
 
+// Tiny badge you can drop next to the scrubber to see which mode is active
+// while debugging. Not exported through the public API.
+export function SpinModeBadge({ frameUrls, videoUrl }: SpinScrubberProps) {
+  const mode = frameUrls && frameUrls.length > 1 ? `canvas (${frameUrls.length}f)` : videoUrl ? "video" : "none";
+  const color = mode.startsWith("canvas") ? "bg-emerald-500/10 text-emerald-700" : "bg-amber-500/10 text-amber-700";
+  return <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${color}`}>{mode}</span>;
+}
+
 // -----------------------------------------------------------------------------
 // Canvas flipbook (preferred)
 // -----------------------------------------------------------------------------
@@ -49,8 +57,11 @@ function CanvasFlipbook({
   const imagesRef = useRef<HTMLImageElement[]>([]);
   const [loadedCount, setLoadedCount] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const currentFrameRef = useRef<number>(0);
-  const dragStateRef = useRef<{ startX: number; startFrame: number; widgetWidth: number } | null>(null);
+  // Fractional frame position — keeping it as a float means auto-rotate
+  // accumulates sub-frame progress instead of getting floored to 0 each tick.
+  const frameFloatRef = useRef<number>(0);
+  const drawnFrameRef = useRef<number>(-1);
+  const dragStateRef = useRef<{ startX: number; startFloat: number; widgetWidth: number } | null>(null);
   const idleAnimRef = useRef<number | null>(null);
   const lastFrameTimeRef = useRef<number>(0);
 
@@ -82,19 +93,18 @@ function CanvasFlipbook({
   }, [frameUrls]);
 
   function drawFrame(index: number) {
+    if (drawnFrameRef.current === index) return; // skip redundant redraws
     const canvas = canvasRef.current;
     const img = imagesRef.current[index];
     if (!canvas || !img) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    // Size the canvas to match the image (once). Redraw everything.
     if (canvas.width !== img.naturalWidth || canvas.height !== img.naturalHeight) {
       canvas.width = img.naturalWidth;
       canvas.height = img.naturalHeight;
     }
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    currentFrameRef.current = index;
+    drawnFrameRef.current = index;
   }
 
   // Idle auto-rotate: only when not dragging and all frames loaded.
@@ -109,11 +119,13 @@ function CanvasFlipbook({
       if (lastFrameTimeRef.current === 0) lastFrameTimeRef.current = t;
       const dt = (t - lastFrameTimeRef.current) / 1000;
       lastFrameTimeRef.current = t;
-      // revolutionsPerSec × dt = fraction of a revolution to advance.
-      // fraction × frameCount = frames to advance.
+      // Advance the FRACTIONAL position (not the drawn frame index) so
+      // slow motion accumulates properly across ticks.
       const advance = autoRotateSpeed * dt * frameUrls.length;
-      const next = (currentFrameRef.current + advance) % frameUrls.length;
-      drawFrame(Math.floor(next < 0 ? next + frameUrls.length : next));
+      let next = frameFloatRef.current + advance;
+      next = ((next % frameUrls.length) + frameUrls.length) % frameUrls.length;
+      frameFloatRef.current = next;
+      drawFrame(Math.floor(next));
       idleAnimRef.current = requestAnimationFrame(tick);
     };
     idleAnimRef.current = requestAnimationFrame(tick);
@@ -132,7 +144,7 @@ function CanvasFlipbook({
       el.setPointerCapture(e.pointerId);
       dragStateRef.current = {
         startX: e.clientX,
-        startFrame: currentFrameRef.current,
+        startFloat: frameFloatRef.current,
         widgetWidth: el.clientWidth,
       };
       setIsDragging(true);
@@ -142,10 +154,10 @@ function CanvasFlipbook({
       if (!s) return;
       const revolutionPx = pixelsPerRevolution ?? s.widgetWidth;
       const delta = e.clientX - s.startX;
-      // Advance one full frameUrls.length per revolutionPx of drag.
       const framesDelta = (delta / revolutionPx) * frameUrls.length;
-      let next = s.startFrame + framesDelta;
+      let next = s.startFloat + framesDelta;
       next = ((next % frameUrls.length) + frameUrls.length) % frameUrls.length;
+      frameFloatRef.current = next;
       drawFrame(Math.floor(next));
     };
     const onUp = (e: PointerEvent) => {
