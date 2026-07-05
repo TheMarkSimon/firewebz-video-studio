@@ -16,7 +16,10 @@ export async function submitOnboarding3d(formData: FormData): Promise<string> {
   const productPhotos: { front?: string; back?: string; left?: string; right?: string } = {};
   for (const angle of ["front", "back", "left", "right"] as const) {
     const val = formData.get(`photo_${angle}`);
-    if (typeof val === "string" && val.startsWith("data:")) {
+    // Accept fal.media URLs (bg-removed images now come back as URLs) or
+    // data URLs (legacy path). Reject anything else to keep junk out of
+    // the session.
+    if (typeof val === "string" && (val.startsWith("data:") || val.startsWith("http"))) {
       productPhotos[angle] = val;
     }
   }
