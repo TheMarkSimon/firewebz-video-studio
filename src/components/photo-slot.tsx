@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { Upload, Loader2, X, RotateCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { removeBackgroundServerSide, type RemoveBgResult } from "@/lib/actions/remove-bg";
+import { removeBackgroundServerSide } from "@/lib/actions/remove-bg";
 
 export type SlotKind = "front" | "back" | "left" | "right";
 
@@ -14,18 +14,11 @@ export type PhotoSlotStatus =
   | "ready"        // bg-removal succeeded — cleaned image ready
   | "failed";      // bg-removal failed — user must retry
 
-// Module-level FIFO queue so multiple PhotoSlot instances don't fire parallel
-// bg-removal requests. Replicate throttles hard (down to 1 burst / 6-per-min
-// when the account has <$5 credit), so parallel uploads that succeed on the
-// first request 429 all the others. Serializing sidesteps that entirely — one
-// call at a time, retries handled server-side.
-let bgQueue: Promise<unknown> = Promise.resolve();
-function enqueueBgRemoval(rawUrl: string): Promise<RemoveBgResult> {
-  const next = bgQueue.then(() => removeBackgroundServerSide(rawUrl));
-  // Keep the chain alive but don't let errors break subsequent items.
-  bgQueue = next.catch(() => undefined);
-  return next;
-}
+// Parallel bg removal: each PhotoSlot fires its call independently. On fal.ai
+// (default provider) our fresh account has ~600 req/min so 3-4 concurrent
+// requests are a rounding error. If we ever swap back to Replicate under
+// tight throttle limits, add a queue here — the server action already handles
+// 429 retries.
 
 interface PhotoSlotProps {
   label: string;
@@ -61,20 +54,11 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
       reader.readAsDataURL(file);
     });
 
-    // Show raw immediately, mark queued (will flip to processing when this
-    // slot's turn on the queue comes up).
-    onChange(rawUrl, null, "queued", null);
-
-    // Serialized queue: only one bg-removal request at a time. When this
-    // slot's turn comes, we don't get a signal from the queue — but our
-    // request enters the queue at "queued" state until removeBackgroundServerSide
-    // actually starts, which is when the previous item finishes. To reflect
-    // "processing" accurately we could poll, but simpler: flip to processing
-    // right before we await the queued call, and hope the queue drains fast.
+    // Show raw immediately, mark processing while bg removal runs.
     onChange(rawUrl, null, "processing", null);
 
     try {
-      const res = await enqueueBgRemoval(rawUrl);
+      const res = await removeBackgroundServerSide(rawUrl);
       if (res.status === "completed" && res.cleanedDataUrl) {
         onChange(rawUrl, res.cleanedDataUrl, "ready", null);
       } else {
