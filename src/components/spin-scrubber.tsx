@@ -50,7 +50,7 @@ function CanvasFlipbook({
   className = "",
   pixelsPerRevolution,
   autoRotate = true,
-  autoRotateSpeed = 0.1,
+  autoRotateSpeed = 0.15,
 }: Required<Pick<SpinScrubberProps, "frameUrls">> & SpinScrubberProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
