@@ -27,11 +27,14 @@ function dataUrlToBlob(dataUrl: string): Blob {
 
 export const falHunyuan3dMultiView: Mesh3dProvider = {
   name: "fal-hunyuan3d-v2-mv",
-  isConfigured: () => Boolean(process.env.FAL_KEY),
+  isConfigured: () => Boolean(process.env.FAL_KEY ?? process.env.FAL_API_TOKEN),
   async generate(input: Mesh3dInput): Promise<Mesh3dResult> {
-    const key = process.env.FAL_KEY;
+    // Accept either name — FAL_KEY is what the @fal-ai/client SDK expects
+    // by default, FAL_API_TOKEN is a common alternative name used by many
+    // deployments. Try both so operators aren't tripped up by the mismatch.
+    const key = process.env.FAL_KEY ?? process.env.FAL_API_TOKEN;
     if (!key) {
-      return { status: "failed", errorMessage: "FAL_KEY is not set" };
+      return { status: "failed", errorMessage: "Neither FAL_KEY nor FAL_API_TOKEN is set" };
     }
     if (!input.frontImageDataUrl || !input.backImageDataUrl || !input.leftImageDataUrl) {
       return {
