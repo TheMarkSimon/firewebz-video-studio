@@ -19,10 +19,22 @@ import { join } from "node:path";
 // Guarded dynamic imports so Next.js doesn't try to bundle the ffmpeg binary
 // into the client. These modules are only loaded inside the extraction call.
 async function loadFfmpeg() {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const ffmpegInstaller = (await import("@ffmpeg-installer/ffmpeg")).default;
-  const { default: ffmpeg } = await import("fluent-ffmpeg");
-  ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+  // Some bundlers wrap the installer's CommonJS export inside .default; the
+  // path can live at either .path or .default.path depending on how Next
+  // resolves it. Coalesce both shapes.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const installerMod: any = await import("@ffmpeg-installer/ffmpeg");
+  const ffmpegPath: string | undefined =
+    installerMod?.path ?? installerMod?.default?.path;
+  if (!ffmpegPath) {
+    throw new Error(
+      `Could not resolve ffmpeg binary path from @ffmpeg-installer/ffmpeg. Got keys: ${Object.keys(installerMod ?? {}).join(",")}`
+    );
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fluentMod: any = await import("fluent-ffmpeg");
+  const ffmpeg = fluentMod?.default ?? fluentMod;
+  ffmpeg.setFfmpegPath(ffmpegPath);
   return ffmpeg;
 }
 
