@@ -186,6 +186,10 @@ function ResultPhase({
   const viewerRef = useRef<HTMLElement | null>(null);
   const succeeded = result.status === "completed" && !!result.glbUrl;
 
+  // Route the remote GLB through our own proxy so browsers on restrictive
+  // corporate networks (Zscaler) can reach it. See src/app/api/proxy/route.ts.
+  const proxiedGlbUrl = result.glbUrl ? `/api/proxy?url=${encodeURIComponent(result.glbUrl)}` : undefined;
+
   return (
     <div>
       <div className="mb-4 flex items-end justify-between">
@@ -216,7 +220,7 @@ function ResultPhase({
               */}
               <model-viewer
                 ref={(el) => { viewerRef.current = el; }}
-                src={result.glbUrl}
+                src={proxiedGlbUrl}
                 alt={`3D view of ${businessName} product`}
                 camera-controls
                 auto-rotate
@@ -232,7 +236,7 @@ function ResultPhase({
               />
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <Button asChild variant="outline" className="h-9 px-4 text-[13px]">
-                  <a href={result.glbUrl} download={`spinr-${businessName.replace(/\s+/g, "-")}.glb`}>
+                  <a href={proxiedGlbUrl} download={`spinr-${businessName.replace(/\s+/g, "-")}.glb`}>
                     <Download className="h-4 w-4" /> Download GLB
                   </a>
                 </Button>
