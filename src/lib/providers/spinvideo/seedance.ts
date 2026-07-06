@@ -1,0 +1,119 @@
+// ByteDance Seedance 1.0 Lite reference-to-video provider (fal.ai).
+//
+// Why this exists next to Kling: Seedance's reference mode accepts MULTIPLE
+// images of the same product, so the model grounds the back/sides in real
+// photos instead of hallucinating them. It also has a native camera_fixed
+// flag — the thing we fought Kling's prompt for.
+//
+// Endpoint verified live via fal's openapi (2026-07):
+//   fal-ai/bytedance/seedance/v1/lite/reference-to-video
+//   input: { prompt*, reference_image_urls*: string[], duration, resolution,
+//            aspect_ratio, camera_fixed, seed, enable_safety_checker }
+// Note: only the LITE tier has reference-to-video; there is no pro variant
+// and no "Seedance 2.0" on fal despite what other tools may claim.
+
+import type { SpinVideoInput, SpinVideoProvider, SpinVideoResult } from "./types";
+import { extractFramesFromVideo } from "./extract-frames";
+
+const MODEL_ID = "fal-ai/bytedance/seedance/v1/lite/reference-to-video";
+
+const PROMPT =
+  "A product on a mechanical turntable rotating at constant angular velocity, " +
+  "completing exactly one full 360 degree revolution. The reference images show " +
+  "the same product from different angles — front, back, and sides. Rotate " +
+  "smoothly through all of them in order. No acceleration, no deceleration. " +
+  "Pure solid white studio background, high-end commercial product photography " +
+  "lighting, crisp sharp textures, product perfectly centered and locked in " +
+  "place for the entire rotation.";
+
+function dataUrlToBlob(dataUrl: string): Blob {
+  const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!m) throw new Error("Expected a data URL with base64 payload");
+  return new Blob([Buffer.from(m[2], "base64")], { type: m[1] });
+}
+
+export const falSeedance: SpinVideoProvider = {
+  name: "fal-seedance-v1-lite-ref",
+  isConfigured: () => Boolean(process.env.FAL_KEY ?? process.env.FAL_API_TOKEN),
+  async generate(input: SpinVideoInput): Promise<SpinVideoResult> {
+    const key = process.env.FAL_KEY ?? process.env.FAL_API_TOKEN;
+    if (!key) return { status: "failed", errorMessage: "FAL_KEY is not set" };
+    if (!input.imageUrl) return { status: "failed", errorMessage: "imageUrl is required" };
+
+    const started = Date.now();
+    try {
+      const { fal } = await import("@fal-ai/client");
+      fal.config({ credentials: key });
+
+      const toUrl = async (u: string) =>
+        u.startsWith("data:") ? fal.storage.upload(dataUrlToBlob(u)) : u;
+
+      // Front first, then the extra angles in the order given — the prompt
+      // tells the model to rotate through them in order.
+      const referenceImageUrls = await Promise.all(
+        [input.imageUrl, ...(input.extraImageUrls ?? [])].map(toUrl),
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
+        prompt: PROMPT,
+        reference_image_urls: referenceImageUrls,
+        duration: String(input.durationSeconds ?? 10),
+        resolution: "720p",
+        aspect_ratio: "16:9",
+        camera_fixed: true,
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any = await fal.subscribe(MODEL_ID, { input: payload, logs: false });
+
+      const data = result?.data ?? result;
+      const videoUrl: string | undefined =
+        data?.video?.url ??
+        (typeof data?.video === "string" ? data.video : undefined) ??
+        data?.url;
+
+      if (!videoUrl) {
+        return {
+          status: "failed",
+          modelUsed: MODEL_ID,
+          errorMessage: `No video URL in result: ${JSON.stringify(result).slice(0, 400)}`,
+          durationMs: Date.now() - started,
+        };
+      }
+
+      const frames = await extractFramesFromVideo(videoUrl, key);
+
+      return {
+        status: "completed",
+        videoUrl,
+        frameUrls: frames?.frameUrls,
+        modelUsed: MODEL_ID,
+        providerJobId: result?.requestId,
+        durationMs: Date.now() - started,
+        rawInput: {
+          model: MODEL_ID,
+          referenceImageCount: referenceImageUrls.length,
+          duration: input.durationSeconds ?? 10,
+          cameraFixed: true,
+          resolution: "720p",
+          frameCount: frames?.frameCount ?? 0,
+        },
+      };
+    } catch (err) {
+      const e = err as { message?: string; status?: number; body?: unknown };
+      const status = e?.status ?? "";
+      const msg = e?.message ?? String(err);
+      let body = "";
+      if (e?.body != null) {
+        try { body = ` | body: ${JSON.stringify(e.body).slice(0, 200)}`; }
+        catch { body = ` | body: ${String(e.body).slice(0, 200)}`; }
+      }
+      return {
+        status: "failed",
+        modelUsed: MODEL_ID,
+        errorMessage: `${status ? `[${status}] ` : ""}${msg}${body}`.slice(0, 500),
+        durationMs: Date.now() - started,
+      };
+    }
+  },
+};

@@ -63,7 +63,15 @@ export async function generateSpinVideoFromSession(
     };
   }
 
-  const result = await provider.generate({ imageUrl: frontPhoto, durationSeconds: 10 });
+  // Extra angles ground the unseen sides for multi-image providers
+  // (Seedance); single-image providers (Kling) ignore them.
+  const extraImageUrls = [
+    session.productPhotos?.back,
+    session.productPhotos?.left,
+    session.productPhotos?.right,
+  ].filter((u): u is string => Boolean(u));
+
+  const result = await provider.generate({ imageUrl: frontPhoto, extraImageUrls, durationSeconds: 10 });
 
   // Persist success into the session so re-views don't pay again.
   if (result.status === "completed" && result.videoUrl) {

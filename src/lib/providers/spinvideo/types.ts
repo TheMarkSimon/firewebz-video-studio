@@ -5,6 +5,10 @@
 
 export interface SpinVideoInput {
   imageUrl: string;      // fal.media URL or data URL of the bg-removed front photo
+  // Optional extra angles (bg-removed URLs). Multi-image providers (Seedance
+  // reference-to-video) use these to ground the unseen sides of the product;
+  // single-image providers (Kling) ignore them.
+  extraImageUrls?: string[];
   durationSeconds?: 5 | 10;
 }
 

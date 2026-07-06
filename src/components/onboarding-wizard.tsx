@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { AppShell } from "@/components/app-shell";
 import { submitOnboarding } from "@/lib/actions/onboarding3d";
 import { Loader2 } from "lucide-react";
-import { PhotoSlot, type PhotoSlotStatus } from "@/components/photo-slot";
+import { PhotoSlot, type SlotKind, type PhotoSlotStatus } from "@/components/photo-slot";
 
 type PhotoEntry = {
   raw: string | null;
@@ -15,23 +15,57 @@ type PhotoEntry = {
   errorMessage: string | null;
 };
 
-const INITIAL_PHOTO: PhotoEntry = { raw: null, processed: null, status: "empty", errorMessage: null };
+// Front is the anchor frame every provider needs. The other angles are
+// optional: multi-image providers (Seedance reference-to-video) use them to
+// ground the unseen sides of the product; single-image providers ignore them.
+const SLOTS: Array<{ kind: SlotKind; label: string; required: boolean }> = [
+  { kind: "front", label: "Front", required: true },
+  { kind: "back",  label: "Back",  required: false },
+  { kind: "left",  label: "Left",  required: false },
+  { kind: "right", label: "Right", required: false },
+];
+
+const INITIAL_SLOT: PhotoEntry = { raw: null, processed: null, status: "empty", errorMessage: null };
+const INITIAL_PHOTOS: Record<SlotKind, PhotoEntry> = {
+  front: INITIAL_SLOT,
+  back: INITIAL_SLOT,
+  left: INITIAL_SLOT,
+  right: INITIAL_SLOT,
+};
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const [photo, setPhoto] = useState<PhotoEntry>(INITIAL_PHOTO);
+  const [photos, setPhotos] = useState<Record<SlotKind, PhotoEntry>>(INITIAL_PHOTOS);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const canGenerate = photo.status === "ready" && photo.processed != null;
-  const isProcessing = photo.status === "processing" || photo.status === "queued";
+  function updatePhoto(kind: SlotKind, raw: string | null, processed: string | null, status: PhotoSlotStatus, errorMessage: string | null) {
+    setPhotos((s) => ({ ...s, [kind]: { raw, processed, status, errorMessage } }));
+  }
+
+  const anyProcessing = SLOTS.some((s) => {
+    const st = photos[s.kind].status;
+    return st === "processing" || st === "queued";
+  });
+  // Optional slots block only if the user uploaded one and it failed —
+  // they should retry or remove it, not silently ship a broken angle.
+  const anyFailed = SLOTS.some((s) => photos[s.kind].status === "failed");
+  const frontReady = photos.front.status === "ready" && photos.front.processed != null;
+  const canGenerate = frontReady && !anyProcessing && !anyFailed;
+
+  const extraCount = (["back", "left", "right"] as const).filter((k) => photos[k].status === "ready").length;
 
   function submit() {
     setError(null);
     startTransition(async () => {
       try {
         const fd = new FormData();
-        fd.append("photo_front", photo.processed!);
+        for (const slot of SLOTS) {
+          const p = photos[slot.kind];
+          if (p.status === "ready" && p.processed) {
+            fd.append(`photo_${slot.kind}`, p.processed);
+          }
+        }
         const sessionId = await submitOnboarding(fd);
         router.push(`/generate?session=${sessionId}`);
       } catch (e) {
@@ -41,64 +75,58 @@ export function OnboardingWizard() {
   }
 
   const blockReason: string | null =
-    isProcessing ? "Removing background…" :
-    photo.status === "failed" ? "Background removal failed. Try a different photo." :
-    photo.status === "empty" ? "Upload a front-facing product photo to continue." :
+    anyProcessing ? "Removing backgrounds…" :
+    anyFailed ? "A photo failed background removal — retry or remove it (red slot below)." :
+    !frontReady ? "Upload at least the Front photo to continue." :
     null;
 
   return (
-    <AppShell variant="onboarding" onReset={() => { setPhoto(INITIAL_PHOTO); setError(null); }}>
-      <div className="mx-auto w-full max-w-[720px] pt-4 lg:pt-8">
+    <AppShell variant="onboarding" onReset={() => { setPhotos(INITIAL_PHOTOS); setError(null); }}>
+      <div className="mx-auto w-full max-w-[900px] pt-4 lg:pt-8">
         <h1 className="font-display text-[28px] font-bold text-fw-text md:text-[32px]">
-          One photo. A 360° spin. Three minutes.
+          Upload your product photos.
         </h1>
-        <p className="mt-2 text-[15px] leading-[24px] text-fw-darkGray">
-          Upload your product photo below. We'll remove the background, generate a full
-          360° rotation, and hand you back a one-line snippet you can paste on any Shopify
-          product page.
+        <p className="mt-2 max-w-2xl text-[15px] leading-[24px] text-fw-darkGray">
+          Front is all we need to get started. Add Back, Left, and Right shots and our AI
+          uses your <em>real</em> angles instead of guessing — the spin stays true to your
+          product all the way around.
         </p>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-[320px_minmax(0,1fr)]">
-          <PhotoSlot
-            label="Product photo"
-            kind="front"
-            required
-            value={photo.processed}
-            rawValue={photo.raw}
-            status={photo.status}
-            errorMessage={photo.errorMessage}
-            onChange={(raw, processed, status, errorMessage) =>
-              setPhoto({ raw, processed, status, errorMessage })
-            }
-          />
+        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {SLOTS.map((s) => {
+            const p = photos[s.kind];
+            return (
+              <PhotoSlot
+                key={s.kind}
+                label={s.label}
+                kind={s.kind}
+                required={s.required}
+                value={p.processed}
+                rawValue={p.raw}
+                status={p.status}
+                errorMessage={p.errorMessage}
+                onChange={(raw, processed, status, errorMessage) =>
+                  updatePhoto(s.kind, raw, processed, status, errorMessage)
+                }
+              />
+            );
+          })}
+        </div>
 
-          <div className="rounded-2xl border border-fw-border bg-white p-5">
-            <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">
-              For the best spin
-            </p>
-            <ul className="mt-3 space-y-2.5 text-[13px] leading-[20px] text-fw-text">
-              <Tip>
-                <strong>3/4 view works best.</strong> Angle the product ~30° off dead-front so
-                one side is fully visible.
-              </Tip>
-              <Tip>
-                <strong>Fill the frame.</strong> Product should take up 70–85% of the image.
-              </Tip>
-              <Tip>
-                <strong>Even, front-side lighting.</strong> No dramatic shadows or backlight.
-              </Tip>
-              <Tip>
-                <strong>Any background is fine.</strong> We remove it automatically.
-              </Tip>
-              <Tip>
-                <strong>Big is better.</strong> Ideally 1024px or larger on the long edge.
-              </Tip>
-            </ul>
-          </div>
+        <div className="mt-6 rounded-2xl border border-fw-border bg-white p-5">
+          <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">
+            For the best spin
+          </p>
+          <ul className="mt-3 grid gap-x-8 gap-y-2 text-[13px] leading-[20px] text-fw-text md:grid-cols-2">
+            <Tip><strong>Same distance and height</strong> for every angle — imagine the product on a turntable and you standing still.</Tip>
+            <Tip><strong>Fill the frame.</strong> Product should take up 70–85% of each shot.</Tip>
+            <Tip><strong>Even lighting, no harsh shadows.</strong> Near a window or under ceiling light works.</Tip>
+            <Tip><strong>Any background is fine</strong> — we remove it automatically.</Tip>
+          </ul>
         </div>
 
         {error && (
-          <div className="mt-6 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
+          <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
         )}
 
         <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -108,7 +136,11 @@ export function OnboardingWizard() {
           </Button>
           {blockReason && <span className="text-[12px] text-fw-darkGray">{blockReason}</span>}
           {canGenerate && !isPending && (
-            <span className="text-[12px] text-fw-lightGray">Usually finishes in 2-3 minutes.</span>
+            <span className="text-[12px] text-fw-lightGray">
+              {extraCount > 0
+                ? `Using ${1 + extraCount} angles. Usually finishes in 2-3 minutes.`
+                : "Tip: adding more angles makes the spin more accurate."}
+            </span>
           )}
         </div>
       </div>
