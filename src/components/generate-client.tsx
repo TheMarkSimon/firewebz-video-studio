@@ -24,13 +24,20 @@ export interface CachedResult {
   durationMs?: number;
 }
 
+export type SessionPhotos = {
+  front: string | null;
+  back: string | null;
+  left: string | null;
+  right: string | null;
+};
+
 export function GenerateClient({
   sessionId,
-  frontPhotoUrl,
+  photos,
   cachedResult,
 }: {
   sessionId: string;
-  frontPhotoUrl: string | null;
+  photos: SessionPhotos;
   cachedResult: CachedResult | null;
 }) {
   // If the session already has a cached spin, jump straight to the result
@@ -76,15 +83,21 @@ export function GenerateClient({
     });
   }
 
-  const proxiedPhoto = frontPhotoUrl && !frontPhotoUrl.startsWith("data:")
-    ? `/api/proxy?url=${encodeURIComponent(frontPhotoUrl)}`
-    : frontPhotoUrl;
+  // Proxy every remote photo through our domain (Zscaler-safe).
+  const proxied = (u: string | null) =>
+    u && !u.startsWith("data:") ? `/api/proxy?url=${encodeURIComponent(u)}` : u;
+  const proxiedPhotos: SessionPhotos = {
+    front: proxied(photos.front),
+    back: proxied(photos.back),
+    left: proxied(photos.left),
+    right: proxied(photos.right),
+  };
 
   return (
     <div className="mx-auto max-w-5xl px-4 pt-4 lg:pt-6">
       {phase === "preview" && (
         <PreviewPhase
-          photoUrl={proxiedPhoto}
+          photos={proxiedPhotos}
           onGenerate={() => generate(false)}
           isPending={isPending}
           error={error}
@@ -94,7 +107,7 @@ export function GenerateClient({
       {phase === "result" && result && (
         <ResultPhase
           sessionId={sessionId}
-          photoUrl={proxiedPhoto}
+          photos={proxiedPhotos}
           result={result}
           onRegenerate={() => generate(true)}
           isPending={isPending}
@@ -105,36 +118,38 @@ export function GenerateClient({
 }
 
 function PreviewPhase({
-  photoUrl, onGenerate, isPending, error,
+  photos, onGenerate, isPending, error,
 }: {
-  photoUrl: string | null;
+  photos: SessionPhotos;
   onGenerate: () => void;
   isPending: boolean;
   error: string | null;
 }) {
+  const provided = (["front", "back", "left", "right"] as const).filter((k) => photos[k]);
   return (
     <div>
       <h1 className="mb-2 font-display text-[28px] font-bold text-fw-text">
         Ready to build your 360° spin
       </h1>
       <p className="mb-6 text-[15px] text-fw-darkGray">
-        We'll turn this photo into a full turntable rotation your shoppers can drag.
+        {provided.length > 1
+          ? `Using ${provided.length} angles — the spin stays true to your product all the way around.`
+          : "We'll turn this photo into a full 360° rotation your shoppers can drag."}
       </p>
 
       <div className="rounded-2xl border border-fw-border bg-white p-6">
         <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">
-          Source photo
+          {provided.length > 1 ? `Source photos (${provided.length})` : "Source photo"}
         </p>
-        <div className="mt-3 max-w-[260px]">
-          <div className="aspect-[3/4] overflow-hidden rounded-lg border border-fw-border bg-fw-disabled">
-            {photoUrl ? (
-              <img src={photoUrl} alt="Product front view" className="h-full w-full object-contain p-2" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-[11px] text-fw-lightGray">
-                Not provided
+        <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {provided.map((k) => (
+            <div key={k} className="flex flex-col gap-1.5">
+              <div className="aspect-[3/4] overflow-hidden rounded-lg border border-fw-border bg-fw-disabled">
+                <img src={photos[k]!} alt={`Product ${k} view`} className="h-full w-full object-contain p-2" />
               </div>
-            )}
-          </div>
+              <span className="text-center text-[11px] capitalize text-fw-darkGray">{k}</span>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -170,10 +185,10 @@ function GeneratingPhase() {
 }
 
 function ResultPhase({
-  sessionId, photoUrl, result, onRegenerate, isPending,
+  sessionId, photos, result, onRegenerate, isPending,
 }: {
   sessionId: string;
-  photoUrl: string | null;
+  photos: SessionPhotos;
   result: SpinVideoGenerationResult;
   onRegenerate: () => void;
   isPending: boolean;
@@ -231,7 +246,7 @@ function ResultPhase({
         </div>
 
         <div className="flex flex-col gap-4">
-          <SourcePhotoCard photoUrl={photoUrl} />
+          <SourcePhotosCard photos={photos} />
           {succeeded && <EmbedCard sessionId={sessionId} />}
         </div>
       </div>
@@ -243,15 +258,23 @@ function ResultPhase({
   );
 }
 
-function SourcePhotoCard({ photoUrl }: { photoUrl: string | null }) {
+function SourcePhotosCard({ photos }: { photos: SessionPhotos }) {
+  const provided = (["front", "back", "left", "right"] as const).filter((k) => photos[k]);
   return (
     <div className="rounded-2xl border border-fw-border bg-white p-4">
-      <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">Source photo</p>
-      <div className="mt-3 aspect-[3/4] overflow-hidden rounded-lg border border-fw-border bg-fw-disabled">
-        {photoUrl ? (
-          <img src={photoUrl} alt="Product" className="h-full w-full object-contain p-2" />
-        ) : (
-          <div className="flex h-full items-center justify-center text-[10px] text-fw-lightGray">—</div>
+      <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">
+        {provided.length > 1 ? `Source photos (${provided.length})` : "Source photo"}
+      </p>
+      <div className={`mt-3 grid gap-2 ${provided.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+        {provided.length > 0 ? provided.map((k) => (
+          <div key={k} className="flex flex-col gap-1">
+            <div className="aspect-[3/4] overflow-hidden rounded-lg border border-fw-border bg-fw-disabled">
+              <img src={photos[k]!} alt={`Product ${k}`} className="h-full w-full object-contain p-1.5" />
+            </div>
+            <span className="text-center text-[10px] capitalize text-fw-darkGray">{k}</span>
+          </div>
+        )) : (
+          <div className="flex aspect-[3/4] items-center justify-center rounded-lg border border-fw-border bg-fw-disabled text-[10px] text-fw-lightGray">—</div>
         )}
       </div>
     </div>

@@ -8,16 +8,23 @@ import { extractFramesFromVideo } from "./extract-frames";
 
 const MODEL_ID = "fal-ai/kling-video/v3/pro/image-to-video";
 
+// "Turntable" was removed from the prompt on purpose: the model renders a
+// literal pedestal when you mention one, and a different-sized one every run.
 const PROMPT =
-  "Product on a mechanical turntable rotating at constant angular velocity, " +
-  "36 degrees per second, no acceleration, no deceleration, exactly one full " +
-  "360 degree revolution over 10 seconds. Camera on tripod, locked-off shot, " +
-  "static camera, no camera movement, no zoom, no pan. Pure solid white " +
-  "cyclorama background, high-end commercial studio product photography " +
-  "lighting, crisp textures, item stays perfectly locked in the center of " +
-  "the frame throughout the entire rotation.";
+  "A single product rotating smoothly in place, suspended against a pure " +
+  "solid white cyclorama background, at constant angular velocity, 36 degrees " +
+  "per second, no acceleration, no deceleration, exactly one full 360 degree " +
+  "revolution over 10 seconds. Render exactly one item: if the source photo " +
+  "shows a pair or multiple copies of the product, show only a single one. " +
+  "Nothing else in frame — no stand, no pedestal, no platform, no stage, no " +
+  "floor, no surface. Camera on tripod, locked-off shot, static camera, no " +
+  "camera movement, no zoom, no pan. High-end commercial studio product " +
+  "photography lighting, crisp textures, item stays perfectly locked in the " +
+  "center of the frame throughout the entire rotation.";
 
 const NEGATIVE_PROMPT =
+  "pedestal, podium, stage, platform, stand, turntable, floor, table surface, " +
+  "multiple products, duplicate product, pair shown together, " +
   "acceleration, deceleration, speed change, camera zoom, camera pan, " +
   "camera dolly, camera handheld, camera shake, product moving off center, " +
   "product drifting, product scaling, deformation, warping, morphing, " +

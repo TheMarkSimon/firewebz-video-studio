@@ -17,14 +17,23 @@ import { extractFramesFromVideo } from "./extract-frames";
 
 const MODEL_ID = "fal-ai/bytedance/seedance/v1/lite/reference-to-video";
 
+// Prompt notes, learned the hard way:
+//   - Never say "turntable"/"stage"/"platform" — the model renders one, and a
+//     different one every run. Say the product rotates in place instead.
+//   - Catalog photos often show a pair (e.g. both shoes); explicitly ask for
+//     exactly ONE item or the video renders the whole pair.
 const PROMPT =
-  "A product on a mechanical turntable rotating at constant angular velocity, " +
-  "completing exactly one full 360 degree revolution. The reference images show " +
-  "the same product from different angles — front, back, and sides. Rotate " +
-  "smoothly through all of them in order. No acceleration, no deceleration. " +
-  "Pure solid white studio background, high-end commercial product photography " +
-  "lighting, crisp sharp textures, product perfectly centered and locked in " +
-  "place for the entire rotation.";
+  "A single product rotating smoothly in place, suspended against a pure " +
+  "seamless white background, completing exactly one full 360 degree " +
+  "revolution at constant angular velocity. The reference images show the " +
+  "same product from different angles — front, back, and sides; rotate " +
+  "smoothly through all of them in order. Render exactly one item: if the " +
+  "reference photos show a pair or multiple copies of the product, show only " +
+  "a single one. Nothing else in frame — no stand, no pedestal, no platform, " +
+  "no turntable, no stage, no floor, no surface, no shadow. No acceleration, " +
+  "no deceleration. High-end commercial product photography lighting, crisp " +
+  "sharp textures, product perfectly centered and locked in place for the " +
+  "entire rotation.";
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);

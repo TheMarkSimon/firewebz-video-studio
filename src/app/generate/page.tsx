@@ -26,7 +26,12 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
     <AppShell>
       <GenerateClient
         sessionId={sessionId}
-        frontPhotoUrl={session.productPhotos?.front ?? null}
+        photos={{
+          front: session.productPhotos?.front ?? null,
+          back: session.productPhotos?.back ?? null,
+          left: session.productPhotos?.left ?? null,
+          right: session.productPhotos?.right ?? null,
+        }}
         cachedResult={cached}
       />
     </AppShell>
