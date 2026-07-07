@@ -39,7 +39,7 @@ export function AppShell({
         {/* Full-width header, logo hugging the left edge — Canva pattern. */}
         <div className="flex w-full items-center justify-between px-4 py-2 lg:px-6">
           <Link href="/" aria-label="Spinr home">
-            <BrandLogo size={100} />
+            <BrandLogo size={50} />
           </Link>
 
           {isMarketing && (
