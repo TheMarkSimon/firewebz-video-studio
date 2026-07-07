@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { RotatingWord } from "@/components/hero";
-import { ArrowRight, Camera, Sparkles, Store, Check } from "lucide-react";
+import { ArrowRight, Camera, Sparkles, Store, Check, MousePointerClick, TrendingUp, Undo2, MonitorSmartphone, Play } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Spinr — Turn one product photo into a 360° spin for Shopify",
@@ -38,25 +38,19 @@ export default function WelcomePage() {
   return (
     <AppShell variant="marketing">
       <div className="mx-auto max-w-7xl">
-        {/* Hero */}
-        <section className="flex flex-col items-center pt-16 text-center lg:pt-24">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-fw-border bg-white px-4 py-1.5 text-[12px] font-semibold text-fw-text">
-            <span className="inline-block h-2 w-2 rounded-full bg-fw-purple" />
-            One photo. A 360° spin. Live in three minutes.
-          </div>
-
-          <h1 className="max-w-5xl font-display text-[44px] font-bold leading-[1.18] text-fw-text md:text-[68px]">
+        {/* Hero — Canva pattern: title, one line, one CTA, demo video under it. */}
+        <section className="flex flex-col items-center pt-14 text-center lg:pt-20">
+          <h1 className="max-w-5xl font-display text-[44px] font-bold leading-[1.18] text-fw-text md:text-[64px]">
             The shortest path from a product photo to <RotatingWord />
           </h1>
 
-          <p className="mt-6 max-w-2xl text-[18px] leading-[28px] text-fw-darkGray md:text-[19px]">
-            Upload one clean product photo. Spinr turns it into an interactive 360° spin your
-            shoppers can drag on any Shopify product page — no 3D scanner, no photo studio,
-            no code. Just a link you paste in.
+          <p className="mt-6 max-w-2xl text-[17px] leading-[27px] text-fw-darkGray md:text-[18px]">
+            One photo becomes an interactive 360° spin your shoppers can drag —
+            on any Shopify page, in three minutes, no code.
           </p>
 
-          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="min-w-[220px]">
+          <div className="mt-8">
+            <Button asChild size="lg" className="min-w-[240px]">
               <Link href="/onboarding">
                 Create your first spin
                 <ArrowRight className="ml-1.5 h-4 w-4" />
@@ -64,62 +58,88 @@ export default function WelcomePage() {
             </Button>
           </div>
 
-          <p className="mt-6 text-[13px] text-fw-lightGray">
-            Free while in beta · No account needed · Works with every Shopify theme
-          </p>
-
-          {/* Hero demo video slot — user is producing a Converse process video;
-              re-add <HeroSpin /> (or a looping <video>) here when it lands. */}
-        </section>
-
-        {/* How it works */}
-        <section id="how" className="mt-28 scroll-mt-24">
-          <h2 className="text-center font-display text-[32px] font-bold text-fw-text md:text-[40px]">
-            How it works
-          </h2>
-          <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-3">
-            <HowStep
-              number={1}
-              icon={<Camera className="h-5 w-5" />}
-              title="Upload one photo"
-              body="A single front-facing photo of your product. Any smartphone shot works — we clean the background automatically."
-            />
-            <HowStep
-              number={2}
-              icon={<Sparkles className="h-5 w-5" />}
-              title="We build the spin"
-              body="Our AI generates a full 360° rotation from your photo. Studio-quality lighting, pure white background, ready in 2–3 minutes."
-            />
-            <HowStep
-              number={3}
-              icon={<Store className="h-5 w-5" />}
-              title="Paste it on Shopify"
-              body="Copy one line of HTML into any product page. Shoppers drag left/right to spin — works on desktop, tablet, and mobile."
-            />
+          {/* Demo video frame — swap the inner placeholder for the Converse
+              process video (looping <video>) when the user delivers it. */}
+          <div className="mt-14 w-full max-w-5xl">
+            <div className="flex aspect-video w-full items-center justify-center rounded-3xl border border-fw-border bg-gradient-to-br from-fw-purpleSoft/70 via-white to-fw-disabled">
+              <div className="flex flex-col items-center gap-3 text-fw-lightGray">
+                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-md">
+                  <Play className="ml-0.5 h-6 w-6 text-fw-black" />
+                </span>
+                <span className="text-[13px] font-semibold">Product demo</span>
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* Why it matters */}
-        <section id="why" className="mt-28 scroll-mt-24 rounded-3xl border border-fw-border bg-white p-8 md:p-12">
-          <h2 className="font-display text-[28px] font-bold text-fw-text md:text-[36px]">
-            Why 360° spins beat static photos.
-          </h2>
-          <p className="mt-3 max-w-3xl text-[16px] leading-[26px] text-fw-darkGray">
-            Every second a shopper spends inspecting your product, they're deciding to buy.
-            A spin lets them <em>touch</em> — turn it, look closer, see the details a flat photo hides.
-            That's why Amazon, Nike, and every serious e-commerce brand ships 360° views on their
-            hero SKUs. Spinr makes that same interaction possible for every product in your store.
-          </p>
-          <ul className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Bullet>Shoppers explore instead of bouncing — average session time goes up.</Bullet>
-            <Bullet>Returns drop because customers see the product before they buy it.</Bullet>
-            <Bullet>Works on every device — desktop mouse, mobile finger, tablet stylus.</Bullet>
-            <Bullet>No new photography, no 3D scans, no theme edits.</Bullet>
-          </ul>
+        {/* Feature row A — text left, visual right (Canva pattern) */}
+        <section id="how" className="mt-32 grid scroll-mt-24 items-center gap-12 md:grid-cols-2">
+          <div>
+            <h2 className="font-display text-[30px] font-bold leading-tight text-fw-text md:text-[38px]">
+              From one photo to a live spin in three minutes.
+            </h2>
+            <div className="mt-8 space-y-7">
+              <FeatureRow icon={<Camera className="h-5 w-5" />} title="Upload one photo">
+                Any smartphone shot works. We remove the background automatically — no studio,
+                no white sweep, no retouching.
+              </FeatureRow>
+              <FeatureRow icon={<Sparkles className="h-5 w-5" />} title="AI builds the rotation">
+                A full 360° turntable spin with studio lighting, generated from your photo in
+                two to three minutes.
+              </FeatureRow>
+              <FeatureRow icon={<Store className="h-5 w-5" />} title="Paste it on Shopify">
+                One line of HTML in any product page. Works with every theme — nothing to
+                install, nothing to configure.
+              </FeatureRow>
+            </div>
+          </div>
+          <VisualPanel>
+            <div className="grid w-full max-w-xs grid-cols-3 gap-3">
+              {["Front", "Back", "Left"].map((l) => (
+                <div key={l} className="flex aspect-[3/4] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-fw-lighterGray bg-white text-[11px] font-semibold text-fw-lightGray">
+                  <Camera className="h-4 w-4" />
+                  {l}
+                </div>
+              ))}
+            </div>
+          </VisualPanel>
+        </section>
+
+        {/* Feature row B — visual left, text right */}
+        <section id="why" className="mt-32 grid scroll-mt-24 items-center gap-12 md:grid-cols-2">
+          <VisualPanel className="order-last md:order-first">
+            <div className="w-full max-w-sm rounded-2xl border border-fw-border bg-white p-5 shadow-sm">
+              <div className="flex aspect-video items-center justify-center rounded-xl bg-fw-disabled">
+                <MousePointerClick className="h-8 w-8 text-fw-lightGray" />
+              </div>
+              <div className="mt-4 h-3 w-2/3 rounded-full bg-fw-disabled" />
+              <div className="mt-2 h-3 w-1/3 rounded-full bg-fw-disabled" />
+              <div className="mt-4 h-9 w-full rounded-pill bg-fw-purple" />
+            </div>
+          </VisualPanel>
+          <div>
+            <h2 className="font-display text-[30px] font-bold leading-tight text-fw-text md:text-[38px]">
+              Shoppers who touch the product buy the product.
+            </h2>
+            <div className="mt-8 space-y-7">
+              <FeatureRow icon={<TrendingUp className="h-5 w-5" />} title="Longer sessions, more carts">
+                A spin invites shoppers to explore instead of bounce. Interaction is the
+                strongest pre-purchase signal there is.
+              </FeatureRow>
+              <FeatureRow icon={<Undo2 className="h-5 w-5" />} title="Fewer returns">
+                Customers see every side before they buy — what arrives matches what they
+                expected.
+              </FeatureRow>
+              <FeatureRow icon={<MonitorSmartphone className="h-5 w-5" />} title="Every device, zero installs">
+                Mouse on desktop, finger on mobile. Plain web technology — nothing for your
+                shoppers to download.
+              </FeatureRow>
+            </div>
+          </div>
         </section>
 
         {/* Pricing (placeholder until final tiers land) */}
-        <section id="pricing" className="mt-28 scroll-mt-24">
+        <section id="pricing" className="mt-32 scroll-mt-24">
           <h2 className="text-center font-display text-[32px] font-bold text-fw-text md:text-[40px]">
             Simple pricing
           </h2>
@@ -159,7 +179,7 @@ export default function WelcomePage() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="mx-auto mt-28 max-w-3xl scroll-mt-24">
+        <section id="faq" className="mx-auto mt-32 max-w-3xl scroll-mt-24">
           <h2 className="text-center font-display text-[32px] font-bold text-fw-text md:text-[40px]">
             Questions, answered
           </h2>
@@ -187,8 +207,8 @@ export default function WelcomePage() {
           </div>
         </section>
 
-        {/* Bottom CTA — black block, Ramp/Notion style */}
-        <section className="my-28 rounded-3xl bg-fw-black p-10 text-center text-white md:p-16">
+        {/* Bottom CTA — black block */}
+        <section className="my-32 rounded-3xl bg-fw-black p-10 text-center text-white md:p-16">
           <h2 className="font-display text-[32px] font-bold leading-tight md:text-[44px]">
             Turn your best product photo<br />into your best sales pitch.
           </h2>
@@ -209,29 +229,25 @@ export default function WelcomePage() {
   );
 }
 
-function HowStep({ number, icon, title, body }: { number: number; icon: React.ReactNode; title: string; body: string }) {
+function FeatureRow({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-3xl border border-fw-border bg-white p-6">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-fw-purpleSoft text-fw-black">
-          {icon}
-        </div>
-        <span className="text-[13px] font-semibold uppercase tracking-wider text-fw-lightGray">
-          Step {number}
-        </span>
+    <div className="flex items-start gap-4">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-fw-disabled text-fw-black">
+        {icon}
       </div>
-      <h3 className="mt-4 text-[18px] font-bold text-fw-text">{title}</h3>
-      <p className="mt-2 text-[14px] leading-[22px] text-fw-darkGray">{body}</p>
+      <div>
+        <h3 className="text-[17px] font-bold text-fw-text">{title}</h3>
+        <p className="mt-1 text-[14px] leading-[22px] text-fw-darkGray">{children}</p>
+      </div>
     </div>
   );
 }
 
-function Bullet({ children }: { children: React.ReactNode }) {
+function VisualPanel({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <li className="flex items-start gap-3 text-[15px] text-fw-text">
-      <span className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-fw-purple" />
-      <span>{children}</span>
-    </li>
+    <div className={`flex min-h-[340px] items-center justify-center rounded-3xl bg-gradient-to-br from-fw-purpleSoft/80 via-white to-fw-disabled p-8 ${className}`}>
+      {children}
+    </div>
   );
 }
 

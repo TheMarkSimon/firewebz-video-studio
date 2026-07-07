@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SpinScrubber } from "@/components/spin-scrubber";
 import { DEMO_SPIN_FRAMES } from "@/lib/demo-frames";
 import { MoveHorizontal } from "lucide-react";
@@ -11,31 +11,49 @@ const WORDS = ["more sales", "fewer returns", "longer sessions", "a wow moment"]
 
 export function RotatingWord() {
   const [i, setI] = useState(0);
+  const [width, setWidth] = useState<number | null>(null);
+  const sizersRef = useRef<(HTMLSpanElement | null)[]>([]);
+
   useEffect(() => {
     const id = setInterval(() => setI((v) => (v + 1) % WORDS.length), 2400);
     return () => clearInterval(id);
   }, []);
+
+  // The slot hugs the CURRENT phrase (no dead gap around short words) and
+  // animates its width between phrases. Hidden sizers with identical type
+  // styles provide the measurement; re-measure on viewport resize because
+  // the headline font size is responsive.
+  useEffect(() => {
+    const measure = () => {
+      const el = sizersRef.current[i];
+      if (el) setWidth(el.offsetWidth);
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [i]);
+
   return (
-    // All phrases are stacked in the same grid cell, so the slot permanently
-    // reserves the width/height of the LONGEST phrase — the headline never
-    // rewraps when the word changes (no page jump). Only the active phrase is
-    // visible, styled as a lime marker highlight (fill + black text; lime is
-    // too light to be text on white).
-    <span className="inline-grid place-items-center align-bottom">
+    <span
+      className="relative inline-block whitespace-nowrap align-bottom"
+      style={{
+        width: width ?? undefined,
+        transition: "width 450ms cubic-bezier(0.16, 1, 0.3, 1)",
+      }}
+    >
       {WORDS.map((w, idx) => (
         <span
-          key={w}
-          style={{ gridArea: "1 / 1" }}
-          className={
-            idx === i
-              ? "fw-screen-enter whitespace-nowrap rounded-xl bg-fw-purple px-3 text-fw-black"
-              : "invisible whitespace-nowrap px-3"
-          }
-          aria-hidden={idx !== i}
+          key={`sizer-${w}`}
+          ref={(el) => { sizersRef.current[idx] = el; }}
+          className="invisible absolute left-0 top-0 whitespace-nowrap px-3"
+          aria-hidden
         >
           {w}
         </span>
       ))}
+      <span key={i} className="fw-screen-enter inline-block whitespace-nowrap rounded-2xl bg-fw-purple px-3 text-fw-black">
+        {WORDS[i]}
+      </span>
     </span>
   );
 }
