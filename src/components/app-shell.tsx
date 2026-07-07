@@ -36,9 +36,9 @@ export function AppShell({
             : ""
         }
       >
-        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6 lg:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2 lg:px-8">
           <Link href="/" aria-label="Spinr home">
-            <BrandLogo size={60} />
+            <BrandLogo size={180} />
           </Link>
 
           {isMarketing && (
