@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
+import { HeroSpin, RotatingWord } from "@/components/hero";
 import { ArrowRight, Camera, Sparkles, Store, Check } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -45,7 +46,7 @@ export default function WelcomePage() {
           </div>
 
           <h1 className="max-w-4xl font-display text-[44px] font-bold leading-[1.04] text-fw-text md:text-[68px]">
-            The shortest path from a product photo to more sales.
+            The shortest path from a product photo to <RotatingWord />
           </h1>
 
           <p className="mt-6 max-w-2xl text-[18px] leading-[28px] text-fw-darkGray md:text-[19px]">
@@ -61,14 +62,14 @@ export default function WelcomePage() {
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
-            <Button asChild variant="outline" size="lg" className="min-w-[220px]">
-              <Link href="/spin-demo">See a live spin</Link>
-            </Button>
           </div>
 
           <p className="mt-6 text-[13px] text-fw-lightGray">
             Free while in beta · No account needed · Works with every Shopify theme
           </p>
+
+          {/* The product IS the demo: a live draggable spin, front and center. */}
+          <HeroSpin />
         </section>
 
         {/* How it works */}
