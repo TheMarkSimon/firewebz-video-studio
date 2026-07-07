@@ -3,12 +3,16 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
+import { SignInButton, UserMenu } from "@/components/auth-buttons";
 import { RotateCcw } from "lucide-react";
+
+export type ShellUser = { id: string; name: string | null; image: string | null } | null;
 
 // Layout shell, three variants:
 //   marketing  — sticky anchor nav + footer (the one-page site)
-//   default    — minimal app header, logo only (product pages)
-//   onboarding — minimal header + inline "Start over" (replaces the old kebab menu)
+//   default    — minimal app header (product pages)
+//   onboarding — minimal header + inline "Start over"
+// Pass `user` from server pages (getSessionUser) to show the account menu.
 const NAV_LINKS = [
   { href: "/#how", label: "How it works" },
   { href: "/#why", label: "Why Spinr" },
@@ -20,10 +24,12 @@ export function AppShell({
   children,
   variant = "default",
   onReset,
+  user = null,
 }: {
   children: React.ReactNode;
   variant?: "default" | "onboarding" | "marketing";
   onReset?: () => void;
+  user?: ShellUser;
 }) {
   const isMarketing = variant === "marketing";
 
@@ -43,33 +49,36 @@ export function AppShell({
           </Link>
 
           {isMarketing && (
-            <>
-              <nav className="hidden items-center gap-8 md:flex" aria-label="Main">
-                {NAV_LINKS.map((l) => (
-                  <Link
-                    key={l.href}
-                    href={l.href}
-                    className="text-[14px] font-semibold text-fw-text hover:opacity-60"
-                  >
-                    {l.label}
-                  </Link>
-                ))}
-              </nav>
+            <nav className="hidden items-center gap-8 md:flex" aria-label="Main">
+              {NAV_LINKS.map((l) => (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className="text-[14px] font-semibold text-fw-text hover:opacity-60"
+                >
+                  {l.label}
+                </Link>
+              ))}
+            </nav>
+          )}
+
+          <div className="flex items-center gap-3">
+            {variant === "onboarding" && onReset && (
+              <button
+                onClick={onReset}
+                className="flex items-center gap-1.5 text-[13px] font-semibold text-fw-darkGray hover:text-fw-text"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Start over
+              </button>
+            )}
+            {isMarketing && (
               <Button asChild className="h-10 px-5 text-[14px]">
                 <Link href="/onboarding">Create a spin</Link>
               </Button>
-            </>
-          )}
-
-          {variant === "onboarding" && onReset && (
-            <button
-              onClick={onReset}
-              className="flex items-center gap-1.5 text-[13px] font-semibold text-fw-darkGray hover:text-fw-text"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              Start over
-            </button>
-          )}
+            )}
+            {user ? <UserMenu name={user.name} image={user.image} /> : <SignInButton />}
+          </div>
         </div>
       </header>
 

@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { AppShell } from "@/components/app-shell";
-import { submitOnboarding } from "@/lib/actions/onboarding3d";
+import { AppShell, type ShellUser } from "@/components/app-shell";
+import { saveSpinPhotos } from "@/lib/actions/spins";
 import { Loader2 } from "lucide-react";
 import { PhotoSlot, type SlotKind, type PhotoSlotStatus } from "@/components/photo-slot";
 
@@ -15,9 +15,8 @@ type PhotoEntry = {
   errorMessage: string | null;
 };
 
-// Front is the anchor frame every provider needs. The other angles are
-// optional: multi-image providers (Seedance reference-to-video) use them to
-// ground the unseen sides of the product; single-image providers ignore them.
+// Front is the anchor frame; the other angles are optional but ground the
+// unseen sides of the product for the multi-image provider.
 const SLOTS: Array<{ kind: SlotKind; label: string; required: boolean }> = [
   { kind: "front", label: "Front", required: true },
   { kind: "back",  label: "Back",  required: false },
@@ -25,19 +24,38 @@ const SLOTS: Array<{ kind: SlotKind; label: string; required: boolean }> = [
   { kind: "right", label: "Right", required: false },
 ];
 
-const INITIAL_SLOT: PhotoEntry = { raw: null, processed: null, status: "empty", errorMessage: null };
-const INITIAL_PHOTOS: Record<SlotKind, PhotoEntry> = {
-  front: INITIAL_SLOT,
-  back: INITIAL_SLOT,
-  left: INITIAL_SLOT,
-  right: INITIAL_SLOT,
-};
+const EMPTY_SLOT: PhotoEntry = { raw: null, processed: null, status: "empty", errorMessage: null };
 
-export function OnboardingWizard() {
+type InitialPhotos = { front?: string | null; back?: string | null; left?: string | null; right?: string | null };
+
+function buildInitial(initial?: InitialPhotos): Record<SlotKind, PhotoEntry> {
+  const fromUrl = (u?: string | null): PhotoEntry =>
+    u ? { raw: null, processed: u, status: "ready", errorMessage: null } : EMPTY_SLOT;
+  return {
+    front: fromUrl(initial?.front),
+    back: fromUrl(initial?.back),
+    left: fromUrl(initial?.left),
+    right: fromUrl(initial?.right),
+  };
+}
+
+export function OnboardingWizard({
+  user,
+  spinId,
+  initialTitle,
+  initialPhotos,
+}: {
+  user: ShellUser;
+  spinId?: string;
+  initialTitle?: string;
+  initialPhotos?: InitialPhotos;
+}) {
   const router = useRouter();
-  const [photos, setPhotos] = useState<Record<SlotKind, PhotoEntry>>(INITIAL_PHOTOS);
+  const [photos, setPhotos] = useState<Record<SlotKind, PhotoEntry>>(() => buildInitial(initialPhotos));
+  const [title, setTitle] = useState(initialTitle ?? "");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const isEdit = Boolean(spinId);
 
   function updatePhoto(kind: SlotKind, raw: string | null, processed: string | null, status: PhotoSlotStatus, errorMessage: string | null) {
     setPhotos((s) => ({ ...s, [kind]: { raw, processed, status, errorMessage } }));
@@ -47,8 +65,6 @@ export function OnboardingWizard() {
     const st = photos[s.kind].status;
     return st === "processing" || st === "queued";
   });
-  // Optional slots block only if the user uploaded one and it failed —
-  // they should retry or remove it, not silently ship a broken angle.
   const anyFailed = SLOTS.some((s) => photos[s.kind].status === "failed");
   const frontReady = photos.front.status === "ready" && photos.front.processed != null;
   const canGenerate = frontReady && !anyProcessing && !anyFailed;
@@ -60,14 +76,16 @@ export function OnboardingWizard() {
     startTransition(async () => {
       try {
         const fd = new FormData();
+        if (spinId) fd.append("spinId", spinId);
+        fd.append("title", title);
         for (const slot of SLOTS) {
           const p = photos[slot.kind];
           if (p.status === "ready" && p.processed) {
             fd.append(`photo_${slot.kind}`, p.processed);
           }
         }
-        const sessionId = await submitOnboarding(fd);
-        router.push(`/generate?session=${sessionId}`);
+        const id = await saveSpinPhotos(fd);
+        router.push(`/generate?spin=${id}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
       }
@@ -81,16 +99,32 @@ export function OnboardingWizard() {
     null;
 
   return (
-    <AppShell variant="onboarding" onReset={() => { setPhotos(INITIAL_PHOTOS); setError(null); }}>
+    <AppShell variant="onboarding" user={user} onReset={() => { setPhotos(buildInitial()); setError(null); }}>
       <div className="mx-auto w-full max-w-[900px] pb-32 pt-8 lg:pt-14">
         <h1 className="font-display text-[30px] font-bold text-fw-text md:text-[36px]">
-          Upload your product photos.
+          {isEdit ? "Update your product photos." : "Upload your product photos."}
         </h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-[24px] text-fw-darkGray">
-          Front is enough to start. More angles = a spin that's true to your product.
+          {isEdit
+            ? "Replace any photo below — we'll rebuild the spin from the new set."
+            : "Front is enough to start. More angles = a spin that's true to your product."}
         </p>
 
-        <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="mt-8 max-w-sm">
+          <label htmlFor="spin-title" className="text-[13px] font-semibold text-fw-text">
+            Product name <span className="font-normal text-fw-lightGray">(shown in your Studio)</span>
+          </label>
+          <input
+            id="spin-title"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Chuck Taylor High-Top, Cream"
+            className="mt-1.5 h-11 w-full rounded-xl border border-fw-border bg-white px-4 text-[14px] text-fw-text outline-none placeholder:text-fw-lightGray focus:border-fw-black"
+          />
+        </div>
+
+        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4">
           {SLOTS.map((s) => {
             const p = photos[s.kind];
             return (
@@ -117,13 +151,13 @@ export function OnboardingWizard() {
         </p>
 
         {error && (
-          <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
+          <div className="mt-6 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
         )}
 
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <Button disabled={!canGenerate || isPending} onClick={submit} className="h-11 px-8">
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Generate my spin
+            {isEdit ? "Save & continue" : "Generate my spin"}
           </Button>
           {blockReason && <span className="text-[12px] text-fw-darkGray">{blockReason}</span>}
           {canGenerate && !isPending && (
@@ -138,4 +172,3 @@ export function OnboardingWizard() {
     </AppShell>
   );
 }
-

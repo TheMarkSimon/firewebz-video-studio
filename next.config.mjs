@@ -10,8 +10,7 @@ const nextConfig = {
   images: { remotePatterns: [{ protocol: "https", hostname: "**" }] },
   outputFileTracingIncludes: {
     "/**": [
-      "./prisma/seed.db",
-      "./node_modules/.prisma/client/**/*",
+            "./node_modules/.prisma/client/**/*",
       "./node_modules/@prisma/client/**/*",
       // ffmpeg binary needs to be traced into the serverless bundle;
       // Next won't detect it because we load it via dynamic import path.

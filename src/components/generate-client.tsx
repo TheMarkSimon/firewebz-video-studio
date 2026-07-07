@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { generateSpinVideoFromSession, type SpinVideoGenerationResult } from "@/lib/actions/spinvideo";
+import { generateSpinVideo, type SpinVideoGenerationResult } from "@/lib/actions/spinvideo";
 import { SpinScrubber } from "@/components/spin-scrubber";
 import {
   Loader2,
@@ -32,11 +32,11 @@ export type SessionPhotos = {
 };
 
 export function GenerateClient({
-  sessionId,
+  spinId,
   photos,
   cachedResult,
 }: {
-  sessionId: string;
+  spinId: string;
   photos: SessionPhotos;
   cachedResult: CachedResult | null;
 }) {
@@ -52,7 +52,7 @@ export function GenerateClient({
         durationMs: cachedResult.durationMs,
         cached: true,
         diagnostics: {
-          provider: "fal-kling-v3-pro",
+          provider: "fal-seedance-v1-lite-ref",
           modelUsed: cachedResult.modelUsed,
           durationMs: cachedResult.durationMs,
           frontPhotoPresent: true,
@@ -73,7 +73,7 @@ export function GenerateClient({
     setPhase("generating");
     startTransition(async () => {
       try {
-        const res = await generateSpinVideoFromSession(sessionId, { force });
+        const res = await generateSpinVideo(spinId, { force });
         setResult(res);
         setPhase("result");
       } catch (e) {
@@ -97,6 +97,7 @@ export function GenerateClient({
     <div className="mx-auto max-w-5xl px-4 pt-4 lg:pt-6">
       {phase === "preview" && (
         <PreviewPhase
+          spinId={spinId}
           photos={proxiedPhotos}
           onGenerate={() => generate(false)}
           isPending={isPending}
@@ -106,7 +107,7 @@ export function GenerateClient({
       {phase === "generating" && <GeneratingPhase />}
       {phase === "result" && result && (
         <ResultPhase
-          sessionId={sessionId}
+          spinId={spinId}
           photos={proxiedPhotos}
           result={result}
           onRegenerate={() => generate(true)}
@@ -118,8 +119,9 @@ export function GenerateClient({
 }
 
 function PreviewPhase({
-  photos, onGenerate, isPending, error,
+  spinId, photos, onGenerate, isPending, error,
 }: {
+  spinId: string;
   photos: SessionPhotos;
   onGenerate: () => void;
   isPending: boolean;
@@ -157,11 +159,17 @@ function PreviewPhase({
         <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
       )}
 
-      <div className="mt-6 flex items-center gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button onClick={onGenerate} disabled={isPending} className="h-11 px-8">
           {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
           Build my spin
         </Button>
+        <a
+          href={`/onboarding?spin=${spinId}`}
+          className="text-[13px] font-semibold text-fw-darkGray underline-offset-4 hover:underline"
+        >
+          Edit photos
+        </a>
         <span className="text-[12px] text-fw-lightGray">Usually 2-3 minutes.</span>
       </div>
     </div>
@@ -210,9 +218,9 @@ function GeneratingPhase() {
 }
 
 function ResultPhase({
-  sessionId, photos, result, onRegenerate, isPending,
+  spinId, photos, result, onRegenerate, isPending,
 }: {
-  sessionId: string;
+  spinId: string;
   photos: SessionPhotos;
   result: SpinVideoGenerationResult;
   onRegenerate: () => void;
@@ -235,10 +243,15 @@ function ResultPhase({
             </p>
           )}
         </div>
-        <Button variant="outline" onClick={onRegenerate} disabled={isPending} className="h-10 px-5 text-[13px]">
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCw className="h-4 w-4" />}
-          Regenerate
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" className="h-10 px-5 text-[13px]">
+            <a href={`/onboarding?spin=${spinId}`}>Edit photos</a>
+          </Button>
+          <Button variant="outline" onClick={onRegenerate} disabled={isPending} className="h-10 px-5 text-[13px]">
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCw className="h-4 w-4" />}
+            Regenerate
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -272,11 +285,11 @@ function ResultPhase({
 
         <div className="flex flex-col gap-4">
           <SourcePhotosCard photos={photos} />
-          {succeeded && <EmbedCard sessionId={sessionId} />}
+          {succeeded && <EmbedCard spinId={spinId} />}
         </div>
       </div>
 
-      {succeeded && <NextStepsCard sessionId={sessionId} />}
+      {succeeded && <NextStepsCard spinId={spinId} />}
 
       <DiagnosticsPanel result={result} />
     </div>
@@ -306,13 +319,13 @@ function SourcePhotosCard({ photos }: { photos: SessionPhotos }) {
   );
 }
 
-function EmbedCard({ sessionId }: { sessionId: string }) {
+function EmbedCard({ spinId }: { spinId: string }) {
   const [copied, setCopied] = useState<null | "snippet" | "link">(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const embedLink = `${origin}/embed/${sessionId}`;
+  const embedLink = `${origin}/embed/${spinId}`;
   const snippet =
-    `<div data-spinr="${sessionId}" style="height:520px;max-width:640px;margin:0 auto"></div>\n` +
+    `<div data-spinr="${spinId}" style="height:520px;max-width:640px;margin:0 auto"></div>\n` +
     `<script src="${origin}/embed/spin.js" defer></script>`;
 
   function copy(text: string, kind: "snippet" | "link") {
@@ -354,7 +367,7 @@ function EmbedCard({ sessionId }: { sessionId: string }) {
   );
 }
 
-function NextStepsCard({ sessionId }: { sessionId: string }) {
+function NextStepsCard({ spinId }: { spinId: string }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   return (
     <div className="mt-8 rounded-2xl border border-fw-border bg-white p-6">
@@ -374,7 +387,7 @@ function NextStepsCard({ sessionId }: { sessionId: string }) {
         </Step>
       </ol>
       <p className="mt-4 text-[12px] text-fw-lightGray">
-        Prefer a direct link? <a className="font-medium text-fw-text underline hover:opacity-60" href={`/embed/${sessionId}`} target="_blank" rel="noreferrer">Open the spin standalone at {origin}/embed/{sessionId}</a>
+        Prefer a direct link? <a className="font-medium text-fw-text underline hover:opacity-60" href={`/embed/${spinId}`} target="_blank" rel="noreferrer">Open the spin standalone at {origin}/embed/{spinId}</a>
       </p>
     </div>
   );
