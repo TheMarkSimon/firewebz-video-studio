@@ -20,20 +20,22 @@ const MODEL_ID = "fal-ai/bytedance/seedance/v1/lite/reference-to-video";
 // Prompt notes, learned the hard way:
 //   - Never say "turntable"/"stage"/"platform" — the model renders one, and a
 //     different one every run. Say the product rotates in place instead.
+//   - Never say "suspended"/"hanging"/"floating on a string" — the model
+//     renders a literal suspension wire from the top of the frame.
 //   - Catalog photos often show a pair (e.g. both shoes); explicitly ask for
 //     exactly ONE item or the video renders the whole pair.
 const PROMPT =
-  "A single product rotating smoothly in place, suspended against a pure " +
-  "seamless white background, completing exactly one full 360 degree " +
-  "revolution at constant angular velocity. The reference images show the " +
-  "same product from different angles — front, back, and sides; rotate " +
-  "smoothly through all of them in order. Render exactly one item: if the " +
-  "reference photos show a pair or multiple copies of the product, show only " +
-  "a single one. Nothing else in frame — no stand, no pedestal, no platform, " +
-  "no turntable, no stage, no floor, no surface, no shadow. No acceleration, " +
-  "no deceleration. High-end commercial product photography lighting, crisp " +
-  "sharp textures, product perfectly centered and locked in place for the " +
-  "entire rotation.";
+  "A single product rotating smoothly in place against a pure seamless white " +
+  "background, completing exactly one full 360 degree revolution at constant " +
+  "angular velocity. The reference images show the same product from " +
+  "different angles — front, back, and sides; rotate smoothly through all of " +
+  "them in order. Render exactly one item: if the reference photos show a " +
+  "pair or multiple copies of the product, show only a single one. Nothing " +
+  "else in frame — no stand, no pedestal, no platform, no turntable, no " +
+  "stage, no floor, no surface, no shadow, no string, no wire, no thread, no " +
+  "hanging mount, no rig. No acceleration, no deceleration. High-end " +
+  "commercial product photography lighting, crisp sharp textures, product " +
+  "perfectly centered and locked in place for the entire rotation.";
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
