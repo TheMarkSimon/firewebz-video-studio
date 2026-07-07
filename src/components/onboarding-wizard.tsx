@@ -82,17 +82,15 @@ export function OnboardingWizard() {
 
   return (
     <AppShell variant="onboarding" onReset={() => { setPhotos(INITIAL_PHOTOS); setError(null); }}>
-      <div className="mx-auto w-full max-w-[900px] pt-4 lg:pt-8">
-        <h1 className="font-display text-[28px] font-bold text-fw-text md:text-[32px]">
+      <div className="mx-auto w-full max-w-[900px] pb-32 pt-8 lg:pt-14">
+        <h1 className="font-display text-[30px] font-bold text-fw-text md:text-[36px]">
           Upload your product photos.
         </h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-[24px] text-fw-darkGray">
-          Front is all we need to get started. Add Back, Left, and Right shots and our AI
-          uses your <em>real</em> angles instead of guessing — the spin stays true to your
-          product all the way around.
+          Front is enough to start. More angles = a spin that's true to your product.
         </p>
 
-        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-4">
           {SLOTS.map((s) => {
             const p = photos[s.kind];
             return (
@@ -113,23 +111,16 @@ export function OnboardingWizard() {
           })}
         </div>
 
-        <div className="mt-6 rounded-2xl border border-fw-border bg-white p-5">
-          <p className="text-[13px] font-semibold uppercase tracking-wider text-fw-darkGray">
-            For the best spin
-          </p>
-          <ul className="mt-3 grid gap-x-8 gap-y-2 text-[13px] leading-[20px] text-fw-text md:grid-cols-2">
-            <Tip><strong>Same distance and height</strong> for every angle — imagine the product on a turntable and you standing still.</Tip>
-            <Tip><strong>Fill the frame.</strong> Product should take up 70–85% of each shot.</Tip>
-            <Tip><strong>Even lighting, no harsh shadows.</strong> Near a window or under ceiling light works.</Tip>
-            <Tip><strong>Any background is fine</strong> — we remove it automatically.</Tip>
-          </ul>
-        </div>
+        <p className="mt-5 text-[13px] leading-[20px] text-fw-lightGray">
+          Best results: fill the frame, keep the same distance for every angle, even lighting.
+          Any background works — we remove it.
+        </p>
 
         {error && (
           <div className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
         )}
 
-        <div className="mt-8 flex flex-wrap items-center gap-3">
+        <div className="mt-10 flex flex-wrap items-center gap-3">
           <Button disabled={!canGenerate || isPending} onClick={submit} className="h-11 px-8">
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Generate my spin
@@ -148,11 +139,3 @@ export function OnboardingWizard() {
   );
 }
 
-function Tip({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-start gap-2.5">
-      <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-fw-purple" />
-      <span>{children}</span>
-    </li>
-  );
-}

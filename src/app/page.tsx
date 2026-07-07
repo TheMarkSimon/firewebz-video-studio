@@ -37,7 +37,7 @@ export const metadata: Metadata = {
 export default function WelcomePage() {
   return (
     <AppShell variant="marketing">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-7xl">
         {/* Hero */}
         <section className="flex flex-col items-center pt-16 text-center lg:pt-24">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-fw-border bg-white px-4 py-1.5 text-[12px] font-semibold text-fw-text">
@@ -45,7 +45,7 @@ export default function WelcomePage() {
             One photo. A 360° spin. Live in three minutes.
           </div>
 
-          <h1 className="max-w-4xl font-display text-[44px] font-bold leading-[1.04] text-fw-text md:text-[68px]">
+          <h1 className="max-w-5xl font-display text-[44px] font-bold leading-[1.18] text-fw-text md:text-[68px]">
             The shortest path from a product photo to <RotatingWord />
           </h1>
 
