@@ -6,9 +6,9 @@ import { RotatingWord } from "@/components/hero";
 import { ArrowRight, Camera, Sparkles, Store, Check, MousePointerClick, TrendingUp, Undo2, MonitorSmartphone, Play } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Spinr — Turn one product photo into a 360° spin for Shopify",
+  title: "Spinr — Turn your product photos into a 360° spin for Shopify",
   description:
-    "Upload a single product photo. Get an interactive 360° spin your shoppers can drag on any Shopify product page. Setup in under 3 minutes. No 3D scanner, no photo studio, no code.",
+    "Snap a few phone photos of your product. Get an interactive 360° spin your shoppers can drag on any Shopify product page. Setup in under 3 minutes. No 3D scanner, no photo studio, no code.",
   keywords: [
     "shopify 360 product view",
     "360 spin product photography",
@@ -19,17 +19,17 @@ export const metadata: Metadata = {
     "360 product photo alternative",
   ],
   openGraph: {
-    title: "Spinr — 360° product spins from one photo",
+    title: "Spinr — 360° product spins from your photos",
     description:
-      "One photo in, an interactive 360° spin out. Drop it into any Shopify product page and watch conversion climb.",
+      "A few phone photos in, an interactive 360° spin out. Drop it into any Shopify product page and watch conversion climb.",
     type: "website",
     siteName: "Spinr",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Spinr — 360° product spins from one photo",
+    title: "Spinr — 360° product spins from your photos",
     description:
-      "One photo in, an interactive 360° spin out. Drop it into any Shopify product page.",
+      "A few phone photos in, an interactive 360° spin out. Drop it into any Shopify product page.",
   },
   alternates: { canonical: "/" },
 };
@@ -41,12 +41,12 @@ export default function WelcomePage() {
         {/* Hero — Canva pattern: title, one line, one CTA, demo video under it. */}
         <section className="flex flex-col items-center pt-14 text-center lg:pt-20">
           <h1 className="max-w-5xl font-display text-[44px] font-bold leading-[1.18] text-fw-text md:text-[64px]">
-            The shortest path from a product photo to <RotatingWord />
+            The shortest path from product photos to <RotatingWord />
           </h1>
 
           <p className="mt-6 max-w-2xl text-[17px] leading-[27px] text-fw-darkGray md:text-[18px]">
-            One photo becomes an interactive 360° spin your shoppers can drag —
-            on any Shopify page, in three minutes, no code.
+            Snap a few phone photos of your product — get an interactive 360° spin your
+            shoppers can drag. Any Shopify page, three minutes, no code.
           </p>
 
           <div className="mt-8">
@@ -76,16 +76,16 @@ export default function WelcomePage() {
         <section id="how" className="mt-32 grid scroll-mt-24 items-center gap-12 md:grid-cols-2">
           <div>
             <h2 className="font-display text-[30px] font-bold leading-tight text-fw-text md:text-[38px]">
-              From one photo to a live spin in three minutes.
+              From a few photos to a live spin in three minutes.
             </h2>
             <div className="mt-8 space-y-7">
-              <FeatureRow icon={<Camera className="h-5 w-5" />} title="Upload one photo">
-                Any smartphone shot works. We remove the background automatically — no studio,
-                no white sweep, no retouching.
+              <FeatureRow icon={<Camera className="h-5 w-5" />} title="Snap a few photos">
+                Front, back, and sides — straight from your phone. We remove the backgrounds
+                automatically; no studio, no white sweep, no retouching.
               </FeatureRow>
               <FeatureRow icon={<Sparkles className="h-5 w-5" />} title="AI builds the rotation">
-                A full 360° turntable spin with studio lighting, generated from your photo in
-                two to three minutes.
+                A full 360° turntable spin with studio lighting, built from your real angles
+                in two to three minutes.
               </FeatureRow>
               <FeatureRow icon={<Store className="h-5 w-5" />} title="Paste it on Shopify">
                 One line of HTML in any product page. Works with every theme — nothing to
@@ -152,7 +152,7 @@ export default function WelcomePage() {
               <p className="mt-3 font-display text-[40px] font-bold text-fw-text">Free</p>
               <p className="mt-1 text-[13px] text-fw-darkGray">while in beta</p>
               <ul className="mt-6 space-y-3">
-                <PriceLine>360° spins from one photo</PriceLine>
+                <PriceLine>360° spins from your photos</PriceLine>
                 <PriceLine>Automatic background removal</PriceLine>
                 <PriceLine>Embed on any Shopify page</PriceLine>
                 <PriceLine>MP4 download included</PriceLine>
@@ -185,9 +185,9 @@ export default function WelcomePage() {
           </h2>
           <div className="mt-10 divide-y divide-fw-border rounded-3xl border border-fw-border bg-white px-6">
             <Faq q="Do I need special photos or equipment?">
-              No. One clear smartphone photo works. For the most accurate spin, shoot at a slight
-              3/4 angle with even lighting — and you can add back/side photos so the spin uses
-              your real angles instead of guessing.
+              No. A few clear smartphone photos are all it takes — front, back, and sides.
+              Shoot with even lighting and keep the same distance for every angle; any
+              background is fine, we remove it automatically.
             </Faq>
             <Faq q="How long does it take?">
               Two to three minutes from upload to a finished, embeddable spin.
@@ -210,7 +210,7 @@ export default function WelcomePage() {
         {/* Bottom CTA — black block */}
         <section className="my-32 rounded-3xl bg-fw-black p-10 text-center text-white md:p-16">
           <h2 className="font-display text-[32px] font-bold leading-tight md:text-[44px]">
-            Turn your best product photo<br />into your best sales pitch.
+            Turn your product photos<br />into your best sales pitch.
           </h2>
           <p className="mt-4 text-[16px] text-white/70">
             Free while in beta. See your first spin in under three minutes.

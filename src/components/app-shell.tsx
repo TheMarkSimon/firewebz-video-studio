@@ -87,7 +87,7 @@ function MarketingFooter() {
         <div>
           <BrandLogo size={26} />
           <p className="mt-2 max-w-xs text-[13px] leading-[20px] text-fw-darkGray">
-            Interactive 360° product spins for your storefront — from a single photo.
+            Interactive 360° product spins for your storefront — from a few phone photos.
           </p>
         </div>
         <div className="flex flex-col gap-2 text-[13px] text-fw-darkGray">
