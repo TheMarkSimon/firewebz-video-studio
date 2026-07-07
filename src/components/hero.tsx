@@ -16,7 +16,9 @@ export function RotatingWord() {
     return () => clearInterval(id);
   }, []);
   return (
-    <span key={i} className="fw-screen-enter inline-block whitespace-nowrap text-fw-purple">
+    // Lime is too light for text on white — render as a marker highlight
+    // instead: lime fill, black text (Ramp-yellow pattern).
+    <span key={i} className="fw-screen-enter inline-block whitespace-nowrap rounded-xl bg-fw-purple px-3 text-fw-black">
       {WORDS[i]}
     </span>
   );

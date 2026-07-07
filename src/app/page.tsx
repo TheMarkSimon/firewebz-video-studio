@@ -128,7 +128,7 @@ export default function WelcomePage() {
           </p>
           <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
             <div className="rounded-3xl border-2 border-fw-purple bg-white p-8">
-              <p className="text-[13px] font-bold uppercase tracking-wider text-fw-purple">Beta</p>
+              <p className="text-[13px] font-bold uppercase tracking-wider text-fw-text">Beta</p>
               <p className="mt-3 font-display text-[40px] font-bold text-fw-text">Free</p>
               <p className="mt-1 text-[13px] text-fw-darkGray">while in beta</p>
               <ul className="mt-6 space-y-3">
@@ -213,7 +213,7 @@ function HowStep({ number, icon, title, body }: { number: number; icon: React.Re
   return (
     <div className="rounded-3xl border border-fw-border bg-white p-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-fw-purpleSoft text-fw-purple">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-fw-purpleSoft text-fw-black">
           {icon}
         </div>
         <span className="text-[13px] font-semibold uppercase tracking-wider text-fw-lightGray">
@@ -238,7 +238,7 @@ function Bullet({ children }: { children: React.ReactNode }) {
 function PriceLine({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-2.5 text-[14px] text-fw-text">
-      <Check className="mt-0.5 h-4 w-4 shrink-0 text-fw-purple" />
+      <Check className="mt-0.5 h-4 w-4 shrink-0 text-fw-black" />
       <span>{children}</span>
     </li>
   );

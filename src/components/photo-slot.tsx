@@ -98,7 +98,7 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
       <div className="flex items-center gap-2 text-[13px]">
         <span className="font-semibold text-fw-text">{label}</span>
         {required ? (
-          <span className="rounded-full bg-fw-purple/10 px-2 py-0.5 text-[10px] font-semibold text-fw-purple">Required</span>
+          <span className="rounded-full bg-fw-purpleSoft px-2 py-0.5 text-[10px] font-semibold text-fw-text">Required</span>
         ) : (
           <span className="rounded-full bg-fw-lighterGray/30 px-2 py-0.5 text-[10px] font-semibold text-fw-darkGray">Optional</span>
         )}
@@ -175,7 +175,7 @@ export function PhotoSlot({ label, kind, required, value, rawValue, status, erro
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex items-center gap-1 text-fw-darkGray hover:text-fw-purple"
+            className="flex items-center gap-1 text-fw-darkGray hover:text-fw-text"
           >
             <RotateCw className="h-3 w-3" /> Replace
           </button>

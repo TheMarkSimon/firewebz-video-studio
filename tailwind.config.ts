@@ -18,18 +18,19 @@ const config: Config = {
         secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
         accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
-        // "purple" is legacy naming — it now holds Spinr Orange, THE single
-        // brand accent on an otherwise monochrome palette. Kept the token
-        // name to avoid churning every component; read it as "brand".
+        // "purple" is legacy naming — it now holds Spinr Lime (#D7FC47), THE
+        // single brand accent on an otherwise monochrome palette. Lime is too
+        // light for text on white: use it for FILLS (buttons with black text,
+        // chips, marker highlights), Ramp-yellow style. Read "purple" as "brand".
         fw: {
           page: "#FFFFFF",
           card: "#FFFFFF",
-          purple: "#FF5A00",
-          purpleDark: "#E04E00",
-          purpleSoft: "#FFF1E9",
+          purple: "#D7FC47",
+          purpleDark: "#C2EC28",
+          purpleSoft: "#F7FEDC",
           turquoise: "#18E4C9",
           yellow: "#F4DB3A",
-          orange: "#FF5A00",
+          orange: "#D7FC47",
           black: "#0A0A0B",
           text: "#101012",
           darkGray: "#5F6470",

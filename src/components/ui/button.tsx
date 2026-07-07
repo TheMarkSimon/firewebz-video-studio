@@ -9,10 +9,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-fw-purple text-white rounded-pill hover:bg-fw-purpleDark disabled:bg-fw-disabled disabled:text-fw-lightGray",
-        outline: "border-2 border-fw-purple bg-white text-fw-purple rounded-pill hover:bg-fw-purpleSoft",
+        // Lime fill + black text (Ramp-yellow pattern) — white text on lime fails contrast.
+        default: "bg-fw-purple text-fw-black rounded-pill hover:bg-fw-purpleDark disabled:bg-fw-disabled disabled:text-fw-lightGray",
+        // Secondary is monochrome; lime never carries text on white.
+        outline: "border-2 border-fw-black/15 bg-white text-fw-text rounded-pill hover:border-fw-black",
         ghost: "text-fw-text hover:bg-fw-purpleSoft rounded-pill",
-        link: "text-fw-purple underline-offset-4 hover:underline",
+        link: "text-fw-text underline-offset-4 hover:underline",
         destructive: "bg-destructive text-destructive-foreground rounded-pill",
       },
       size: {

@@ -194,7 +194,7 @@ function GeneratingPhase() {
       <div className="w-full max-w-md">
         <div className="flex items-end justify-between">
           <p className="text-[18px] font-semibold text-fw-text">Building your 360° spin</p>
-          <span className="font-display text-[22px] font-bold text-fw-purple">{Math.floor(progress)}%</span>
+          <span className="font-display text-[22px] font-bold text-fw-text">{Math.floor(progress)}%</span>
         </div>
         <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-fw-disabled">
           <div
@@ -324,7 +324,7 @@ function EmbedCard({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="rounded-2xl border border-fw-purple/30 bg-gradient-to-br from-fw-purpleSoft/50 to-white p-4">
-      <p className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-fw-purple">
+      <p className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-fw-text">
         <Sparkles className="h-3.5 w-3.5" /> Ship it to Shopify
       </p>
       <p className="mt-2 text-[13px] leading-[20px] text-fw-text">
@@ -374,7 +374,7 @@ function NextStepsCard({ sessionId }: { sessionId: string }) {
         </Step>
       </ol>
       <p className="mt-4 text-[12px] text-fw-lightGray">
-        Prefer a direct link? <a className="font-medium text-fw-purple hover:underline" href={`/embed/${sessionId}`} target="_blank" rel="noreferrer">Open the spin standalone at {origin}/embed/{sessionId}</a>
+        Prefer a direct link? <a className="font-medium text-fw-text underline hover:opacity-60" href={`/embed/${sessionId}`} target="_blank" rel="noreferrer">Open the spin standalone at {origin}/embed/{sessionId}</a>
       </p>
     </div>
   );

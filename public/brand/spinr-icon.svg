@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="194" fill="#D7FC47"/>
+  <rect x="474" y="205" width="76" height="614" fill="#050505"/>
+  <path d="M184 358 A256 154 0 0 1 696 358 A256 154 0 0 1 184 358 Z" fill="#050505" clip-path="url(#leftClip)"/>
+  <path d="M328 666 A256 154 0 0 1 840 666 A256 154 0 0 1 328 666 Z" fill="#050505" clip-path="url(#rightClip)"/>
+  <defs>
+    <clipPath id="leftClip"><rect x="0" y="0" width="512" height="1024"/></clipPath>
+    <clipPath id="rightClip"><rect x="512" y="0" width="512" height="1024"/></clipPath>
+  </defs>
+</svg>

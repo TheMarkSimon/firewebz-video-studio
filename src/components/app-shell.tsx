@@ -48,7 +48,7 @@ export function AppShell({
                   <Link
                     key={l.href}
                     href={l.href}
-                    className="text-[14px] font-semibold text-fw-text hover:text-fw-purple"
+                    className="text-[14px] font-semibold text-fw-text hover:opacity-60"
                   >
                     {l.label}
                   </Link>
@@ -90,7 +90,7 @@ function MarketingFooter() {
           </p>
         </div>
         <div className="flex flex-col gap-2 text-[13px] text-fw-darkGray">
-          <a href="mailto:contact@thespinr.com" className="font-semibold text-fw-text hover:text-fw-purple">
+          <a href="mailto:contact@thespinr.com" className="font-semibold text-fw-text hover:opacity-60">
             contact@thespinr.com
           </a>
           <span>© {new Date().getFullYear()} Spinr. All rights reserved.</span>

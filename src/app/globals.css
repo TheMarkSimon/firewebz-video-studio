@@ -11,12 +11,15 @@
      "brand accent". */
   --fw-page: 0 0% 100%;             /* pure white */
   --fw-card: 0 0% 100%;
-  --fw-purple: 21 100% 50%;         /* #FF5A00 — Spinr Orange, THE brand color */
-  --fw-purple-dark: 21 100% 44%;    /* #E04E00 — hover state */
-  --fw-purple-soft: 21 100% 96%;    /* #FFF1E9 — warm tint for backgrounds */
+  --fw-purple: 72 95% 63%;          /* #D7FC47 — Spinr Lime, THE brand color.
+                                       Too light for text on white: use as FILLS
+                                       (buttons w/ black text, chips, highlights),
+                                       Ramp-yellow style. */
+  --fw-purple-dark: 73 84% 54%;     /* #C2EC28 — hover state */
+  --fw-purple-soft: 72 94% 93%;     /* #F7FEDC — light lime tint for backgrounds */
   --fw-turquoise: 172 79% 49%;
   --fw-yellow: 53 89% 59%;
-  --fw-orange: 21 100% 50%;
+  --fw-orange: 72 95% 63%;
   --fw-black: 240 4% 4%;            /* near-black, Notion-style */
   --fw-text: 240 4% 7%;             /* #101012 — high-contrast headlines/body */
   --fw-darkGray: 220 9% 42%;        /* secondary text */
@@ -77,7 +80,7 @@ html, body {
   animation: fw-screen-in 350ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Logo wordmark — solid brand color (one dominant color, no gradients) */
+/* Logo wordmark fallback (header uses the image lockup now) */
 .fw-wordmark {
-  color: #FF5A00;
+  color: #101012;
 }
