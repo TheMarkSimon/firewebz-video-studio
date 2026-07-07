@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { RotatingWord } from "@/components/hero";
-import { ArrowRight, Camera, Sparkles, Store, Check, MousePointerClick, TrendingUp, Undo2, MonitorSmartphone, Play } from "lucide-react";
+import { ArrowRight, Camera, Sparkles, Store, Check, MousePointerClick, TrendingUp, Undo2, MonitorSmartphone } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Spinr — Turn your product photos into a 360° spin for Shopify",
   description:
-    "Snap a few phone photos of your product. Get an interactive 360° spin your shoppers can drag on any Shopify product page. Setup in under 3 minutes. No 3D scanner, no photo studio, no code.",
+    "Turn the product photos you already have into an interactive 360° spin your shoppers can drag on any Shopify product page. Setup in under 3 minutes. No 3D scanner, no photo studio, no code.",
   keywords: [
     "shopify 360 product view",
     "360 spin product photography",
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Spinr — 360° product spins from your photos",
     description:
-      "A few phone photos in, an interactive 360° spin out. Drop it into any Shopify product page and watch conversion climb.",
+      "The photos you already have in, an interactive 360° spin out. Drop it into any Shopify product page and watch conversion climb.",
     type: "website",
     siteName: "Spinr",
   },
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Spinr — 360° product spins from your photos",
     description:
-      "A few phone photos in, an interactive 360° spin out. Drop it into any Shopify product page.",
+      "The photos you already have in, an interactive 360° spin out. Drop it into any Shopify product page.",
   },
   alternates: { canonical: "/" },
 };
@@ -45,7 +45,7 @@ export default function WelcomePage() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-[17px] leading-[27px] text-fw-darkGray md:text-[18px]">
-            Snap a few phone photos of your product — get an interactive 360° spin your
+            Turn the product photos you already have into an interactive 360° spin your
             shoppers can drag. Any Shopify page, three minutes, no code.
           </p>
 
@@ -58,17 +58,18 @@ export default function WelcomePage() {
             </Button>
           </div>
 
-          {/* Demo video frame — swap the inner placeholder for the Converse
-              process video (looping <video>) when the user delivers it. */}
+          {/* Demo video — user-provided process reel (photos → Spinr → spin).
+              Muted looping autoplay, the Canva/Ramp hero pattern. */}
           <div className="mt-14 w-full max-w-5xl">
-            <div className="flex aspect-video w-full items-center justify-center rounded-3xl border border-fw-border bg-gradient-to-br from-fw-purpleSoft/70 via-white to-fw-disabled">
-              <div className="flex flex-col items-center gap-3 text-fw-lightGray">
-                <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-md">
-                  <Play className="ml-0.5 h-6 w-6 text-fw-black" />
-                </span>
-                <span className="text-[13px] font-semibold">Product demo</span>
-              </div>
-            </div>
+            <video
+              src="/videos/hero-demo.mp4"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="aspect-video w-full rounded-3xl border border-fw-border object-cover shadow-[0_24px_80px_-32px_rgba(16,16,18,0.25)]"
+            />
           </div>
         </section>
 
@@ -79,9 +80,8 @@ export default function WelcomePage() {
               From a few photos to a live spin in three minutes.
             </h2>
             <div className="mt-8 space-y-7">
-              <FeatureRow icon={<Camera className="h-5 w-5" />} title="Snap a few photos">
-                Front, back, and sides — straight from your phone. We remove the backgrounds
-                automatically; no studio, no white sweep, no retouching.
+              <FeatureRow icon={<Camera className="h-5 w-5" />} title="Use the photos you already have">
+                Your existing catalog shots work, or a few quick phone photos — front, back, and sides. We remove the backgrounds automatically; no studio, no white sweep, no retouching.
               </FeatureRow>
               <FeatureRow icon={<Sparkles className="h-5 w-5" />} title="AI builds the rotation">
                 A full 360° turntable spin with studio lighting, built from your real angles
@@ -185,7 +185,7 @@ export default function WelcomePage() {
           </h2>
           <div className="mt-10 divide-y divide-fw-border rounded-3xl border border-fw-border bg-white px-6">
             <Faq q="Do I need special photos or equipment?">
-              No. A few clear smartphone photos are all it takes — front, back, and sides.
+              No. The photos already in your catalog usually work as-is — or take a few phone shots: front, back, and sides.
               Shoot with even lighting and keep the same distance for every angle; any
               background is fine, we remove it automatically.
             </Faq>
