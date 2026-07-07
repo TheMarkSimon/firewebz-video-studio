@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
-import { MoreHorizontal, X, LayoutDashboard, Sparkles, Calendar, Settings, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
 
-const MENU_ITEMS = [
-  { href: "/onboarding", label: "Start a new post", icon: Plus },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/concepts", label: "My concepts", icon: Sparkles },
-  { href: "/calendar", label: "Calendar", icon: Calendar },
-  { href: "/settings", label: "Settings", icon: Settings },
+// Layout shell, three variants:
+//   marketing  — sticky anchor nav + footer (the one-page site)
+//   default    — minimal app header, logo only (product pages)
+//   onboarding — minimal header + inline "Start over" (replaces the old kebab menu)
+const NAV_LINKS = [
+  { href: "/#how", label: "How it works" },
+  { href: "/#why", label: "Why Spinr" },
+  { href: "/#pricing", label: "Pricing" },
+  { href: "/#faq", label: "FAQ" },
 ] as const;
 
 export function AppShell({
@@ -20,68 +22,80 @@ export function AppShell({
   onReset,
 }: {
   children: React.ReactNode;
-  variant?: "default" | "onboarding";
+  variant?: "default" | "onboarding" | "marketing";
   onReset?: () => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const isMarketing = variant === "marketing";
 
   return (
     <div className="min-h-screen bg-white">
-      <header className="flex h-16 items-center justify-between px-6 lg:px-8">
-        <Link href="/">
-          <BrandLogo />
-        </Link>
-        <button
-          onClick={() => setMenuOpen(true)}
-          className="flex h-10 w-10 items-center justify-center rounded-full text-fw-darkGray hover:bg-fw-disabled"
-          aria-label="Open menu"
-        >
-          <MoreHorizontal className="h-5 w-5" strokeWidth={2.5} />
-        </button>
+      <header
+        className={
+          isMarketing
+            ? "sticky top-0 z-40 border-b border-fw-border/70 bg-white/90 backdrop-blur"
+            : ""
+        }
+      >
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
+          <Link href="/" aria-label="Spinr home">
+            <BrandLogo />
+          </Link>
+
+          {isMarketing && (
+            <>
+              <nav className="hidden items-center gap-8 md:flex" aria-label="Main">
+                {NAV_LINKS.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    className="text-[14px] font-semibold text-fw-text hover:text-fw-purple"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </nav>
+              <Button asChild className="h-10 px-5 text-[14px]">
+                <Link href="/onboarding">Create a spin</Link>
+              </Button>
+            </>
+          )}
+
+          {variant === "onboarding" && onReset && (
+            <button
+              onClick={onReset}
+              className="flex items-center gap-1.5 text-[13px] font-semibold text-fw-darkGray hover:text-fw-text"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Start over
+            </button>
+          )}
+        </div>
       </header>
 
       <main className="px-6 lg:px-8">{children}</main>
 
-      {menuOpen && (
-        <div className="fixed inset-0 z-50 bg-black/20" onClick={() => setMenuOpen(false)}>
-          <div
-            className="absolute right-6 top-20 w-72 rounded-2xl border border-fw-border bg-white p-4 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between pb-2">
-              <span className="text-[12px] font-semibold uppercase tracking-wider text-fw-darkGray">Menu</span>
-              <button onClick={() => setMenuOpen(false)} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-fw-disabled">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <div className="flex flex-col gap-1">
-              {variant === "onboarding" && onReset && (
-                <button
-                  onClick={() => { onReset(); setMenuOpen(false); }}
-                  className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] text-fw-text hover:bg-fw-purpleSoft"
-                >
-                  <Plus className="h-4 w-4 text-fw-purple" />
-                  Start over
-                </button>
-              )}
-              {MENU_ITEMS.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href + item.label}
-                    href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] text-fw-text hover:bg-fw-purpleSoft"
-                  >
-                    <Icon className="h-4 w-4 text-fw-purple" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+      {isMarketing && <MarketingFooter />}
     </div>
+  );
+}
+
+function MarketingFooter() {
+  return (
+    <footer id="contact" className="mt-8 border-t border-fw-border">
+      <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-12 md:flex-row md:items-center lg:px-8">
+        <div>
+          <BrandLogo size={22} />
+          <p className="mt-2 max-w-xs text-[13px] leading-[20px] text-fw-darkGray">
+            Interactive 360° product spins for your storefront — from a single photo.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 text-[13px] text-fw-darkGray">
+          <a href="mailto:contact@thespinr.com" className="font-semibold text-fw-text hover:text-fw-purple">
+            contact@thespinr.com
+          </a>
+          <span>© {new Date().getFullYear()} Spinr. All rights reserved.</span>
+        </div>
+      </div>
+    </footer>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { generateSpinVideoFromSession, type SpinVideoGenerationResult } from "@/lib/actions/spinvideo";
 import { SpinScrubber } from "@/components/spin-scrubber";
@@ -169,17 +169,42 @@ function PreviewPhase({
 }
 
 function GeneratingPhase() {
+  // The server action is one long await, so progress is time-driven on the
+  // client: an asymptotic curve that always advances and never stalls,
+  // capped at 97% until the real result flips the phase. Tuned so a typical
+  // 2-3 minute generation reads ~60% at 75s and ~90% around 3 minutes.
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const id = setInterval(() => {
+      const t = (Date.now() - started) / 1000;
+      setProgress(Math.min(97, 97 * (1 - Math.exp(-t / 75))));
+    }, 150);
+    return () => clearInterval(id);
+  }, []);
+
+  const stage =
+    progress < 12 ? "Uploading your photos…" :
+    progress < 50 ? "Generating the 360° rotation…" :
+    progress < 85 ? "Rendering studio lighting and textures…" :
+    "Almost there — slicing frames for instant scrubbing…";
+
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="relative flex h-16 w-16 items-center justify-center">
-        <div className="absolute inset-0 rounded-full border-4 border-fw-purpleSoft" />
-        <Loader2 className="h-10 w-10 animate-spin text-fw-purple" />
+      <div className="w-full max-w-md">
+        <div className="flex items-end justify-between">
+          <p className="text-[18px] font-semibold text-fw-text">Building your 360° spin</p>
+          <span className="font-display text-[22px] font-bold text-fw-purple">{Math.floor(progress)}%</span>
+        </div>
+        <div className="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-fw-disabled">
+          <div
+            className="h-full rounded-full bg-fw-purple transition-[width] duration-300 ease-out"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        <p className="mt-3 text-[13px] text-fw-darkGray">{stage}</p>
+        <p className="mt-1 text-[12px] text-fw-lightGray">Usually 2–3 minutes. Keep this tab open.</p>
       </div>
-      <p className="mt-6 text-[18px] font-semibold text-fw-text">Building your 360° spin…</p>
-      <p className="mt-2 max-w-md text-[13px] text-fw-lightGray">
-        Our AI is rendering a full turntable rotation, then slicing it into 60 frames for
-        instant scrubbing. This usually takes 2–3 minutes.
-      </p>
     </div>
   );
 }

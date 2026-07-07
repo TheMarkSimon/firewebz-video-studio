@@ -5,22 +5,25 @@
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Palanquin:wght@400;500;600;700&display=swap");
 
 :root {
-  /* Spinr palette (Lemonade-style: mostly white + one accent color) */
+  /* Spinr palette — one dominant color on monochrome (Lemonade/Ramp/Notion pattern).
+     Note: the token is still NAMED --fw-purple across the codebase but now holds
+     Spinr Orange. Renaming ~40 files wasn't worth the churn; treat "purple" as
+     "brand accent". */
   --fw-page: 0 0% 100%;             /* pure white */
   --fw-card: 0 0% 100%;
-  --fw-purple: 248 100% 75%;        /* #9381FF — Spinr accent */
-  --fw-purple-dark: 248 60% 60%;
-  --fw-purple-soft: 248 100% 97%;   /* very light purple tint for backgrounds */
+  --fw-purple: 21 100% 50%;         /* #FF5A00 — Spinr Orange, THE brand color */
+  --fw-purple-dark: 21 100% 44%;    /* #E04E00 — hover state */
+  --fw-purple-soft: 21 100% 96%;    /* #FFF1E9 — warm tint for backgrounds */
   --fw-turquoise: 172 79% 49%;
   --fw-yellow: 53 89% 59%;
-  --fw-orange: 27 96% 59%;
-  --fw-black: 240 1% 19%;
-  --fw-text: 220 14% 20%;           /* darker text like Lemonade */
-  --fw-darkGray: 220 9% 46%;        /* secondary text */
-  --fw-lightGray: 220 13% 75%;
+  --fw-orange: 21 100% 50%;
+  --fw-black: 240 4% 4%;            /* near-black, Notion-style */
+  --fw-text: 240 4% 7%;             /* #101012 — high-contrast headlines/body */
+  --fw-darkGray: 220 9% 42%;        /* secondary text */
+  --fw-lightGray: 220 13% 72%;
   --fw-lighterGray: 220 14% 90%;
-  --fw-border: 220 14% 93%;
-  --fw-disabled: 220 14% 95%;
+  --fw-border: 220 14% 92%;
+  --fw-disabled: 220 14% 96%;
 
   --background: var(--fw-page);
   --foreground: var(--fw-text);
@@ -74,10 +77,7 @@ html, body {
   animation: fw-screen-in 350ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Logo gradient text fallback */
+/* Logo wordmark — solid brand color (one dominant color, no gradients) */
 .fw-wordmark {
-  background: linear-gradient(135deg, #18E4C9 0%, #9381FF 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: #FF5A00;
 }
