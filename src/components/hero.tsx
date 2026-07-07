@@ -16,10 +16,26 @@ export function RotatingWord() {
     return () => clearInterval(id);
   }, []);
   return (
-    // Lime is too light for text on white — render as a marker highlight
-    // instead: lime fill, black text (Ramp-yellow pattern).
-    <span key={i} className="fw-screen-enter inline-block whitespace-nowrap rounded-xl bg-fw-purple px-3 text-fw-black">
-      {WORDS[i]}
+    // All phrases are stacked in the same grid cell, so the slot permanently
+    // reserves the width/height of the LONGEST phrase — the headline never
+    // rewraps when the word changes (no page jump). Only the active phrase is
+    // visible, styled as a lime marker highlight (fill + black text; lime is
+    // too light to be text on white).
+    <span className="inline-grid place-items-center align-bottom">
+      {WORDS.map((w, idx) => (
+        <span
+          key={w}
+          style={{ gridArea: "1 / 1" }}
+          className={
+            idx === i
+              ? "fw-screen-enter whitespace-nowrap rounded-xl bg-fw-purple px-3 text-fw-black"
+              : "invisible whitespace-nowrap px-3"
+          }
+          aria-hidden={idx !== i}
+        >
+          {w}
+        </span>
+      ))}
     </span>
   );
 }

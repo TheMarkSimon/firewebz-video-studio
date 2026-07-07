@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
-import { HeroSpin, RotatingWord } from "@/components/hero";
+import { RotatingWord } from "@/components/hero";
 import { ArrowRight, Camera, Sparkles, Store, Check } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -68,8 +68,8 @@ export default function WelcomePage() {
             Free while in beta · No account needed · Works with every Shopify theme
           </p>
 
-          {/* The product IS the demo: a live draggable spin, front and center. */}
-          <HeroSpin />
+          {/* Hero demo video slot — user is producing a Converse process video;
+              re-add <HeroSpin /> (or a looping <video>) here when it lands. */}
         </section>
 
         {/* How it works */}

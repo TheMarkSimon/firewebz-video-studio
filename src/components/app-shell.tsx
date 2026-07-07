@@ -36,9 +36,9 @@ export function AppShell({
             : ""
         }
       >
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-8">
+        <div className="mx-auto flex h-20 max-w-6xl items-center justify-between px-6 lg:px-8">
           <Link href="/" aria-label="Spinr home">
-            <BrandLogo />
+            <BrandLogo size={60} />
           </Link>
 
           {isMarketing && (
@@ -84,7 +84,7 @@ function MarketingFooter() {
     <footer id="contact" className="mt-8 border-t border-fw-border">
       <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-12 md:flex-row md:items-center lg:px-8">
         <div>
-          <BrandLogo size={22} />
+          <BrandLogo size={40} />
           <p className="mt-2 max-w-xs text-[13px] leading-[20px] text-fw-darkGray">
             Interactive 360° product spins for your storefront — from a single photo.
           </p>
