@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
-import { AppShell } from "@/components/app-shell";
-import { SignInButton } from "@/components/auth-buttons";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -16,31 +14,19 @@ export const dynamic = "force-dynamic";
 
 type SP = Record<string, string | string[] | undefined>;
 
+// NO auth wall here — value-first onboarding. Anonymous visitors get the full
+// upload playground (including live background removal); the sign-in gate is a
+// modal that appears only when they click Generate, after they've invested in
+// their photos. Saving/generating still requires auth server-side.
 export default async function OnboardingPage({ searchParams }: { searchParams: Promise<SP> }) {
   const user = await getSessionUser();
 
-  if (!user) {
-    return (
-      <AppShell>
-        <div className="mx-auto max-w-md py-24 text-center">
-          <h1 className="font-display text-[28px] font-bold text-fw-text">Create a spin</h1>
-          <p className="mt-2 text-[15px] text-fw-darkGray">
-            Sign in with Google to create spins and keep them in your Studio. Free while in beta.
-          </p>
-          <div className="mt-6 flex justify-center">
-            <SignInButton label="Sign in with Google" />
-          </div>
-        </div>
-      </AppShell>
-    );
-  }
-
   // Edit mode: /onboarding?spin=<id> pre-fills the slots with the spin's
-  // existing photos so the user can replace one and regenerate.
+  // existing photos so the user can replace one and regenerate. Owner-only.
   const sp = await searchParams;
   const spinId = typeof sp.spin === "string" ? sp.spin : undefined;
   let editSpin = null;
-  if (spinId) {
+  if (spinId && user) {
     const s = await prisma.spin.findUnique({ where: { id: spinId } });
     if (s && s.userId === user.id) editSpin = s;
   }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AppShell, type ShellUser } from "@/components/app-shell";
+import { SignInButton } from "@/components/auth-buttons";
 import { saveSpinPhotos } from "@/lib/actions/spins";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles, X } from "lucide-react";
 import { PhotoSlot, type SlotKind, type PhotoSlotStatus } from "@/components/photo-slot";
 
 type PhotoEntry = {
@@ -15,8 +16,6 @@ type PhotoEntry = {
   errorMessage: string | null;
 };
 
-// Front is the anchor frame; the other angles are optional but ground the
-// unseen sides of the product for the multi-image provider.
 const SLOTS: Array<{ kind: SlotKind; label: string; required: boolean }> = [
   { kind: "front", label: "Front", required: true },
   { kind: "back",  label: "Back",  required: false },
@@ -25,6 +24,11 @@ const SLOTS: Array<{ kind: SlotKind; label: string; required: boolean }> = [
 ];
 
 const EMPTY_SLOT: PhotoEntry = { raw: null, processed: null, status: "empty", errorMessage: null };
+
+// Anonymous draft stash: processed photos are fal.media URL strings, so the
+// whole wizard state survives the Google OAuth redirect via sessionStorage —
+// no popup-OAuth tricks needed.
+const DRAFT_KEY = "spinr:draft";
 
 type InitialPhotos = { front?: string | null; back?: string | null; left?: string | null; right?: string | null };
 
@@ -55,7 +59,34 @@ export function OnboardingWizard({
   const [title, setTitle] = useState(initialTitle ?? "");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [authModal, setAuthModal] = useState(false);
+  const resumedRef = useRef(false);
   const isEdit = Boolean(spinId);
+
+  // Restore a stashed draft after the OAuth round-trip (or an accidental
+  // reload). If the user is now signed in, continue their flow automatically —
+  // the "instant payoff" after sign-in.
+  useEffect(() => {
+    if (isEdit || resumedRef.current) return;
+    resumedRef.current = true;
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const draft = JSON.parse(raw) as { title?: string; photos?: InitialPhotos };
+      sessionStorage.removeItem(DRAFT_KEY);
+      if (draft.photos?.front) {
+        setPhotos(buildInitial(draft.photos));
+        if (draft.title) setTitle(draft.title);
+        if (user) {
+          // Auto-continue: save the spin and move to the generate page.
+          submitDraft(draft.title ?? "", draft.photos);
+        }
+      }
+    } catch {
+      // Corrupt stash — ignore, the user just starts fresh.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function updatePhoto(kind: SlotKind, raw: string | null, processed: string | null, status: PhotoSlotStatus, errorMessage: string | null) {
     setPhotos((s) => ({ ...s, [kind]: { raw, processed, status, errorMessage } }));
@@ -71,25 +102,42 @@ export function OnboardingWizard({
 
   const extraCount = (["back", "left", "right"] as const).filter((k) => photos[k].status === "ready").length;
 
-  function submit() {
+  function currentPhotoUrls(): InitialPhotos {
+    const get = (k: SlotKind) => (photos[k].status === "ready" ? photos[k].processed : null);
+    return { front: get("front"), back: get("back"), left: get("left"), right: get("right") };
+  }
+
+  function submitDraft(draftTitle: string, draftPhotos?: InitialPhotos) {
+    const p = draftPhotos ?? currentPhotoUrls();
     setError(null);
     startTransition(async () => {
       try {
         const fd = new FormData();
         if (spinId) fd.append("spinId", spinId);
-        fd.append("title", title);
-        for (const slot of SLOTS) {
-          const p = photos[slot.kind];
-          if (p.status === "ready" && p.processed) {
-            fd.append(`photo_${slot.kind}`, p.processed);
-          }
-        }
+        fd.append("title", draftTitle);
+        if (p.front) fd.append("photo_front", p.front);
+        if (p.back) fd.append("photo_back", p.back);
+        if (p.left) fd.append("photo_left", p.left);
+        if (p.right) fd.append("photo_right", p.right);
         const id = await saveSpinPhotos(fd);
         router.push(`/generate?spin=${id}`);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong");
       }
     });
+  }
+
+  function onGenerateClick() {
+    if (!user) {
+      // Sunk-cost gate: stash the draft (URL strings survive the redirect),
+      // then ask for sign-in. On return, the effect above auto-continues.
+      try {
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ title, photos: currentPhotoUrls() }));
+      } catch { /* storage full/blocked — sign-in still works, they re-upload */ }
+      setAuthModal(true);
+      return;
+    }
+    submitDraft(title);
   }
 
   const blockReason: string | null =
@@ -155,7 +203,7 @@ export function OnboardingWizard({
         )}
 
         <div className="mt-10 flex flex-wrap items-center gap-3">
-          <Button disabled={!canGenerate || isPending} onClick={submit} className="h-11 px-8">
+          <Button disabled={!canGenerate || isPending} onClick={onGenerateClick} className="h-11 px-8">
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {isEdit ? "Save & continue" : "Generate my spin"}
           </Button>
@@ -169,6 +217,43 @@ export function OnboardingWizard({
           )}
         </div>
       </div>
+
+      {authModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-fw-black/50 p-4"
+          onClick={() => setAuthModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="auth-modal-title"
+        >
+          <div
+            className="w-full max-w-md rounded-3xl bg-white p-8 text-center shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setAuthModal(false)}
+              className="float-right -mr-3 -mt-3 flex h-8 w-8 items-center justify-center rounded-full text-fw-lightGray hover:bg-fw-disabled hover:text-fw-text"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-fw-purpleSoft">
+              <Sparkles className="h-6 w-6 text-fw-black" />
+            </div>
+            <h2 id="auth-modal-title" className="mt-4 font-display text-[24px] font-bold text-fw-text">
+              Your spin is ready to build.
+            </h2>
+            <p className="mt-2 text-[14px] leading-[22px] text-fw-darkGray">
+              Create a free account to generate it, keep it in your Studio, and embed it on
+              your store. Your photos are saved — you won't lose anything.
+            </p>
+            <div className="mt-6 flex justify-center">
+              <SignInButton label="Continue with Google" callbackUrl="/onboarding" variant="default" />
+            </div>
+            <p className="mt-4 text-[12px] text-fw-lightGray">Free while in beta. No credit card.</p>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

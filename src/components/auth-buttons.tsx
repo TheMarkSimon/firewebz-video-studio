@@ -6,12 +6,20 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, LogOut } from "lucide-react";
 
-export function SignInButton({ label = "Sign in" }: { label?: string }) {
+export function SignInButton({
+  label = "Sign in",
+  callbackUrl = "/studio",
+  variant = "outline",
+}: {
+  label?: string;
+  callbackUrl?: string;
+  variant?: "outline" | "default";
+}) {
   return (
     <Button
-      variant="outline"
+      variant={variant}
       className="h-10 px-5 text-[14px]"
-      onClick={() => signIn("google", { callbackUrl: "/studio" })}
+      onClick={() => signIn("google", { callbackUrl })}
     >
       {label}
     </Button>
