@@ -17,6 +17,46 @@ multi-image, `camera_fixed`, ~$0.5/run) → ffmpeg slices the MP4 into 60 JPEG
 frames → canvas "flipbook" scrubber renders the drag interaction (video
 scrubbing was too laggy; frames are instant on every device).
 
+## Business context (read before making product decisions)
+
+**Problem.** Interactive 360° product views measurably lift e-commerce
+conversion and cut returns (shoppers who "handle" a product buy it and keep
+it), but they've required a 360° photography rig or 3D artists — out of reach
+for SMB merchants. Spinr's bet: AI video generation collapses that cost to
+~$0.50 and three minutes, using photos merchants already have.
+
+**Customer.** Shopify SMB merchants (initial wedge: apparel/footwear, but the
+product is deliberately category-agnostic). They are non-technical; they
+admire minimal, modern, trustworthy design (Ramp/Notion/Lemonade). They
+already have catalog photos — copy and UX must never assign them photography
+homework.
+
+**Value proposition.** "The shortest path from a product photo to more
+sales." One-line embed, no app install, no theme edits, no 3D anything.
+
+**Unit economics (current).** COGS ≈ $0.50/spin (Seedance) + pennies for bg
+removal; generated once, cached forever (embeds are free to serve). Free
+during beta; a Pro tier (bulk catalog conversion, Shopify integration, team
+workspace, priority rendering) is the planned monetization — pricing TBD by
+the founder. Payments will be Stripe (decided).
+
+**Stage & strategy.** Pre-revenue validation. The operating philosophy is
+test-before-invest: prove value with a handful of real merchants before
+building more surface area. The founder is a fraud-prevention PM by day and
+applies PM discipline — expect him to ask "what does this teach us / does a
+merchant care?" before approving scope. Current validation priorities:
+(1) generate spins across ~5 product categories to find where quality holds,
+(2) get the widget onto a real Shopify dev store, (3) 3–5 merchant
+conversations with the live demo. Model-swapping and infra work are explicitly
+NOT priorities until real merchant feedback demands them.
+
+**History (why the product looks like this).** v1 was AI social-media videos
+(Runway) — output quality killed it. v2 pivoted to 3D mesh generation
+(Hunyuan/Rodin .glb + model-viewer) — the "video game look" killed it. v3 is
+the current image-to-video spin approach, which won because video models are
+photoreal where 3D reconstruction is not. Multi-image (Seedance) beat
+single-image (Kling) because real back/side photos beat hallucinated ones.
+
 ## Where everything lives (cloud sources of truth)
 
 | Thing | Where | Notes |
