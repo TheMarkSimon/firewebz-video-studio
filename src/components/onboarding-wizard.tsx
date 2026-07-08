@@ -60,6 +60,10 @@ export function OnboardingWizard({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [authModal, setAuthModal] = useState(false);
+  // True while the post-OAuth auto-continue is saving the restored draft —
+  // renders a "you're signed in, building your spin" overlay so the return
+  // from Google never reads as a silent no-op.
+  const [resuming, setResuming] = useState(false);
   const resumedRef = useRef(false);
   const isEdit = Boolean(spinId);
 
@@ -78,8 +82,12 @@ export function OnboardingWizard({
         setPhotos(buildInitial(draft.photos));
         if (draft.title) setTitle(draft.title);
         if (user) {
-          // Auto-continue: save the spin and move to the generate page.
-          submitDraft(draft.title ?? "", draft.photos);
+          // Auto-continue: the user clicked "Generate my spin", authed, and
+          // came back — carry that intent all the way through. Save the spin
+          // and land on /generate with the generation ALREADY starting
+          // (autostart), never on a screen that asks them to click again.
+          setResuming(true);
+          submitDraft(draft.title ?? "", draft.photos, { autostart: true });
         }
       }
     } catch {
@@ -107,7 +115,11 @@ export function OnboardingWizard({
     return { front: get("front"), back: get("back"), left: get("left"), right: get("right") };
   }
 
-  function submitDraft(draftTitle: string, draftPhotos?: InitialPhotos) {
+  function submitDraft(
+    draftTitle: string,
+    draftPhotos?: InitialPhotos,
+    opts: { autostart?: boolean } = {},
+  ) {
     const p = draftPhotos ?? currentPhotoUrls();
     setError(null);
     startTransition(async () => {
@@ -120,8 +132,9 @@ export function OnboardingWizard({
         if (p.left) fd.append("photo_left", p.left);
         if (p.right) fd.append("photo_right", p.right);
         const id = await saveSpinPhotos(fd);
-        router.push(`/generate?spin=${id}`);
+        router.push(`/generate?spin=${id}${opts.autostart ? "&autostart=1" : ""}`);
       } catch (e) {
+        setResuming(false);
         setError(e instanceof Error ? e.message : "Something went wrong");
       }
     });
@@ -137,7 +150,9 @@ export function OnboardingWizard({
       setAuthModal(true);
       return;
     }
-    submitDraft(title);
+    // "Generate my spin" IS the intent — start generating on arrival. Edit
+    // mode keeps the preview step ("Save & continue" ≠ "spend $ regenerating").
+    submitDraft(title, undefined, { autostart: !isEdit });
   }
 
   const blockReason: string | null =
@@ -217,6 +232,20 @@ export function OnboardingWizard({
           )}
         </div>
       </div>
+
+      {resuming && !error && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/85 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 px-6 text-center">
+            <Loader2 className="h-7 w-7 animate-spin text-fw-text" />
+            <p className="text-[17px] font-semibold text-fw-text">
+              You&apos;re signed in — building your spin now.
+            </p>
+            <p className="text-[13px] text-fw-darkGray">
+              Your photos were saved. Taking you to the progress page…
+            </p>
+          </div>
+        </div>
+      )}
 
       {authModal && (
         <div

@@ -35,10 +35,12 @@ export function GenerateClient({
   spinId,
   photos,
   initial,
+  autoStart = false,
 }: {
   spinId: string;
   photos: SessionPhotos;
   initial: SpinStatusPayload;
+  autoStart?: boolean;
 }) {
   // The payload IS the state machine: draft → preview, generating → progress
   // (poll until terminal), ready/failed → result. A ready row renders
@@ -47,6 +49,14 @@ export function GenerateClient({
   const [payload, setPayload] = useState<SpinStatusPayload>(initial);
   const [isPending, startTransition] = useTransition();
   const [startError, setStartError] = useState<string | null>(null);
+  // Action continuity from onboarding: the user already clicked "Generate my
+  // spin" there, so start immediately — no preview, no second click. Shows
+  // the progress screen from the very first frame.
+  const [autoStarting, setAutoStarting] = useState(autoStart && initial.status === "draft");
+  useEffect(() => {
+    if (autoStarting) generate(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Poll while a generation is in flight. Sequential setTimeout chain (not
   // setInterval): a poll that lands right at completion runs frame
@@ -81,6 +91,8 @@ export function GenerateClient({
         setPayload(await startSpinGeneration(spinId, { force }));
       } catch (e) {
         setStartError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setAutoStarting(false);
       }
     });
   }
@@ -97,7 +109,8 @@ export function GenerateClient({
 
   // isPending covers the submit round-trip (and the whole run for the sync
   // Kling fallback) so the progress screen shows before the row flips.
-  const showGenerating = payload.status === "generating" || (isPending && !startError);
+  const showGenerating =
+    payload.status === "generating" || ((isPending || autoStarting) && !startError);
   const showResult = !showGenerating && (payload.status === "ready" || payload.status === "failed");
 
   return (

@@ -60,6 +60,13 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
     emailNotify: spin.status === "generating" ? Boolean(process.env.RESEND_API_KEY) : undefined,
   };
 
+  // autostart=1 (set by the onboarding wizard when the user clicked
+  // "Generate my spin") skips the preview's second click and starts the
+  // generation on arrival. Only meaningful on a draft — a ready/generating/
+  // failed row renders its own state, so a stale/replayed URL can't trigger
+  // a paid run (startSpinGeneration is cache-first on top of that).
+  const autoStart = sp.autostart === "1" && spin.status === "draft";
+
   return (
     <AppShell user={user}>
       <GenerateClient
@@ -71,6 +78,7 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
           right: spin.photoRightUrl,
         }}
         initial={initial}
+        autoStart={autoStart}
       />
     </AppShell>
   );
