@@ -4,6 +4,8 @@ import { GenerateClient } from "@/components/generate-client";
 import { SignInButton } from "@/components/auth-buttons";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getSpinVideoProvider } from "@/lib/providers/spinvideo";
+import type { SpinStatusPayload } from "@/lib/actions/spinvideo";
 
 export const dynamic = "force-dynamic";
 
@@ -42,14 +44,21 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
     );
   }
 
-  const cached = spin.status === "ready" && spin.videoUrl
-    ? {
-        videoUrl: spin.videoUrl,
-        frameUrls: (spin.frameUrls as string[] | null) ?? undefined,
-        modelUsed: spin.modelUsed ?? undefined,
-        durationMs: spin.durationMs ?? undefined,
-      }
-    : null;
+  // Snapshot of the row's generation state. A reopened tab mid-generation
+  // (or the emailed link) resumes exactly where the spin is: "generating"
+  // starts the client polling, "ready" renders instantly and free.
+  const initial: SpinStatusPayload = {
+    status: (spin.status as SpinStatusPayload["status"]) ?? "draft",
+    videoUrl: spin.videoUrl ?? undefined,
+    frameUrls: (spin.frameUrls as string[] | null) ?? undefined,
+    modelUsed: spin.modelUsed ?? undefined,
+    durationMs: spin.durationMs ?? undefined,
+    errorMessage: spin.errorMessage ?? undefined,
+    startedAtMs: spin.generateStartedAt?.getTime(),
+    provider: getSpinVideoProvider().name,
+    cached: spin.status === "ready" ? true : undefined,
+    emailNotify: spin.status === "generating" ? Boolean(process.env.RESEND_API_KEY) : undefined,
+  };
 
   return (
     <AppShell user={user}>
@@ -61,7 +70,7 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
           left: spin.photoLeftUrl,
           right: spin.photoRightUrl,
         }}
-        cachedResult={cached}
+        initial={initial}
       />
     </AppShell>
   );

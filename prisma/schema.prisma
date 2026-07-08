@@ -31,6 +31,10 @@ model Spin {
   photoBackUrl  String?
   photoLeftUrl  String?
   photoRightUrl String?
+  // Async generation (Phase 3): fal queue request id the webhook/poll
+  // reconciles against, and when the job was submitted.
+  falRequestId      String?
+  generateStartedAt DateTime?
   // Generation result
   videoUrl      String?
   frameUrls     Json?
@@ -41,4 +45,5 @@ model Spin {
   updatedAt     DateTime @updatedAt
 
   @@index([userId, createdAt(sort: Desc)])
+  @@index([falRequestId])
 }

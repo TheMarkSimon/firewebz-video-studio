@@ -1,8 +1,12 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { generateSpinVideo, type SpinVideoGenerationResult } from "@/lib/actions/spinvideo";
+import {
+  startSpinGeneration,
+  getSpinGenerationStatus,
+  type SpinStatusPayload,
+} from "@/lib/actions/spinvideo";
 import { SpinScrubber } from "@/components/spin-scrubber";
 import {
   Loader2,
@@ -15,14 +19,8 @@ import {
   CheckCircle,
   Copy,
   ExternalLink,
+  Mail,
 } from "lucide-react";
-
-export interface CachedResult {
-  videoUrl?: string;
-  frameUrls?: string[];
-  modelUsed?: string;
-  durationMs?: number;
-}
 
 export type SessionPhotos = {
   front: string | null;
@@ -31,54 +29,58 @@ export type SessionPhotos = {
   right: string | null;
 };
 
+const POLL_MS = 5000;
+
 export function GenerateClient({
   spinId,
   photos,
-  cachedResult,
+  initial,
 }: {
   spinId: string;
   photos: SessionPhotos;
-  cachedResult: CachedResult | null;
+  initial: SpinStatusPayload;
 }) {
-  // If the session already has a cached spin, jump straight to the result
-  // phase — no click, no cost, no wait. This is what makes reopening the
-  // page (or sharing the link) instant and free.
-  const initialResult: SpinVideoGenerationResult | null = cachedResult?.videoUrl
-    ? {
-        status: "completed",
-        videoUrl: cachedResult.videoUrl,
-        frameUrls: cachedResult.frameUrls,
-        modelUsed: cachedResult.modelUsed,
-        durationMs: cachedResult.durationMs,
-        cached: true,
-        diagnostics: {
-          provider: "fal-seedance-v1-lite-ref",
-          modelUsed: cachedResult.modelUsed,
-          durationMs: cachedResult.durationMs,
-          frontPhotoPresent: true,
-          cached: true,
-        },
-      }
-    : null;
-
-  const [phase, setPhase] = useState<"preview" | "generating" | "result">(
-    initialResult ? "result" : "preview",
-  );
-  const [result, setResult] = useState<SpinVideoGenerationResult | null>(initialResult);
+  // The payload IS the state machine: draft → preview, generating → progress
+  // (poll until terminal), ready/failed → result. A ready row renders
+  // instantly with no click, no cost, no wait — that's what makes reopening
+  // the page (or the emailed link) free forever.
+  const [payload, setPayload] = useState<SpinStatusPayload>(initial);
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [startError, setStartError] = useState<string | null>(null);
+
+  // Poll while a generation is in flight. Sequential setTimeout chain (not
+  // setInterval): a poll that lands right at completion runs frame
+  // extraction server-side and can take ~30s — never overlap calls.
+  useEffect(() => {
+    if (payload.status !== "generating") return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      try {
+        const next = await getSpinGenerationStatus(spinId);
+        if (cancelled) return;
+        setPayload(next);
+        if (next.status === "generating") timer = setTimeout(tick, POLL_MS);
+      } catch {
+        // Transient — keep polling.
+        if (!cancelled) timer = setTimeout(tick, POLL_MS * 2);
+      }
+    };
+    timer = setTimeout(tick, POLL_MS);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload.status, spinId]);
 
   function generate(force = false) {
-    setError(null);
-    setPhase("generating");
+    setStartError(null);
     startTransition(async () => {
       try {
-        const res = await generateSpinVideo(spinId, { force });
-        setResult(res);
-        setPhase("result");
+        setPayload(await startSpinGeneration(spinId, { force }));
       } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        setPhase("preview");
+        setStartError(e instanceof Error ? e.message : String(e));
       }
     });
   }
@@ -93,23 +95,33 @@ export function GenerateClient({
     right: proxied(photos.right),
   };
 
+  // isPending covers the submit round-trip (and the whole run for the sync
+  // Kling fallback) so the progress screen shows before the row flips.
+  const showGenerating = payload.status === "generating" || (isPending && !startError);
+  const showResult = !showGenerating && (payload.status === "ready" || payload.status === "failed");
+
   return (
     <div className="mx-auto max-w-5xl px-4 pt-4 lg:pt-6">
-      {phase === "preview" && (
+      {!showGenerating && !showResult && (
         <PreviewPhase
           spinId={spinId}
           photos={proxiedPhotos}
           onGenerate={() => generate(false)}
           isPending={isPending}
-          error={error}
+          error={startError}
         />
       )}
-      {phase === "generating" && <GeneratingPhase />}
-      {phase === "result" && result && (
+      {showGenerating && (
+        <GeneratingPhase
+          startedAtMs={payload.status === "generating" ? payload.startedAtMs : undefined}
+          emailNotify={payload.emailNotify}
+        />
+      )}
+      {showResult && (
         <ResultPhase
           spinId={spinId}
           photos={proxiedPhotos}
-          result={result}
+          payload={payload}
           onRegenerate={() => generate(true)}
           isPending={isPending}
         />
@@ -176,16 +188,24 @@ function PreviewPhase({
   );
 }
 
-function GeneratingPhase() {
-  // The server action is one long await, so progress is time-driven on the
-  // client: an asymptotic curve that always advances and never stalls,
-  // capped at 97% until the real result flips the phase. Tuned so a typical
-  // 2-3 minute generation reads ~60% at 75s and ~90% around 3 minutes.
+function GeneratingPhase({
+  startedAtMs,
+  emailNotify,
+}: {
+  startedAtMs?: number;
+  emailNotify?: boolean;
+}) {
+  // Generation runs server-side (fal queue), so progress is time-driven on
+  // the client: an asymptotic curve that always advances and never stalls,
+  // capped at 97% until the poll flips the status. Anchored to the real
+  // submit time so a reopened tab resumes mid-bar instead of restarting at 0.
+  const anchorRef = useRef<number>(startedAtMs ?? Date.now());
+  if (startedAtMs && anchorRef.current !== startedAtMs) anchorRef.current = startedAtMs;
+
   const [progress, setProgress] = useState(0);
   useEffect(() => {
-    const started = Date.now();
     const id = setInterval(() => {
-      const t = (Date.now() - started) / 1000;
+      const t = Math.max(0, (Date.now() - anchorRef.current) / 1000);
       setProgress(Math.min(97, 97 * (1 - Math.exp(-t / 75))));
     }, 150);
     return () => clearInterval(id);
@@ -211,24 +231,31 @@ function GeneratingPhase() {
           />
         </div>
         <p className="mt-3 text-[13px] text-fw-darkGray">{stage}</p>
-        <p className="mt-1 text-[12px] text-fw-lightGray">Usually 2–3 minutes. Keep this tab open.</p>
+        {emailNotify ? (
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-fw-disabled px-4 py-2 text-[12px] text-fw-darkGray">
+            <Mail className="h-3.5 w-3.5" />
+            Feel free to close this tab — we&apos;ll email you when it&apos;s ready.
+          </p>
+        ) : (
+          <p className="mt-1 text-[12px] text-fw-lightGray">Usually 2–3 minutes. Keep this tab open.</p>
+        )}
       </div>
     </div>
   );
 }
 
 function ResultPhase({
-  spinId, photos, result, onRegenerate, isPending,
+  spinId, photos, payload, onRegenerate, isPending,
 }: {
   spinId: string;
   photos: SessionPhotos;
-  result: SpinVideoGenerationResult;
+  payload: SpinStatusPayload;
   onRegenerate: () => void;
   isPending: boolean;
 }) {
-  const succeeded = result.status === "completed" && !!result.videoUrl;
-  const proxiedVideo = result.videoUrl ? `/api/proxy?url=${encodeURIComponent(result.videoUrl)}` : undefined;
-  const proxiedFrames = result.frameUrls?.map((u) => `/api/proxy?url=${encodeURIComponent(u)}`);
+  const succeeded = payload.status === "ready" && !!payload.videoUrl;
+  const proxiedVideo = payload.videoUrl ? `/api/proxy?url=${encodeURIComponent(payload.videoUrl)}` : undefined;
+  const proxiedFrames = payload.frameUrls?.map((u) => `/api/proxy?url=${encodeURIComponent(u)}`);
 
   return (
     <div>
@@ -249,7 +276,7 @@ function ResultPhase({
           </Button>
           <Button variant="outline" onClick={onRegenerate} disabled={isPending} className="h-10 px-5 text-[13px]">
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCw className="h-4 w-4" />}
-            Regenerate
+            {succeeded ? "Regenerate" : "Try again"}
           </Button>
         </div>
       </div>
@@ -277,7 +304,7 @@ function ResultPhase({
               <AlertCircle className="h-8 w-8 text-destructive" />
               <p className="mt-3 text-[14px] font-semibold text-fw-text">Generation failed</p>
               <p className="mt-1 max-w-md text-[12px] text-fw-darkGray">
-                {result.errorMessage ?? "The video provider didn't return an MP4. See diagnostics below."}
+                {payload.errorMessage ?? "The video provider didn't return an MP4. See diagnostics below."}
               </p>
             </div>
           )}
@@ -291,7 +318,7 @@ function ResultPhase({
 
       {succeeded && <NextStepsCard spinId={spinId} />}
 
-      <DiagnosticsPanel result={result} />
+      <DiagnosticsPanel payload={payload} />
     </div>
   );
 }
@@ -404,11 +431,10 @@ function Step({ n, children }: { n: number; children: React.ReactNode }) {
   );
 }
 
-function DiagnosticsPanel({ result }: { result: SpinVideoGenerationResult }) {
+function DiagnosticsPanel({ payload }: { payload: SpinStatusPayload }) {
   const [open, setOpen] = useState(false);
-  const d = result.diagnostics;
   const fmtMs = (ms?: number) => (ms == null ? "—" : ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
-  const ok: "ok" | "fail" = result.status === "completed" ? "ok" : "fail";
+  const ok: "ok" | "fail" = payload.status === "ready" ? "ok" : "fail";
 
   return (
     <div className="mt-8 rounded-2xl border border-fw-border bg-fw-disabled/50">
@@ -425,22 +451,21 @@ function DiagnosticsPanel({ result }: { result: SpinVideoGenerationResult }) {
       </button>
       {open && (
         <div className="space-y-3 border-t border-fw-border px-5 py-4 text-[12px] text-fw-text">
-          <DiagRow label="Provider" value={d.provider} ok="ok" />
-          {d.modelUsed && <DiagRow label="Model" value={d.modelUsed} ok="ok" />}
-          <DiagRow label="Duration" value={fmtMs(d.durationMs)} ok="ok" />
-          <DiagRow label="Cached" value={d.cached ? "✓ served from cache (free)" : "fresh generation"} ok="ok" />
-          <DiagRow label="Front photo" value={d.frontPhotoPresent ? "✓ provided" : "— missing"} ok={d.frontPhotoPresent ? "ok" : "fail"} />
-          <DiagRow label="Status" value={result.status.toUpperCase()} ok={ok} />
-          {result.videoUrl && (
+          <DiagRow label="Provider" value={payload.provider} ok="ok" />
+          {payload.modelUsed && <DiagRow label="Model" value={payload.modelUsed} ok="ok" />}
+          <DiagRow label="Duration" value={fmtMs(payload.durationMs)} ok="ok" />
+          <DiagRow label="Cached" value={payload.cached ? "✓ served from cache (free)" : "fresh generation"} ok="ok" />
+          <DiagRow label="Status" value={payload.status.toUpperCase()} ok={ok} />
+          {payload.videoUrl && (
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fw-darkGray">Video URL</div>
-              <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-3 text-[11px] leading-relaxed break-all">{result.videoUrl}</pre>
+              <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg bg-white p-3 text-[11px] leading-relaxed break-all">{payload.videoUrl}</pre>
             </div>
           )}
-          {result.errorMessage && (
+          {payload.errorMessage && (
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fw-darkGray">Error</div>
-              <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-destructive/10 p-3 text-[11px] leading-relaxed text-destructive">{result.errorMessage}</pre>
+              <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-destructive/10 p-3 text-[11px] leading-relaxed text-destructive">{payload.errorMessage}</pre>
             </div>
           )}
         </div>

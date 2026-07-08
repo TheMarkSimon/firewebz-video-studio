@@ -11,8 +11,18 @@
 //            aspect_ratio, camera_fixed, seed, enable_safety_checker }
 // Note: only the LITE tier has reference-to-video; there is no pro variant
 // and no "Seedance 2.0" on fal despite what other tools may claim.
+//
+// Two execution modes:
+//   generate()          — blocking fal.subscribe (legacy sync path, kept for
+//                         providers/local flows without queue support).
+//   submit()/fetchQueueResult() — fal queue + webhook (Phase 3 async path).
 
-import type { SpinVideoInput, SpinVideoProvider, SpinVideoResult } from "./types";
+import type {
+  SpinVideoInput,
+  SpinVideoProvider,
+  SpinVideoResult,
+  SpinVideoSubmission,
+} from "./types";
 import { extractFramesFromVideo } from "./extract-frames";
 
 const MODEL_ID = "fal-ai/bytedance/seedance/v1/lite/reference-to-video";
@@ -43,45 +53,79 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([Buffer.from(m[2], "base64")], { type: m[1] });
 }
 
+function getKey(): string | undefined {
+  return process.env.FAL_KEY ?? process.env.FAL_API_TOKEN;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getFal(key: string): Promise<any> {
+  const { fal } = await import("@fal-ai/client");
+  fal.config({ credentials: key });
+  return fal;
+}
+
+// Upload any data-URL photos to fal storage; pass URLs through. Front first,
+// then the extra angles in the order given — the prompt tells the model to
+// rotate through them in order.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function buildReferenceUrls(fal: any, input: SpinVideoInput): Promise<string[]> {
+  const toUrl = async (u: string) =>
+    u.startsWith("data:") ? fal.storage.upload(dataUrlToBlob(u)) : u;
+  return Promise.all([input.imageUrl, ...(input.extraImageUrls ?? [])].map(toUrl));
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildPayload(referenceImageUrls: string[], input: SpinVideoInput): any {
+  return {
+    prompt: PROMPT,
+    reference_image_urls: referenceImageUrls,
+    duration: String(input.durationSeconds ?? 10),
+    resolution: "720p",
+    aspect_ratio: "16:9",
+    camera_fixed: true,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseVideoUrl(result: any): string | undefined {
+  const data = result?.data ?? result;
+  return (
+    data?.video?.url ??
+    (typeof data?.video === "string" ? data.video : undefined) ??
+    data?.url
+  );
+}
+
+function describeError(err: unknown): string {
+  const e = err as { message?: string; status?: number; body?: unknown };
+  const status = e?.status ?? "";
+  const msg = e?.message ?? String(err);
+  let body = "";
+  if (e?.body != null) {
+    try { body = ` | body: ${JSON.stringify(e.body).slice(0, 200)}`; }
+    catch { body = ` | body: ${String(e.body).slice(0, 200)}`; }
+  }
+  return `${status ? `[${status}] ` : ""}${msg}${body}`.slice(0, 500);
+}
+
 export const falSeedance: SpinVideoProvider = {
   name: "fal-seedance-v1-lite-ref",
-  isConfigured: () => Boolean(process.env.FAL_KEY ?? process.env.FAL_API_TOKEN),
+  isConfigured: () => Boolean(getKey()),
+
   async generate(input: SpinVideoInput): Promise<SpinVideoResult> {
-    const key = process.env.FAL_KEY ?? process.env.FAL_API_TOKEN;
+    const key = getKey();
     if (!key) return { status: "failed", errorMessage: "FAL_KEY is not set" };
     if (!input.imageUrl) return { status: "failed", errorMessage: "imageUrl is required" };
 
     const started = Date.now();
     try {
-      const { fal } = await import("@fal-ai/client");
-      fal.config({ credentials: key });
+      const fal = await getFal(key);
+      const referenceImageUrls = await buildReferenceUrls(fal, input);
+      const payload = buildPayload(referenceImageUrls, input);
 
-      const toUrl = async (u: string) =>
-        u.startsWith("data:") ? fal.storage.upload(dataUrlToBlob(u)) : u;
-
-      // Front first, then the extra angles in the order given — the prompt
-      // tells the model to rotate through them in order.
-      const referenceImageUrls = await Promise.all(
-        [input.imageUrl, ...(input.extraImageUrls ?? [])].map(toUrl),
-      );
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const payload: any = {
-        prompt: PROMPT,
-        reference_image_urls: referenceImageUrls,
-        duration: String(input.durationSeconds ?? 10),
-        resolution: "720p",
-        aspect_ratio: "16:9",
-        camera_fixed: true,
-      };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result: any = await fal.subscribe(MODEL_ID, { input: payload, logs: false });
-
-      const data = result?.data ?? result;
-      const videoUrl: string | undefined =
-        data?.video?.url ??
-        (typeof data?.video === "string" ? data.video : undefined) ??
-        data?.url;
+      const videoUrl = parseVideoUrl(result);
 
       if (!videoUrl) {
         return {
@@ -111,20 +155,115 @@ export const falSeedance: SpinVideoProvider = {
         },
       };
     } catch (err) {
-      const e = err as { message?: string; status?: number; body?: unknown };
-      const status = e?.status ?? "";
-      const msg = e?.message ?? String(err);
-      let body = "";
-      if (e?.body != null) {
-        try { body = ` | body: ${JSON.stringify(e.body).slice(0, 200)}`; }
-        catch { body = ` | body: ${String(e.body).slice(0, 200)}`; }
-      }
       return {
         status: "failed",
         modelUsed: MODEL_ID,
-        errorMessage: `${status ? `[${status}] ` : ""}${msg}${body}`.slice(0, 500),
+        errorMessage: describeError(err),
         durationMs: Date.now() - started,
       };
     }
+  },
+
+  // Enqueue the generation and return immediately. fal calls webhookUrl when
+  // the job finishes; getSpinGenerationStatus also reconciles by polling, so
+  // localhost (unreachable by webhooks) still completes.
+  async submit(input: SpinVideoInput, opts?: { webhookUrl?: string }): Promise<SpinVideoSubmission> {
+    const key = getKey();
+    if (!key) return { errorMessage: "FAL_KEY is not set" };
+    if (!input.imageUrl) return { errorMessage: "imageUrl is required" };
+
+    try {
+      const fal = await getFal(key);
+      const referenceImageUrls = await buildReferenceUrls(fal, input);
+      const payload = buildPayload(referenceImageUrls, input);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const submitted: any = await fal.queue.submit(MODEL_ID, {
+        input: payload,
+        ...(opts?.webhookUrl ? { webhookUrl: opts.webhookUrl } : {}),
+      });
+      const requestId: string | undefined = submitted?.request_id ?? submitted?.requestId;
+      if (!requestId) {
+        return { errorMessage: `No request_id in submit response: ${JSON.stringify(submitted).slice(0, 300)}` };
+      }
+      return { requestId };
+    } catch (err) {
+      return { errorMessage: describeError(err) };
+    }
+  },
+
+  // null → still running. Terminal results only when fal says so; transient
+  // errors are rethrown so the caller retries on the next poll/webhook.
+  async fetchQueueResult(requestId: string): Promise<SpinVideoResult | null> {
+    const key = getKey();
+    if (!key) return { status: "failed", errorMessage: "FAL_KEY is not set" };
+
+    const started = Date.now();
+    const fal = await getFal(key);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let queueStatus: any;
+    try {
+      queueStatus = await fal.queue.status(MODEL_ID, { requestId, logs: false });
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      // Unknown/expired request id is terminal — nothing will ever arrive.
+      if (status === 404) {
+        return {
+          status: "failed",
+          modelUsed: MODEL_ID,
+          errorMessage: `fal queue request ${requestId} not found (expired or invalid).`,
+        };
+      }
+      throw err;
+    }
+
+    const state: string = queueStatus?.status ?? "";
+    if (state === "IN_QUEUE" || state === "IN_PROGRESS") return null;
+
+    // COMPLETED covers both success and failure — the result call surfaces
+    // generation errors as an ApiError (422 etc.), which IS terminal.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let result: any;
+    try {
+      result = await fal.queue.result(MODEL_ID, { requestId });
+    } catch (err) {
+      return {
+        status: "failed",
+        modelUsed: MODEL_ID,
+        providerJobId: requestId,
+        errorMessage: describeError(err),
+        durationMs: Date.now() - started,
+      };
+    }
+
+    const videoUrl = parseVideoUrl(result);
+    if (!videoUrl) {
+      return {
+        status: "failed",
+        modelUsed: MODEL_ID,
+        providerJobId: requestId,
+        errorMessage: `No video URL in queue result: ${JSON.stringify(result).slice(0, 400)}`,
+        durationMs: Date.now() - started,
+      };
+    }
+
+    // Frame extraction failure is non-fatal — client falls back to <video>.
+    const frames = await extractFramesFromVideo(videoUrl, key);
+
+    return {
+      status: "completed",
+      videoUrl,
+      frameUrls: frames?.frameUrls,
+      modelUsed: MODEL_ID,
+      providerJobId: requestId,
+      durationMs: Date.now() - started,
+      rawInput: {
+        model: MODEL_ID,
+        cameraFixed: true,
+        resolution: "720p",
+        frameCount: frames?.frameCount ?? 0,
+      },
+    };
   },
 };
