@@ -4,6 +4,7 @@ import "./globals.css";
 // Site-wide metadata defaults. Individual pages override title/description
 // via their own `export const metadata` blocks.
 export const metadata: Metadata = {
+  metadataBase: new URL("https://thespinr.com"),
   title: {
     default: "Spinr — 360° product spins from one photo",
     template: "%s · Spinr",

@@ -13,6 +13,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/generate", "/embed/", "/api/"],
       },
     ],
-    sitemap: "https://firewebz-video-studio.vercel.app/sitemap.xml",
+    sitemap: "https://thespinr.com/sitemap.xml",
   };
 }
