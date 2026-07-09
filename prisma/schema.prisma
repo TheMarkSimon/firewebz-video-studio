@@ -35,6 +35,14 @@ model ShopifyConnection {
   // (pre-launch checklist).
   accessToken String
   scope       String
+  // Shopify Billing (Phase 5): the merchant's app subscription, if any.
+  // status: PENDING | ACTIVE | CANCELLED | ... (Shopify's AppSubscription
+  // status). subscriptionTest marks test charges (dev stores / beta).
+  subscriptionGid       String?
+  subscriptionStatus    String?
+  subscriptionName      String?
+  subscriptionTest      Boolean  @default(true)
+  subscriptionUpdatedAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

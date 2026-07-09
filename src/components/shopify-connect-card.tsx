@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { disconnectShopify } from "@/lib/actions/shopify";
+import {
+  disconnectShopify,
+  startShopifySubscription,
+  cancelShopifySubscription,
+} from "@/lib/actions/shopify";
 import { Store, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -22,10 +26,14 @@ export function ShopifyConnectCard({
   connection,
   notice,
   reason,
+  billing,
+  billingNotice,
 }: {
   connection: { shop: string; shopName: string | null } | null;
   notice: string | null; // "connected" | "error" | null, from the OAuth redirect
   reason: string | null;
+  billing: { status: string | null; test: boolean; priceUsd: string } | null;
+  billingNotice: string | null; // "active" | "incomplete" | "error" | null
 }) {
   const [isPending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState(false);
@@ -35,7 +43,13 @@ export function ShopifyConnectCard({
       ? { kind: "ok" as const, text: "Shopify store connected. Browse your products to create spins from the photos already on them." }
       : notice === "error"
         ? { kind: "err" as const, text: ERROR_MESSAGES[reason ?? ""] ?? "Something went wrong connecting Shopify." }
-        : null;
+        : billingNotice === "active"
+          ? { kind: "ok" as const, text: "Spinr Pro is active — billed through your Shopify account. Nothing else to set up." }
+          : billingNotice === "incomplete"
+            ? { kind: "err" as const, text: "The subscription wasn't completed on Shopify. You can upgrade again any time." }
+            : billingNotice === "error"
+              ? { kind: "err" as const, text: "Couldn't confirm the subscription with Shopify — reload to retry." }
+              : null;
 
   function onDisconnect() {
     if (!connection) return;
@@ -110,6 +124,73 @@ export function ShopifyConnectCard({
           </form>
         )}
       </div>
+
+      {connection && billing && <PlanRow billing={billing} />}
+    </div>
+  );
+}
+
+// Free ↔ Pro, billed through Shopify (Billing API): upgrade sends the
+// merchant to Shopify's confirmation screen; cancel is immediate.
+function PlanRow({ billing }: { billing: { status: string | null; test: boolean; priceUsd: string } }) {
+  const [isPending, startTransition] = useTransition();
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const active = billing.status === "ACTIVE";
+
+  function upgrade() {
+    setError(null);
+    startTransition(async () => {
+      const res = await startShopifySubscription();
+      if (res.ok) window.location.href = res.confirmationUrl;
+      else setError(res.error);
+    });
+  }
+
+  function cancel() {
+    if (!confirmCancel) {
+      setConfirmCancel(true);
+      setTimeout(() => setConfirmCancel(false), 2500);
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const res = await cancelShopifySubscription();
+      if (!res.ok) setError(res.error ?? "Cancel failed.");
+    });
+  }
+
+  return (
+    <div className="mt-4 border-t border-fw-border pt-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-2 text-[13px] font-bold text-fw-text">
+            {active ? "Spinr Pro" : "Free plan"}
+            {active && billing.test && (
+              <span className="rounded-full bg-fw-disabled px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-fw-darkGray">
+                test mode
+              </span>
+            )}
+          </p>
+          <p className="mt-0.5 text-[12px] text-fw-darkGray">
+            {active
+              ? "Billed through Shopify — it appears on your regular Shopify invoice."
+              : `Upgrade for bulk catalog conversion and priority rendering — $${billing.priceUsd}/mo, billed through Shopify. No card entry.`}
+          </p>
+        </div>
+        {active ? (
+          <Button variant="outline" onClick={cancel} disabled={isPending} className="h-9 px-4 text-[12px]">
+            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {confirmCancel ? "Click again to confirm" : "Cancel plan"}
+          </Button>
+        ) : (
+          <Button onClick={upgrade} disabled={isPending} className="h-9 px-4 text-[12px]">
+            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Upgrade to Pro
+          </Button>
+        )}
+      </div>
+      {error && <p className="mt-2 text-[11px] text-destructive">{error}</p>}
     </div>
   );
 }

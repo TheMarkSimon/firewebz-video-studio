@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
 import { removeBackgroundFromUrl } from "@/lib/actions/remove-bg";
-import { fetchProduct, setSpinMetafield } from "@/lib/shopify";
+import { getAppOrigin } from "@/lib/app-origin";
+import {
+  cancelAppSubscription,
+  createAppSubscription,
+  fetchProduct,
+  setSpinMetafield,
+} from "@/lib/shopify";
 
 // Remove the store connection. Note: this only forgets the token on our
 // side — merchants can also uninstall the app from their Shopify admin,
@@ -14,6 +20,67 @@ export async function disconnectShopify(shop: string): Promise<void> {
   if (!userId) throw new Error("Please sign in.");
   await prisma.shopifyConnection.deleteMany({ where: { shop, userId } });
   revalidatePath("/studio");
+}
+
+// Start a Spinr Pro subscription billed through Shopify. Returns the
+// confirmation URL — the client sends the merchant there to approve; they
+// come back via /api/shopify/billing/callback which records the outcome.
+export async function startShopifySubscription(): Promise<
+  { ok: true; confirmationUrl: string } | { ok: false; error: string }
+> {
+  const userId = await getUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+
+  const connection = await prisma.shopifyConnection.findFirst({ where: { userId } });
+  if (!connection) return { ok: false, error: "No Shopify store connected." };
+  if (connection.subscriptionStatus === "ACTIVE") {
+    return { ok: false, error: "You're already on Spinr Pro." };
+  }
+
+  const origin = getAppOrigin();
+  if (!origin) return { ok: false, error: "Server origin not configured." };
+
+  try {
+    const { confirmationUrl, subscriptionGid } = await createAppSubscription(
+      connection.shop,
+      connection.accessToken,
+      `${origin}/api/shopify/billing/callback`,
+    );
+    await prisma.shopifyConnection.update({
+      where: { id: connection.id },
+      data: {
+        subscriptionGid,
+        subscriptionStatus: "PENDING",
+        subscriptionUpdatedAt: new Date(),
+      },
+    });
+    return { ok: true, confirmationUrl };
+  } catch (err) {
+    console.error("[shopify] subscription create failed:", err);
+    return { ok: false, error: "Couldn't start the subscription — try again." };
+  }
+}
+
+export async function cancelShopifySubscription(): Promise<{ ok: boolean; error?: string }> {
+  const userId = await getUserId();
+  if (!userId) return { ok: false, error: "Please sign in." };
+
+  const connection = await prisma.shopifyConnection.findFirst({ where: { userId } });
+  if (!connection?.subscriptionGid) return { ok: false, error: "No subscription to cancel." };
+
+  try {
+    await cancelAppSubscription(connection.shop, connection.accessToken, connection.subscriptionGid);
+  } catch (err) {
+    console.error("[shopify] subscription cancel failed:", err);
+    return { ok: false, error: "Shopify rejected the cancellation — try again." };
+  }
+
+  await prisma.shopifyConnection.update({
+    where: { id: connection.id },
+    data: { subscriptionStatus: "CANCELLED", subscriptionUpdatedAt: new Date() },
+  });
+  revalidatePath("/studio");
+  return { ok: true };
 }
 
 // Catalog import: turn a Shopify product into a Spin draft. Pulls up to 4

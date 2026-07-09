@@ -7,6 +7,7 @@ import { ShopifyConnectCard } from "@/components/shopify-connect-card";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SignInButton } from "@/components/auth-buttons";
+import { proPriceUsd } from "@/lib/shopify";
 import { Plus } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -73,6 +74,16 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
           }
           notice={typeof sp.shopify === "string" ? sp.shopify : null}
           reason={typeof sp.reason === "string" ? sp.reason : null}
+          billing={
+            shopifyConnection
+              ? {
+                  status: shopifyConnection.subscriptionStatus,
+                  test: shopifyConnection.subscriptionTest,
+                  priceUsd: proPriceUsd(),
+                }
+              : null
+          }
+          billingNotice={typeof sp.billing === "string" ? sp.billing : null}
         />
 
         {spins.length === 0 ? (

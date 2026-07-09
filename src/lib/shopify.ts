@@ -207,6 +207,132 @@ export async function setSpinMetafield(
   }
 }
 
+// --- Billing (app subscriptions) --------------------------------------------
+//
+// Merchants pay THROUGH Shopify: we create an AppSubscription, they approve
+// it on Shopify's confirmation screen, the charge lands on their existing
+// Shopify invoice, and Shopify pays the Partner account out. No card entry,
+// no PCI, and it's mandatory anyway for App Store distribution.
+//
+// Pricing config (env):
+//   SPINR_PRO_PRICE_USD  — monthly price, default "29" (placeholder until
+//                          the founder sets pricing)
+//   SHOPIFY_BILLING_LIVE — set to "1" to create REAL charges. Absent (the
+//                          beta default) every subscription is test:true —
+//                          full flow, no money moves. Dev stores can only
+//                          take test charges regardless.
+
+export const SPINR_PRO_PLAN_NAME = "Spinr Pro";
+
+export function proPriceUsd(): string {
+  return process.env.SPINR_PRO_PRICE_USD ?? "29";
+}
+
+export function billingIsTest(): boolean {
+  return process.env.SHOPIFY_BILLING_LIVE !== "1";
+}
+
+export interface AppSubscriptionInfo {
+  gid: string;
+  name: string;
+  status: string; // PENDING | ACTIVE | CANCELLED | DECLINED | EXPIRED | FROZEN
+  test: boolean;
+}
+
+export async function createAppSubscription(
+  shop: string,
+  accessToken: string,
+  returnUrl: string,
+): Promise<{ confirmationUrl: string; subscriptionGid: string }> {
+  const data = await shopifyGraphQL<{
+    appSubscriptionCreate: {
+      confirmationUrl: string | null;
+      appSubscription: { id: string } | null;
+      userErrors: Array<{ field: string[] | null; message: string }>;
+    };
+  }>(
+    shop,
+    accessToken,
+    `mutation Subscribe($name: String!, $returnUrl: URL!, $test: Boolean!, $lineItems: [AppSubscriptionLineItemInput!]!) {
+      appSubscriptionCreate(name: $name, returnUrl: $returnUrl, test: $test, lineItems: $lineItems) {
+        confirmationUrl
+        appSubscription { id }
+        userErrors { field message }
+      }
+    }`,
+    {
+      name: SPINR_PRO_PLAN_NAME,
+      returnUrl,
+      test: billingIsTest(),
+      lineItems: [
+        {
+          plan: {
+            appRecurringPricingDetails: {
+              price: { amount: proPriceUsd(), currencyCode: "USD" },
+              interval: "EVERY_30_DAYS",
+            },
+          },
+        },
+      ],
+    },
+  );
+  const result = data.appSubscriptionCreate;
+  if (result.userErrors?.length) {
+    throw new Error(`appSubscriptionCreate: ${result.userErrors.map((e) => e.message).join("; ").slice(0, 300)}`);
+  }
+  if (!result.confirmationUrl || !result.appSubscription?.id) {
+    throw new Error("appSubscriptionCreate returned no confirmationUrl");
+  }
+  return { confirmationUrl: result.confirmationUrl, subscriptionGid: result.appSubscription.id };
+}
+
+// The app's currently-active subscription on this store, or null. Source of
+// truth for plan state — we re-read it after the merchant returns from the
+// confirmation screen (and any time we want to reconcile).
+export async function getActiveSubscription(
+  shop: string,
+  accessToken: string,
+): Promise<AppSubscriptionInfo | null> {
+  const data = await shopifyGraphQL<{
+    currentAppInstallation: {
+      activeSubscriptions: Array<{ id: string; name: string; status: string; test: boolean }>;
+    };
+  }>(
+    shop,
+    accessToken,
+    `{ currentAppInstallation { activeSubscriptions { id name status test } } }`,
+  );
+  const sub = data.currentAppInstallation.activeSubscriptions[0];
+  return sub ? { gid: sub.id, name: sub.name, status: sub.status, test: sub.test } : null;
+}
+
+export async function cancelAppSubscription(
+  shop: string,
+  accessToken: string,
+  subscriptionGid: string,
+): Promise<void> {
+  const data = await shopifyGraphQL<{
+    appSubscriptionCancel: {
+      appSubscription: { id: string; status: string } | null;
+      userErrors: Array<{ field: string[] | null; message: string }>;
+    };
+  }>(
+    shop,
+    accessToken,
+    `mutation Cancel($id: ID!) {
+      appSubscriptionCancel(id: $id) {
+        appSubscription { id status }
+        userErrors { field message }
+      }
+    }`,
+    { id: subscriptionGid },
+  );
+  const errs = data.appSubscriptionCancel.userErrors;
+  if (errs?.length) {
+    throw new Error(`appSubscriptionCancel: ${errs.map((e) => e.message).join("; ").slice(0, 300)}`);
+  }
+}
+
 // Minimal Admin GraphQL client. Throws on transport or GraphQL errors.
 export async function shopifyGraphQL<T = unknown>(
   shop: string,
