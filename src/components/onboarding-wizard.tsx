@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { AppShell, type ShellUser } from "@/components/app-shell";
 import { SignInButton } from "@/components/auth-buttons";
+import { LoadingTransition } from "@/components/loading-transition";
 import { saveSpinPhotos } from "@/lib/actions/spins";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { PhotoSlot, type SlotKind, type PhotoSlotStatus } from "@/components/photo-slot";
@@ -60,10 +61,10 @@ export function OnboardingWizard({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [authModal, setAuthModal] = useState(false);
-  // True while the post-OAuth auto-continue is saving the restored draft —
-  // renders a "you're signed in, building your spin" overlay so the return
-  // from Google never reads as a silent no-op.
-  const [resuming, setResuming] = useState(false);
+  // Headline for the branded transition overlay, shown while we save the
+  // draft and hand off to /generate (post-OAuth resume AND signed-in
+  // Generate clicks) — those seconds must never read as a silent no-op.
+  const [transition, setTransition] = useState<string | null>(null);
   const resumedRef = useRef(false);
   const isEdit = Boolean(spinId);
 
@@ -86,7 +87,7 @@ export function OnboardingWizard({
           // came back — carry that intent all the way through. Save the spin
           // and land on /generate with the generation ALREADY starting
           // (autostart), never on a screen that asks them to click again.
-          setResuming(true);
+          setTransition("You're signed in.");
           submitDraft(draft.title ?? "", draft.photos, { autostart: true });
         }
       }
@@ -134,7 +135,7 @@ export function OnboardingWizard({
         const id = await saveSpinPhotos(fd);
         router.push(`/generate?spin=${id}${opts.autostart ? "&autostart=1" : ""}`);
       } catch (e) {
-        setResuming(false);
+        setTransition(null);
         setError(e instanceof Error ? e.message : "Something went wrong");
       }
     });
@@ -152,6 +153,7 @@ export function OnboardingWizard({
     }
     // "Generate my spin" IS the intent — start generating on arrival. Edit
     // mode keeps the preview step ("Save & continue" ≠ "spend $ regenerating").
+    if (!isEdit) setTransition("Building your spin.");
     submitDraft(title, undefined, { autostart: !isEdit });
   }
 
@@ -233,18 +235,15 @@ export function OnboardingWizard({
         </div>
       </div>
 
-      {resuming && !error && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/85 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-3 px-6 text-center">
-            <Loader2 className="h-7 w-7 animate-spin text-fw-text" />
-            <p className="text-[17px] font-semibold text-fw-text">
-              You&apos;re signed in — building your spin now.
-            </p>
-            <p className="text-[13px] text-fw-darkGray">
-              Your photos were saved. Taking you to the progress page…
-            </p>
-          </div>
-        </div>
+      {transition && !error && (
+        <LoadingTransition
+          headline={transition}
+          messages={[
+            "Saving your photos…",
+            "Spinning up your studio…",
+            "Queuing the 360° render…",
+          ]}
+        />
       )}
 
       {authModal && (

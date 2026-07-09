@@ -150,12 +150,22 @@ npm run dev
 
 Done: marketing site (Spinr brand, lime, hero demo video), value-first
 onboarding, Google auth, Neon Postgres, My Studio, permanent DB-backed
-embeds, Seedance default provider, domain + prod env vars set.
+embeds, Seedance default provider, domain + prod env vars set. Phase 3
+async generation is LIVE and verified in prod (fal queue submit → webhook
+`/api/webhooks/fal` + client status polling, both converging on one
+idempotent completion helper in lib/spin-completion.ts; FAL_WEBHOOK_SECRET
+set in prod). Resend email notify is code-complete but DORMANT by founder
+decision — it activates the moment RESEND_API_KEY is set (lib/email.ts
+no-ops without it; EMAIL_FROM needs Resend domain verification first).
+Post-auth action continuity: onboarding resume auto-starts the generation
+(/generate?autostart=1), branded LoadingTransition overlay covers the
+hand-off, and the static homepage hydrates the session client-side (never
+call getSessionUser in app/page.tsx — it kills static rendering).
 
-- Phase 3 (next): async generation via fal webhooks + email notify (Resend)
-  — removes the keep-tab-open limit, enables bulk.
 - Phase 4: Shopify integration (OAuth connection, import product catalog,
-  push embeds back). Connection, NOT a login method.
+  push embeds back). Connection, NOT a login method. Founder-agreed gate:
+  validation first (category quality sweep, real dev store, 3–5 merchant
+  conversations) before building this.
 - Phase 5: Stripe billing (chosen over PayPal deliberately).
 - Phase 6: admin dashboard (users/revenue/fal spend), FAQ/support chat.
 

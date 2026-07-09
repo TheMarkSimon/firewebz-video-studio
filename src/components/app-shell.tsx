@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { SignInButton, UserMenu } from "@/components/auth-buttons";
@@ -32,6 +33,31 @@ export function AppShell({
   user?: ShellUser;
 }) {
   const isMarketing = variant === "marketing";
+
+  // Statically-rendered pages (the marketing homepage) can't pass `user`
+  // from the server without giving up static rendering — so when no user
+  // prop arrives, hydrate the session client-side. Without this, the
+  // homepage header shows "Sign in" to signed-in users, which reads as
+  // "the app forgot me".
+  const [sessionUser, setSessionUser] = useState<ShellUser>(user);
+  useEffect(() => {
+    if (user) {
+      setSessionUser(user);
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/auth/session")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((s) => {
+        if (!cancelled && s?.user) {
+          setSessionUser({ id: "session", name: s.user.name ?? null, image: s.user.image ?? null });
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -72,12 +98,17 @@ export function AppShell({
                 Start over
               </button>
             )}
+            {isMarketing && sessionUser && (
+              <Button asChild variant="outline" className="h-10 px-5 text-[14px]">
+                <Link href="/studio">My Studio</Link>
+              </Button>
+            )}
             {isMarketing && (
               <Button asChild className="h-10 px-5 text-[14px]">
                 <Link href="/onboarding">Create a spin</Link>
               </Button>
             )}
-            {user ? <UserMenu name={user.name} image={user.image} /> : <SignInButton />}
+            {sessionUser ? <UserMenu name={sessionUser.name} image={sessionUser.image} /> : <SignInButton />}
           </div>
         </div>
       </header>
