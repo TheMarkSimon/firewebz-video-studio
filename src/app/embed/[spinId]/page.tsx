@@ -20,13 +20,16 @@ export default async function EmbedPage({ params }: { params: Promise<{ spinId: 
     return <EmbedError message="Spin not found." />;
   }
 
-  const proxiedVideo = `/api/proxy?url=${encodeURIComponent(spin.videoUrl)}`;
+  // Embeds serve media DIRECTLY from the CDN — never through /api/proxy.
+  // The proxy exists for the founder's corporate network viewing the app UI;
+  // routing shopper traffic through it would bill every storefront view to
+  // our Vercel bandwidth. Direct CDN = per-view cost ~$0, which is the
+  // pricing promise ("we charge for creation, never for your traffic").
   const frames = (spin.frameUrls as string[] | null) ?? undefined;
-  const proxiedFrames = frames?.map((u) => `/api/proxy?url=${encodeURIComponent(u)}`);
 
   return (
     <div className="h-screen w-screen bg-transparent">
-      <SpinScrubber frameUrls={proxiedFrames} videoUrl={proxiedVideo} className="h-full w-full" />
+      <SpinScrubber frameUrls={frames} videoUrl={spin.videoUrl} className="h-full w-full" />
     </div>
   );
 }
