@@ -16,6 +16,7 @@ const ALLOWED_HOSTS = new Set([
   "fal.media",
   "v3b.fal.media",
   "v3.fal.media",
+  "cdn.shopify.com", // product images for the catalog import grid
 ]);
 
 export const runtime = "nodejs";
@@ -39,7 +40,11 @@ export async function GET(req: NextRequest) {
     host.endsWith(".replicate.delivery") ||
     host.endsWith(".cloudfront.net") ||
     host.endsWith(".fal.media") ||
-    host.endsWith(".fal.run");
+    host.endsWith(".fal.run") ||
+    // Shopify serves product media from a couple of CDN domains.
+    host.endsWith(".cdn.shopify.com") ||
+    host.endsWith(".shopifycdn.net") ||
+    host.endsWith(".shopifycdn.com");
   if (!hostAllowed) {
     return new Response(`Host not allowed: ${host}`, { status: 403 });
   }
