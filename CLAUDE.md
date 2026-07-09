@@ -163,9 +163,19 @@ hand-off, and the static homepage hydrates the session client-side (never
 call getSessionUser in app/page.tsx — it kills static rendering).
 
 - Phase 4: Shopify integration (OAuth connection, import product catalog,
-  push embeds back). Connection, NOT a login method. Founder-agreed gate:
-  validation first (category quality sweep, real dev store, 3–5 merchant
-  conversations) before building this.
+  push embeds back). Connection, NOT a login method. Validated on a real
+  Shopify dev store (2026-07, founder has a Shopify Partner account +
+  Dawn dev store): the embed snippet SURVIVES the product-description HTML
+  editor and renders on the storefront. Learnings that shape the build:
+  (a) Shopify's media gallery only accepts native media (images/video/
+  YouTube/GLB) — no widget can be a gallery tile; the placement answer is
+  a block below the buy box. (b) The scalable manual pattern (and Phase
+  4's push mechanism) is a product metafield `custom.spinr_id` + one
+  Custom Liquid / app block reading it — per-product spins, one block for
+  the whole catalog. (c) Uploading the spin MP4 as native gallery video
+  (autoplay, not draggable) + widget below is the strongest demo combo.
+  Remaining validation before building: category quality sweep, 3–5
+  merchant conversations.
 - Phase 5: Stripe billing (chosen over PayPal deliberately).
 - Phase 6: admin dashboard (users/revenue/fal spend), FAQ/support chat.
 
