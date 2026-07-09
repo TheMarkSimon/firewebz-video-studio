@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { SpinCard } from "@/components/spin-card";
+import { ShopifyConnectCard } from "@/components/shopify-connect-card";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SignInButton } from "@/components/auth-buttons";
@@ -15,7 +16,9 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function StudioPage() {
+type SP = Record<string, string | string[] | undefined>;
+
+export default async function StudioPage({ searchParams }: { searchParams: Promise<SP> }) {
   const user = await getSessionUser();
 
   if (!user) {
@@ -34,10 +37,14 @@ export default async function StudioPage() {
     );
   }
 
-  const spins = await prisma.spin.findMany({
-    where: { userId: user.id },
-    orderBy: { createdAt: "desc" },
-  });
+  const sp = await searchParams;
+  const [spins, shopifyConnection] = await Promise.all([
+    prisma.spin.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.shopifyConnection.findFirst({ where: { userId: user.id } }),
+  ]);
 
   return (
     <AppShell user={user}>
@@ -57,6 +64,16 @@ export default async function StudioPage() {
             </Link>
           </Button>
         </div>
+
+        <ShopifyConnectCard
+          connection={
+            shopifyConnection
+              ? { shop: shopifyConnection.shop, shopName: shopifyConnection.shopName }
+              : null
+          }
+          notice={typeof sp.shopify === "string" ? sp.shopify : null}
+          reason={typeof sp.reason === "string" ? sp.reason : null}
+        />
 
         {spins.length === 0 ? (
           <div className="mt-12 flex flex-col items-center rounded-3xl border-2 border-dashed border-fw-lighterGray py-20 text-center">

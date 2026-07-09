@@ -11,12 +11,34 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  image     String?
-  createdAt DateTime @default(now())
-  spins     Spin[]
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  name               String?
+  image              String?
+  createdAt          DateTime            @default(now())
+  spins              Spin[]
+  shopifyConnections ShopifyConnection[]
+}
+
+// Phase 4: a merchant's Shopify store connected to their Spinr account.
+// Connection, NOT a login method. accessToken is an offline Admin API token
+// obtained via OAuth (authorization code grant).
+model ShopifyConnection {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Canonical myshopify.com domain, e.g. kokok.myshopify.com.
+  // Unique: one Spinr account per shop.
+  shop        String   @unique
+  shopName    String?
+  // ⚠️ Plaintext for beta — encrypt at rest before public launch
+  // (pre-launch checklist).
+  accessToken String
+  scope       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model Spin {
