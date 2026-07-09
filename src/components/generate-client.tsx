@@ -7,6 +7,7 @@ import {
   getSpinGenerationStatus,
   type SpinStatusPayload,
 } from "@/lib/actions/spinvideo";
+import { pushSpinToShopify } from "@/lib/actions/shopify";
 import { SpinScrubber } from "@/components/spin-scrubber";
 import {
   Loader2,
@@ -20,7 +21,14 @@ import {
   Copy,
   ExternalLink,
   Mail,
+  Store,
 } from "lucide-react";
+
+export type ShopifyPushInfo = {
+  pushed: boolean;
+  shopDomain: string;
+  productHandle: string | null;
+};
 
 export type SessionPhotos = {
   front: string | null;
@@ -36,11 +44,13 @@ export function GenerateClient({
   photos,
   initial,
   autoStart = false,
+  shopifyPush = null,
 }: {
   spinId: string;
   photos: SessionPhotos;
   initial: SpinStatusPayload;
   autoStart?: boolean;
+  shopifyPush?: ShopifyPushInfo | null;
 }) {
   // The payload IS the state machine: draft → preview, generating → progress
   // (poll until terminal), ready/failed → result. A ready row renders
@@ -137,6 +147,7 @@ export function GenerateClient({
           payload={payload}
           onRegenerate={() => generate(true)}
           isPending={isPending}
+          shopifyPush={shopifyPush}
         />
       )}
     </div>
@@ -258,13 +269,14 @@ function GeneratingPhase({
 }
 
 function ResultPhase({
-  spinId, photos, payload, onRegenerate, isPending,
+  spinId, photos, payload, onRegenerate, isPending, shopifyPush,
 }: {
   spinId: string;
   photos: SessionPhotos;
   payload: SpinStatusPayload;
   onRegenerate: () => void;
   isPending: boolean;
+  shopifyPush: ShopifyPushInfo | null;
 }) {
   const succeeded = payload.status === "ready" && !!payload.videoUrl;
   const proxiedVideo = payload.videoUrl ? `/api/proxy?url=${encodeURIComponent(payload.videoUrl)}` : undefined;
@@ -325,6 +337,7 @@ function ResultPhase({
 
         <div className="flex flex-col gap-4">
           <SourcePhotosCard photos={photos} />
+          {succeeded && shopifyPush && <PushToStoreCard spinId={spinId} info={shopifyPush} />}
           {succeeded && <EmbedCard spinId={spinId} />}
         </div>
       </div>
@@ -355,6 +368,57 @@ function SourcePhotosCard({ photos }: { photos: SessionPhotos }) {
           <div className="flex aspect-[3/4] items-center justify-center rounded-lg border border-fw-border bg-fw-disabled text-[10px] text-fw-lightGray">—</div>
         )}
       </div>
+    </div>
+  );
+}
+
+// One-click embed for spins imported from a Shopify product: writes the
+// custom.spinr_id metafield the merchant's storefront block reads.
+function PushToStoreCard({ spinId, info }: { spinId: string; info: ShopifyPushInfo }) {
+  const [isPending, startTransition] = useTransition();
+  const [pushed, setPushed] = useState(info.pushed);
+  const [error, setError] = useState<string | null>(null);
+
+  function push() {
+    setError(null);
+    startTransition(async () => {
+      const res = await pushSpinToShopify(spinId);
+      if (res.ok) setPushed(true);
+      else setError(res.error ?? "Push failed — try again.");
+    });
+  }
+
+  const productUrl = info.productHandle
+    ? `https://${info.shopDomain}/products/${info.productHandle}`
+    : null;
+
+  return (
+    <div className="rounded-2xl border border-fw-border bg-white p-4">
+      <p className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-fw-text">
+        <Store className="h-3.5 w-3.5" /> Your Shopify product
+      </p>
+      <p className="mt-2 text-[13px] leading-[20px] text-fw-darkGray">
+        {pushed
+          ? "This spin is live on the product. Pushing again just refreshes it."
+          : "One click puts this spin on the product page — no copy-paste."}
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Button onClick={push} disabled={isPending} className="h-9 px-4 text-[12px]">
+          {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : pushed ? <CheckCircle className="h-3.5 w-3.5" /> : <Store className="h-3.5 w-3.5" />}
+          {isPending ? "Pushing…" : pushed ? "On your store — push again" : "Push to store"}
+        </Button>
+        {pushed && productUrl && (
+          <a
+            href={productUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[12px] font-semibold text-fw-darkGray underline-offset-4 hover:underline"
+          >
+            View product
+          </a>
+        )}
+      </div>
+      {error && <p className="mt-2 text-[11px] leading-snug text-destructive">{error}</p>}
     </div>
   );
 }

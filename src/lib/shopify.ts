@@ -84,6 +84,129 @@ export async function exchangeCodeForToken(
   return { accessToken: json.access_token, scope: json.scope ?? "" };
 }
 
+// --- Catalog + metafield operations ----------------------------------------
+
+export interface ShopifyProduct {
+  gid: string; // gid://shopify/Product/123
+  title: string;
+  handle: string;
+  status: string; // ACTIVE | DRAFT | ARCHIVED
+  imageUrls: string[]; // up to 4, merchant's order (first = featured)
+}
+
+export async function fetchProducts(
+  shop: string,
+  accessToken: string,
+  first = 50,
+): Promise<ShopifyProduct[]> {
+  const data = await shopifyGraphQL<{
+    products: {
+      edges: Array<{
+        node: {
+          id: string;
+          title: string;
+          handle: string;
+          status: string;
+          images: { edges: Array<{ node: { url: string } }> };
+        };
+      }>;
+    };
+  }>(
+    shop,
+    accessToken,
+    `query Products($first: Int!) {
+      products(first: $first, sortKey: TITLE) {
+        edges { node {
+          id title handle status
+          images(first: 4) { edges { node { url } } }
+        } }
+      }
+    }`,
+    { first },
+  );
+  return data.products.edges.map(({ node }) => ({
+    gid: node.id,
+    title: node.title,
+    handle: node.handle,
+    status: node.status,
+    imageUrls: node.images.edges.map((e) => e.node.url),
+  }));
+}
+
+export async function fetchProduct(
+  shop: string,
+  accessToken: string,
+  productGid: string,
+): Promise<ShopifyProduct | null> {
+  const data = await shopifyGraphQL<{
+    product: {
+      id: string;
+      title: string;
+      handle: string;
+      status: string;
+      images: { edges: Array<{ node: { url: string } }> };
+    } | null;
+  }>(
+    shop,
+    accessToken,
+    `query Product($id: ID!) {
+      product(id: $id) {
+        id title handle status
+        images(first: 4) { edges { node { url } } }
+      }
+    }`,
+    { id: productGid },
+  );
+  if (!data.product) return null;
+  return {
+    gid: data.product.id,
+    title: data.product.title,
+    handle: data.product.handle,
+    status: data.product.status,
+    imageUrls: data.product.images.edges.map((e) => e.node.url),
+  };
+}
+
+// Write the spin id onto the product as custom.spinr_id — the metafield the
+// storefront Liquid/app block reads (pattern validated on the dev store).
+export async function setSpinMetafield(
+  shop: string,
+  accessToken: string,
+  productGid: string,
+  spinId: string,
+): Promise<void> {
+  const data = await shopifyGraphQL<{
+    metafieldsSet: {
+      metafields: Array<{ id: string }> | null;
+      userErrors: Array<{ field: string[] | null; message: string }>;
+    };
+  }>(
+    shop,
+    accessToken,
+    `mutation SetSpin($metafields: [MetafieldsSetInput!]!) {
+      metafieldsSet(metafields: $metafields) {
+        metafields { id }
+        userErrors { field message }
+      }
+    }`,
+    {
+      metafields: [
+        {
+          ownerId: productGid,
+          namespace: "custom",
+          key: "spinr_id",
+          type: "single_line_text_field",
+          value: spinId,
+        },
+      ],
+    },
+  );
+  const errs = data.metafieldsSet.userErrors;
+  if (errs?.length) {
+    throw new Error(`metafieldsSet: ${errs.map((e) => e.message).join("; ").slice(0, 300)}`);
+  }
+}
+
 // Minimal Admin GraphQL client. Throws on transport or GraphQL errors.
 export async function shopifyGraphQL<T = unknown>(
   shop: string,

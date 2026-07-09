@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { disconnectShopify } from "@/lib/actions/shopify";
@@ -29,7 +30,7 @@ export function ShopifyConnectCard({
 
   const banner =
     notice === "connected"
-      ? { kind: "ok" as const, text: "Shopify store connected. Catalog import is coming next — for now, spins embed via the snippet or metafield block." }
+      ? { kind: "ok" as const, text: "Shopify store connected. Browse your products to create spins from the photos already on them." }
       : notice === "error"
         ? { kind: "err" as const, text: ERROR_MESSAGES[reason ?? ""] ?? "Something went wrong connecting Shopify." }
         : null;
@@ -83,10 +84,15 @@ export function ShopifyConnectCard({
         </div>
 
         {connection ? (
-          <Button variant="outline" onClick={onDisconnect} disabled={isPending} className="h-10 px-5 text-[13px]">
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {confirming ? "Click again to confirm" : "Disconnect"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild className="h-10 px-5 text-[13px]">
+              <Link href="/studio/products">Browse products</Link>
+            </Button>
+            <Button variant="outline" onClick={onDisconnect} disabled={isPending} className="h-10 px-5 text-[13px]">
+              {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {confirming ? "Click again to confirm" : "Disconnect"}
+            </Button>
+          </div>
         ) : (
           <form action="/api/shopify/connect" method="GET" className="flex flex-wrap items-center gap-2">
             <input

@@ -67,6 +67,20 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
   // a paid run (startSpinGeneration is cache-first on top of that).
   const autoStart = sp.autostart === "1" && spin.status === "draft";
 
+  // Push-to-store is offered when the spin came from a Shopify product AND
+  // the user still has a connected store.
+  const connection = spin.shopifyProductGid
+    ? await prisma.shopifyConnection.findFirst({ where: { userId: user.id } })
+    : null;
+  const shopifyPush =
+    spin.shopifyProductGid && connection
+      ? {
+          pushed: Boolean(spin.pushedToShopifyAt),
+          shopDomain: connection.shop,
+          productHandle: spin.shopifyProductHandle,
+        }
+      : null;
+
   return (
     <AppShell user={user}>
       <GenerateClient
@@ -79,6 +93,7 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
         }}
         initial={initial}
         autoStart={autoStart}
+        shopifyPush={shopifyPush}
       />
     </AppShell>
   );

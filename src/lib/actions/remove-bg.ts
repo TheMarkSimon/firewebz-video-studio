@@ -40,13 +40,20 @@ async function removeBgOnFal(imageDataUrl: string): Promise<RemoveBgResult> {
     const { fal } = await import("@fal-ai/client");
     fal.config({ credentials: key });
 
-    // Upload raw photo to fal.ai storage first so we can pass a URL.
-    const m = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
-    if (!m) {
-      return { status: "failed", errorMessage: "Expected a data URL", errorCode: "content", provider: "fal-birefnet-v2" };
+    // birefnet takes any accessible URL. Remote URLs (e.g. Shopify CDN,
+    // catalog import path) pass straight through; data URLs (browser upload
+    // path) get uploaded to fal storage first.
+    let uploadedUrl: string;
+    if (/^https?:\/\//.test(imageDataUrl)) {
+      uploadedUrl = imageDataUrl;
+    } else {
+      const m = imageDataUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!m) {
+        return { status: "failed", errorMessage: "Expected a data URL or http(s) URL", errorCode: "content", provider: "fal-birefnet-v2" };
+      }
+      const blob = new Blob([Buffer.from(m[2], "base64")], { type: m[1] });
+      uploadedUrl = await fal.storage.upload(blob);
     }
-    const blob = new Blob([Buffer.from(m[2], "base64")], { type: m[1] });
-    const uploadedUrl = await fal.storage.upload(blob);
 
     // birefnet/v2 payload — image_url is required, extras are accepted
     // silently (endpoint doesn't validate unknown fields). Sending the
@@ -206,14 +213,28 @@ async function removeBgOnReplicate(imageDataUrl: string): Promise<RemoveBgResult
 // --- Public entry -----------------------------------------------------------
 
 export async function removeBackgroundServerSide(imageDataUrl: string): Promise<RemoveBgResult> {
+  // Anonymous browser-upload path — data URLs only, by design.
+  if (!imageDataUrl?.startsWith("data:")) {
+    return { status: "failed", errorMessage: "Expected a data URL", errorCode: "content" };
+  }
+  return runRemoveBg(imageDataUrl);
+}
+
+// Catalog-import path: the photo already lives at a public URL (Shopify
+// CDN), so no upload round-trip. Server-to-server use only.
+export async function removeBackgroundFromUrl(imageUrl: string): Promise<RemoveBgResult> {
+  if (!/^https?:\/\//.test(imageUrl ?? "")) {
+    return { status: "failed", errorMessage: "Expected an http(s) URL", errorCode: "content" };
+  }
+  return runRemoveBg(imageUrl);
+}
+
+async function runRemoveBg(imageInput: string): Promise<RemoveBgResult> {
   try {
-    if (!imageDataUrl?.startsWith("data:")) {
-      return { status: "failed", errorMessage: "Expected a data URL", errorCode: "content" };
-    }
     const result =
       BG_PROVIDER === "replicate"
-        ? await removeBgOnReplicate(imageDataUrl)
-        : await removeBgOnFal(imageDataUrl);
+        ? await removeBgOnReplicate(imageInput)
+        : await removeBgOnFal(imageInput);
     // Defensive: some SDK error paths could theoretically return undefined
     // and Next.js server actions swallow that into a client-side crash.
     if (!result || typeof result !== "object" || !("status" in result)) {
