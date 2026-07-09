@@ -69,6 +69,16 @@ export async function GET(req: NextRequest) {
     return studioRedirect(origin, { shopify: "error", reason: "token" });
   }
 
+  // Shopify grants the scopes DECLARED in the app's saved configuration at
+  // install time — if that config was empty (or saved after install), the
+  // token comes back scopeless and every catalog call ACCESS_DENIEDs later.
+  // Refuse the useless connection now, with an actionable error, instead of
+  // failing mysteriously on the products page.
+  if (!/(^|,)\s*(read_products|write_products)\s*(,|$)/.test(scope)) {
+    console.error(`[shopify/callback] token granted without product scopes (scope="${scope}")`);
+    return studioRedirect(origin, { shopify: "error", reason: "scopes" });
+  }
+
   // Grab the store's display name — also proves the token works. Non-fatal.
   let shopName: string | null = null;
   try {

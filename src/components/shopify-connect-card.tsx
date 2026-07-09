@@ -14,6 +14,8 @@ const ERROR_MESSAGES: Record<string, string> = {
   hmac: "Shopify's response failed verification — please try again.",
   token: "Shopify rejected the connection — please try again.",
   owned: "That store is already connected to a different Spinr account.",
+  scopes:
+    "Shopify granted no product permissions. Fix: in the Partner dashboard, save the app's scopes (read_products,write_products); then on the store, uninstall the Spinr app (Settings → Apps and sales channels); then connect again here and approve the new permission screen.",
 };
 
 export function ShopifyConnectCard({
