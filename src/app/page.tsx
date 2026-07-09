@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { RotatingWord } from "@/components/hero";
-import { ArrowRight, Camera, Sparkles, Store, Check, MousePointerClick, TrendingUp, Undo2, MonitorSmartphone } from "lucide-react";
+import { ArrowRight, Camera, Store, Check, MousePointerClick, TrendingUp, Undo2, MonitorSmartphone } from "lucide-react";
+import { SpinrIcon } from "@/components/spinr-icon";
 
 export const metadata: Metadata = {
   title: "Spinr — Turn your product photos into a 360° spin for Shopify",
@@ -83,7 +84,7 @@ export default function WelcomePage() {
               <FeatureRow icon={<Camera className="h-5 w-5" />} title="Use the photos you already have">
                 Your existing catalog shots work, or a few quick phone photos — front, back, and sides. We remove the backgrounds automatically; no studio, no white sweep, no retouching.
               </FeatureRow>
-              <FeatureRow icon={<Sparkles className="h-5 w-5" />} title="AI builds the rotation">
+              <FeatureRow icon={<SpinrIcon className="h-5 w-5" />} title="AI builds the rotation">
                 A full 360° turntable spin with studio lighting, built from your real angles
                 in two to three minutes.
               </FeatureRow>

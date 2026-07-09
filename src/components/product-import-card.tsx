@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { SpinrIcon } from "@/components/spinr-icon";
 import { importShopifyProduct } from "@/lib/actions/shopify";
-import { Loader2, Sparkles, CheckCircle } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
 
 const STATUS_LABEL: Record<string, string> = {
   draft: "Spin draft",
@@ -74,8 +75,8 @@ export function ProductImportCard({
             </Button>
           ) : (
             <Button onClick={onImport} disabled={isPending || photoCount === 0} className="h-9 shrink-0 px-3.5 text-[12px]">
-              {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-              {isPending ? "Importing…" : "Create spin"}
+              {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SpinrIcon className="h-3.5 w-3.5" />}
+              {isPending ? "Preparing photos…" : "Review photos"}
             </Button>
           )}
         </div>

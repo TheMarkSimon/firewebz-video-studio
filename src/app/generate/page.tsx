@@ -94,6 +94,11 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
         initial={initial}
         autoStart={autoStart}
         shopifyPush={shopifyPush}
+        back={
+          spin.shopifyProductGid
+            ? { href: "/studio/products", label: "Your products" }
+            : { href: "/studio", label: "My Studio" }
+        }
       />
     </AppShell>
   );

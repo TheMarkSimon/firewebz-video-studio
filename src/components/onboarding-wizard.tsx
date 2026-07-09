@@ -7,7 +7,8 @@ import { AppShell, type ShellUser } from "@/components/app-shell";
 import { SignInButton } from "@/components/auth-buttons";
 import { LoadingTransition } from "@/components/loading-transition";
 import { saveSpinPhotos } from "@/lib/actions/spins";
-import { Loader2, Sparkles, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
+import { SpinrIcon } from "@/components/spinr-icon";
 import { PhotoSlot, type SlotKind, type PhotoSlotStatus } from "@/components/photo-slot";
 
 type PhotoEntry = {
@@ -266,7 +267,7 @@ export function OnboardingWizard({
               <X className="h-4 w-4" />
             </button>
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-fw-purpleSoft">
-              <Sparkles className="h-6 w-6 text-fw-black" />
+              <SpinrIcon className="h-6 w-6" />
             </div>
             <h2 id="auth-modal-title" className="mt-4 font-display text-[24px] font-bold text-fw-text">
               Your spin is ready to build.

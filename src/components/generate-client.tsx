@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { SpinrIcon } from "@/components/spinr-icon";
 import {
   startSpinGeneration,
   getSpinGenerationStatus,
@@ -11,12 +13,12 @@ import { pushSpinToShopify } from "@/lib/actions/shopify";
 import { SpinScrubber } from "@/components/spin-scrubber";
 import {
   Loader2,
-  Sparkles,
   Download,
   RotateCw,
   ChevronDown,
   ChevronUp,
   AlertCircle,
+  ArrowLeft,
   CheckCircle,
   Copy,
   ExternalLink,
@@ -45,12 +47,14 @@ export function GenerateClient({
   initial,
   autoStart = false,
   shopifyPush = null,
+  back,
 }: {
   spinId: string;
   photos: SessionPhotos;
   initial: SpinStatusPayload;
   autoStart?: boolean;
   shopifyPush?: ShopifyPushInfo | null;
+  back?: { href: string; label: string };
 }) {
   // The payload IS the state machine: draft → preview, generating → progress
   // (poll until terminal), ready/failed → result. A ready row renders
@@ -125,6 +129,14 @@ export function GenerateClient({
 
   return (
     <div className="mx-auto max-w-5xl px-4 pt-4 lg:pt-6">
+      {back && (
+        <Link
+          href={back.href}
+          className="mb-4 inline-flex items-center gap-1.5 text-[13px] font-semibold text-fw-darkGray hover:text-fw-text"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> {back.label}
+        </Link>
+      )}
       {!showGenerating && !showResult && (
         <PreviewPhase
           spinId={spinId}
@@ -197,7 +209,7 @@ function PreviewPhase({
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Button onClick={onGenerate} disabled={isPending} className="h-11 px-8">
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SpinrIcon className="h-4 w-4" />}
           Build my spin
         </Button>
         <a
@@ -442,7 +454,7 @@ function EmbedCard({ spinId }: { spinId: string }) {
   return (
     <div className="rounded-2xl border border-fw-purple/30 bg-gradient-to-br from-fw-purpleSoft/50 to-white p-4">
       <p className="flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wider text-fw-text">
-        <Sparkles className="h-3.5 w-3.5" /> Ship it to Shopify
+        <SpinrIcon className="h-3.5 w-3.5" /> Ship it to Shopify
       </p>
       <p className="mt-2 text-[13px] leading-[20px] text-fw-text">
         Paste this into any Shopify product page (or any HTML page). One line — done.
@@ -521,7 +533,7 @@ function DiagnosticsPanel({ payload }: { payload: SpinStatusPayload }) {
         className="flex w-full items-center justify-between px-5 py-3 text-left text-[13px] font-semibold text-fw-text"
       >
         <span className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-fw-purple" />
+          <SpinrIcon className="h-4 w-4" />
           Show diagnostics
         </span>
         {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
