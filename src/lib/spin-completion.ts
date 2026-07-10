@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db";
 import { getSpinVideoProvider } from "@/lib/providers/spinvideo";
 import { sendSpinReadyEmail, sendSpinFailedEmail } from "@/lib/email";
 import { getAppOrigin } from "@/lib/app-origin";
+import { billOverageIfNeeded, refundSpinUsage } from "@/lib/billing";
 
 // Seedance runs take 2-3 minutes; past this we assume the job is lost and
 // fail the spin so the merchant isn't stuck on an eternal progress bar.
@@ -50,7 +51,10 @@ export async function reconcileSpinGeneration(spinId: string): Promise<Reconcile
       status: "failed",
       errorMessage: "Generation timed out after 30 minutes. Please try again.",
     });
-    if (settled) await notify(spin, false);
+    if (settled) {
+      await refundSpinUsage(spin.id);
+      await notify(spin, false);
+    }
     return settled ? "failed" : "already-settled";
   }
 
@@ -69,6 +73,11 @@ export async function reconcileSpinGeneration(spinId: string): Promise<Reconcile
         errorMessage: result.errorMessage ?? "Generation failed.",
       });
   if (!settled) return "already-settled";
+
+  // Billing follows the outcome: success bills any overage, failure refunds
+  // the reserved credit — merchants never pay for a failed run.
+  if (ok) await billOverageIfNeeded(spin.id);
+  else await refundSpinUsage(spin.id);
 
   await notify(spin, ok);
   return ok ? "ready" : "failed";

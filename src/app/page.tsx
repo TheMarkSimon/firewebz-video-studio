@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { RotatingWord } from "@/components/hero";
 import { ArrowRight, Camera, Store, Check, MousePointerClick, TrendingUp, Undo2, MonitorSmartphone } from "lucide-react";
 import { SpinrIcon } from "@/components/spinr-icon";
+import { overagePriceUsd, proIncludedSpins, proPriceUsd } from "@/lib/shopify";
 
 export const metadata: Metadata = {
   title: "Spinr — Turn your product photos into a 360° spin for Shopify",
@@ -139,44 +140,59 @@ export default function WelcomePage() {
           </div>
         </section>
 
-        {/* Pricing (placeholder until final tiers land) */}
+        {/* Pricing — Free (3 spins) / Pro ($29, 10/mo, $2.50 extra). Values
+            read from env at BUILD time (static page); a price change needs a
+            redeploy to show here. The anchor is photography, not software. */}
         <section id="pricing" className="mt-32 scroll-mt-24">
           <h2 className="text-center font-display text-[32px] font-bold text-fw-text md:text-[40px]">
-            Simple pricing
+            Simple pricing. Views are always free.
           </h2>
-          <p className="mt-3 text-center text-[15px] text-fw-darkGray">
-            Free while we're in beta. Paid plans arrive with the full launch.
+          <p className="mx-auto mt-3 max-w-xl text-center text-[15px] text-fw-darkGray">
+            We charge for creating spins — never for your store&apos;s traffic. Every plan
+            includes unlimited 360° views, no bandwidth caps.
           </p>
           <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="rounded-3xl border-2 border-fw-purple bg-white p-8">
-              <p className="text-[13px] font-bold uppercase tracking-wider text-fw-text">Beta</p>
-              <p className="mt-3 font-display text-[40px] font-bold text-fw-text">Free</p>
-              <p className="mt-1 text-[13px] text-fw-darkGray">while in beta</p>
+            <div className="rounded-3xl border border-fw-border bg-white p-8">
+              <p className="text-[13px] font-bold uppercase tracking-wider text-fw-darkGray">Free</p>
+              <p className="mt-3 font-display text-[40px] font-bold text-fw-text">$0</p>
+              <p className="mt-1 text-[13px] text-fw-darkGray">3 spins to see it on your own store</p>
               <ul className="mt-6 space-y-3">
-                <PriceLine>360° spins from your photos</PriceLine>
+                <PriceLine>3 free 360° spins — no card required</PriceLine>
                 <PriceLine>Automatic background removal</PriceLine>
-                <PriceLine>Embed on any Shopify page</PriceLine>
-                <PriceLine>MP4 download included</PriceLine>
+                <PriceLine>Unlimited views on your storefront</PriceLine>
+                <PriceLine>One-line embed, MP4 included</PriceLine>
               </ul>
-              <Button asChild className="mt-8 w-full">
+              <Button asChild variant="outline" className="mt-8 w-full">
                 <Link href="/onboarding">Start free</Link>
               </Button>
             </div>
-            <div className="rounded-3xl border border-fw-border bg-fw-disabled/40 p-8">
-              <p className="text-[13px] font-bold uppercase tracking-wider text-fw-darkGray">Pro</p>
-              <p className="mt-3 font-display text-[40px] font-bold text-fw-lightGray">Coming soon</p>
-              <p className="mt-1 text-[13px] text-fw-darkGray">for growing stores</p>
-              <ul className="mt-6 space-y-3 opacity-60">
-                <PriceLine>Bulk catalog conversion</PriceLine>
-                <PriceLine>Shopify account integration</PriceLine>
-                <PriceLine>Team workspace & spin library</PriceLine>
+            <div className="rounded-3xl border-2 border-fw-purple bg-white p-8">
+              <p className="text-[13px] font-bold uppercase tracking-wider text-fw-text">Pro</p>
+              <p className="mt-3 font-display text-[40px] font-bold text-fw-text">
+                ${proPriceUsd()}
+                <span className="text-[16px] font-semibold text-fw-darkGray">/month</span>
+              </p>
+              <p className="mt-1 text-[13px] text-fw-darkGray">
+                {proIncludedSpins()} spins every month, then ${overagePriceUsd()} per extra spin
+              </p>
+              <ul className="mt-6 space-y-3">
+                <PriceLine>{proIncludedSpins()} spins/month + pay-as-you-go extras</PriceLine>
+                <PriceLine>Import products straight from Shopify</PriceLine>
+                <PriceLine>Push spins to product pages in one click</PriceLine>
                 <PriceLine>Priority rendering</PriceLine>
               </ul>
-              <Button disabled variant="outline" className="mt-8 w-full">
-                Join the waitlist
+              <Button asChild className="mt-8 w-full">
+                <Link href="/onboarding">Start free, upgrade in Studio</Link>
               </Button>
+              <p className="mt-3 text-center text-[11px] text-fw-lightGray">
+                Billed through Shopify — no card entry, cancel anytime.
+              </p>
             </div>
           </div>
+          <p className="mt-8 text-center text-[13px] text-fw-darkGray">
+            For scale: a 360° photography rig runs $75+ per product. A Spinr spin is ${overagePriceUsd()},
+            from the photos you already have.
+          </p>
         </section>
 
         {/* FAQ */}

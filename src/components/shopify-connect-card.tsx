@@ -32,7 +32,13 @@ export function ShopifyConnectCard({
   connection: { shop: string; shopName: string | null } | null;
   notice: string | null; // "connected" | "error" | null, from the OAuth redirect
   reason: string | null;
-  billing: { status: string | null; test: boolean; priceUsd: string } | null;
+  billing: {
+    status: string | null;
+    test: boolean;
+    priceUsd: string;
+    includedSpins: number;
+    overageUsd: string;
+  } | null;
   billingNotice: string | null; // "active" | "incomplete" | "error" | null
 }) {
   const [isPending, startTransition] = useTransition();
@@ -132,7 +138,11 @@ export function ShopifyConnectCard({
 
 // Free ↔ Pro, billed through Shopify (Billing API): upgrade sends the
 // merchant to Shopify's confirmation screen; cancel is immediate.
-function PlanRow({ billing }: { billing: { status: string | null; test: boolean; priceUsd: string } }) {
+function PlanRow({
+  billing,
+}: {
+  billing: { status: string | null; test: boolean; priceUsd: string; includedSpins: number; overageUsd: string };
+}) {
   const [isPending, startTransition] = useTransition();
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -174,8 +184,8 @@ function PlanRow({ billing }: { billing: { status: string | null; test: boolean;
           </p>
           <p className="mt-0.5 text-[12px] text-fw-darkGray">
             {active
-              ? "Billed through Shopify — it appears on your regular Shopify invoice."
-              : `Upgrade for bulk catalog conversion and priority rendering — $${billing.priceUsd}/mo, billed through Shopify. No card entry.`}
+              ? `${billing.includedSpins} spins/mo included, then $${billing.overageUsd}/spin — on your regular Shopify invoice. Views are never metered.`
+              : `$${billing.priceUsd}/mo for ${billing.includedSpins} spins a month, then $${billing.overageUsd}/spin. Billed through Shopify — no card entry.`}
           </p>
         </div>
         {active ? (

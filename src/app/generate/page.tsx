@@ -5,6 +5,7 @@ import { SignInButton } from "@/components/auth-buttons";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { getSpinVideoProvider } from "@/lib/providers/spinvideo";
+import { getPlanState } from "@/lib/billing";
 import type { SpinStatusPayload } from "@/lib/actions/spinvideo";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +82,13 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
         }
       : null;
 
+  // Quota snapshot for the preview's "N spins left" line — null (silent UI)
+  // while enforcement is off during validation.
+  const planState = await getPlanState(user.id);
+  const quota = planState.enforced
+    ? { plan: planState.plan, remaining: planState.remaining, overagePriceUsd: planState.overagePriceUsd }
+    : null;
+
   return (
     <AppShell user={user}>
       <GenerateClient
@@ -94,6 +102,7 @@ export default async function GeneratePage({ searchParams }: { searchParams: Pro
         initial={initial}
         autoStart={autoStart}
         shopifyPush={shopifyPush}
+        quota={quota}
         back={
           spin.shopifyProductGid
             ? { href: "/studio/products", label: "Your products" }

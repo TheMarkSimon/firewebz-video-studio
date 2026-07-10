@@ -34,11 +34,18 @@ homework.
 **Value proposition.** "The shortest path from a product photo to more
 sales." One-line embed, no app install, no theme edits, no 3D anything.
 
-**Unit economics (current).** COGS ≈ $0.50/spin (Seedance) + pennies for bg
-removal; generated once, cached forever (embeds are free to serve). Free
-during beta; a Pro tier (bulk catalog conversion, Shopify integration, team
-workspace, priority rendering) is the planned monetization — pricing TBD by
-the founder. Payments will be Stripe (decided).
+**Unit economics (current).** COGS ≈ $0.71 per generation run (founder-
+verified on the fal dashboard, 2026-07: Seedance dominates; bg removal is
+pennies). Generated once, cached forever; embeds serve DIRECTLY from CDN
+(never via /api/proxy) so views cost ~$0 — the pricing promise is
+"unlimited views, we charge for creation." Pricing model (implemented,
+env-tunable, enforcement behind SPINR_QUOTA_ENFORCE=1): Free = 3 lifetime
+spins; Pro = $29/mo with 10 spins/mo included, then $2.50/spin overage.
+A "spin" = one generation run: failures refund, regenerations count.
+Merchant payments go through the Shopify Billing API (subscription +
+usage charges on the merchant's Shopify invoice) — mandatory for App
+Store distribution anyway. A processor for non-Shopify customers (Stripe
+vs. Paddle vs. Lemon Squeezy) is deliberately undecided.
 
 **Stage & strategy.** Pre-revenue validation. The operating philosophy is
 test-before-invest: prove value with a handful of real merchants before

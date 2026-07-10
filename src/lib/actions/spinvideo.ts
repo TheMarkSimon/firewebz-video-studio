@@ -7,6 +7,7 @@ import { getUserId } from "@/lib/auth";
 import { getSpinVideoProvider } from "@/lib/providers/spinvideo";
 import { reconcileSpinGeneration, GENERATION_TIMEOUT_MS } from "@/lib/spin-completion";
 import { getAppOrigin, isPublicOrigin } from "@/lib/app-origin";
+import { consumeSpinCredit, refundSpinUsage, billOverageIfNeeded } from "@/lib/billing";
 
 // What the generate page renders from — a snapshot of the spin's generation
 // state. Terminal states carry the result; "generating" carries startedAtMs
@@ -24,6 +25,9 @@ export interface SpinStatusPayload {
   // True when the merchant can close the tab and expect an email (async
   // submit succeeded AND Resend is configured) — drives the waiting copy.
   emailNotify?: boolean;
+  // Set when quota enforcement refused to start this run (free credits
+  // exhausted / overage unavailable). Human-readable, shown in the preview.
+  blocked?: string;
 }
 
 function toPayload(
@@ -76,6 +80,13 @@ export async function startSpinGeneration(
   }
   if (!spin.photoFrontUrl) return failure(provider.name, "No front photo on this spin.");
 
+  // Quota gate: a "spin" = one generation run. Reserved here, refunded on
+  // terminal failure, and (for overages) billed to Shopify only on success.
+  const credit = await consumeSpinCredit(userId, spin.id);
+  if (!credit.ok) {
+    return toPayload(spin, provider.name, { blocked: credit.error });
+  }
+
   const input = {
     imageUrl: spin.photoFrontUrl,
     extraImageUrls: [spin.photoBackUrl, spin.photoLeftUrl, spin.photoRightUrl]
@@ -88,6 +99,7 @@ export async function startSpinGeneration(
 
   const submitted = await provider.submit(input, { webhookUrl: buildWebhookUrl() });
   if (!submitted.requestId) {
+    await refundSpinUsage(spin.id);
     await prisma.spin.update({
       where: { id: spin.id },
       data: { status: "failed", errorMessage: submitted.errorMessage ?? "Could not start generation." },
@@ -168,10 +180,11 @@ async function generateSync(
   });
 
   const result = await provider.generate(input);
+  const ok = result.status === "completed" && !!result.videoUrl;
 
   const updated = await prisma.spin.update({
     where: { id: spin.id },
-    data: result.status === "completed" && result.videoUrl
+    data: ok
       ? {
           status: "ready",
           videoUrl: result.videoUrl,
@@ -185,6 +198,8 @@ async function generateSync(
           errorMessage: result.errorMessage ?? "Generation failed.",
         },
   });
+  if (ok) await billOverageIfNeeded(spin.id);
+  else await refundSpinUsage(spin.id);
   revalidatePath("/studio");
   return toPayload(updated, providerName);
 }

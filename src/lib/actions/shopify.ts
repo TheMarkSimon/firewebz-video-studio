@@ -41,7 +41,7 @@ export async function startShopifySubscription(): Promise<
   if (!origin) return { ok: false, error: "Server origin not configured." };
 
   try {
-    const { confirmationUrl, subscriptionGid } = await createAppSubscription(
+    const { confirmationUrl, subscriptionGid, usageLineItemGid } = await createAppSubscription(
       connection.shop,
       connection.accessToken,
       `${origin}/api/shopify/billing/callback`,
@@ -50,6 +50,7 @@ export async function startShopifySubscription(): Promise<
       where: { id: connection.id },
       data: {
         subscriptionGid,
+        usageLineItemGid,
         subscriptionStatus: "PENDING",
         subscriptionUpdatedAt: new Date(),
       },

@@ -7,7 +7,7 @@ import { ShopifyConnectCard } from "@/components/shopify-connect-card";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SignInButton } from "@/components/auth-buttons";
-import { proPriceUsd } from "@/lib/shopify";
+import { overagePriceUsd, proIncludedSpins, proPriceUsd } from "@/lib/shopify";
 import { Plus } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -80,6 +80,8 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
                   status: shopifyConnection.subscriptionStatus,
                   test: shopifyConnection.subscriptionTest,
                   priceUsd: proPriceUsd(),
+                  includedSpins: proIncludedSpins(),
+                  overageUsd: overagePriceUsd(),
                 }
               : null
           }

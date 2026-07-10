@@ -224,8 +224,36 @@ export async function setSpinMetafield(
 
 export const SPINR_PRO_PLAN_NAME = "Spinr Pro";
 
+// Plan economics — every number env-tunable so merchant feedback can move
+// pricing without a deploy. Defaults = the launch model (COGS ≈ $0.71/run):
+//   Free: 3 lifetime spins. Pro: $29/mo, 10 spins included, $2.50/extra.
 export function proPriceUsd(): string {
   return process.env.SPINR_PRO_PRICE_USD ?? "29";
+}
+
+export function overagePriceUsd(): string {
+  return process.env.SPINR_OVERAGE_USD ?? "2.50";
+}
+
+export function proIncludedSpins(): number {
+  return parseInt(process.env.SPINR_PRO_INCLUDED_SPINS ?? "10", 10);
+}
+
+export function freeSpins(): number {
+  return parseInt(process.env.SPINR_FREE_SPINS ?? "3", 10);
+}
+
+// Monthly ceiling on overage charges — Shopify requires one; merchants see
+// it as spend protection.
+export function usageCapUsd(): string {
+  return process.env.SPINR_USAGE_CAP_USD ?? "250";
+}
+
+// Master switch for quota enforcement. OFF by default: during validation,
+// everything stays free (the machinery is deployed but dormant). Flip with
+// SPINR_QUOTA_ENFORCE=1 when billing goes live.
+export function quotaEnforced(): boolean {
+  return process.env.SPINR_QUOTA_ENFORCE === "1";
 }
 
 export function billingIsTest(): boolean {
@@ -239,15 +267,22 @@ export interface AppSubscriptionInfo {
   test: boolean;
 }
 
+// Two line items: the $29 recurring base AND a usage line (capped) that
+// overage spins are billed against. The merchant approves both on one
+// confirmation screen; overages then appear on their Shopify invoice with
+// no further approval.
 export async function createAppSubscription(
   shop: string,
   accessToken: string,
   returnUrl: string,
-): Promise<{ confirmationUrl: string; subscriptionGid: string }> {
+): Promise<{ confirmationUrl: string; subscriptionGid: string; usageLineItemGid: string | null }> {
   const data = await shopifyGraphQL<{
     appSubscriptionCreate: {
       confirmationUrl: string | null;
-      appSubscription: { id: string } | null;
+      appSubscription: {
+        id: string;
+        lineItems: Array<{ id: string; plan: { pricingDetails: { __typename: string } } }>;
+      } | null;
       userErrors: Array<{ field: string[] | null; message: string }>;
     };
   }>(
@@ -256,7 +291,10 @@ export async function createAppSubscription(
     `mutation Subscribe($name: String!, $returnUrl: URL!, $test: Boolean!, $lineItems: [AppSubscriptionLineItemInput!]!) {
       appSubscriptionCreate(name: $name, returnUrl: $returnUrl, test: $test, lineItems: $lineItems) {
         confirmationUrl
-        appSubscription { id }
+        appSubscription {
+          id
+          lineItems { id plan { pricingDetails { __typename } } }
+        }
         userErrors { field message }
       }
     }`,
@@ -273,6 +311,14 @@ export async function createAppSubscription(
             },
           },
         },
+        {
+          plan: {
+            appUsagePricingDetails: {
+              cappedAmount: { amount: usageCapUsd(), currencyCode: "USD" },
+              terms: `$${overagePriceUsd()} per spin beyond the ${proIncludedSpins()} included each month`,
+            },
+          },
+        },
       ],
     },
   );
@@ -283,7 +329,50 @@ export async function createAppSubscription(
   if (!result.confirmationUrl || !result.appSubscription?.id) {
     throw new Error("appSubscriptionCreate returned no confirmationUrl");
   }
-  return { confirmationUrl: result.confirmationUrl, subscriptionGid: result.appSubscription.id };
+  const usageLine = result.appSubscription.lineItems.find(
+    (li) => li.plan.pricingDetails.__typename === "AppUsagePricing",
+  );
+  return {
+    confirmationUrl: result.confirmationUrl,
+    subscriptionGid: result.appSubscription.id,
+    usageLineItemGid: usageLine?.id ?? null,
+  };
+}
+
+// Bill one overage spin against the subscription's usage line. Returns the
+// usage record gid. Throws if the capped amount is exhausted.
+export async function createAppUsageRecord(
+  shop: string,
+  accessToken: string,
+  usageLineItemGid: string,
+  description: string,
+): Promise<string> {
+  const data = await shopifyGraphQL<{
+    appUsageRecordCreate: {
+      appUsageRecord: { id: string } | null;
+      userErrors: Array<{ field: string[] | null; message: string }>;
+    };
+  }>(
+    shop,
+    accessToken,
+    `mutation Usage($subscriptionLineItemId: ID!, $price: MoneyInput!, $description: String!) {
+      appUsageRecordCreate(subscriptionLineItemId: $subscriptionLineItemId, price: $price, description: $description) {
+        appUsageRecord { id }
+        userErrors { field message }
+      }
+    }`,
+    {
+      subscriptionLineItemId: usageLineItemGid,
+      price: { amount: overagePriceUsd(), currencyCode: "USD" },
+      description,
+    },
+  );
+  const result = data.appUsageRecordCreate;
+  if (result.userErrors?.length) {
+    throw new Error(`appUsageRecordCreate: ${result.userErrors.map((e) => e.message).join("; ").slice(0, 300)}`);
+  }
+  if (!result.appUsageRecord?.id) throw new Error("appUsageRecordCreate returned no record");
+  return result.appUsageRecord.id;
 }
 
 // The app's currently-active subscription on this store, or null. Source of

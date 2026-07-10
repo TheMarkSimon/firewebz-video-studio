@@ -32,6 +32,14 @@ export type ShopifyPushInfo = {
   productHandle: string | null;
 };
 
+// Quota snapshot for the "N spins left" line. Null when enforcement is off
+// (validation beta) — the UI then says nothing about limits.
+export type QuotaInfo = {
+  plan: "free" | "pro";
+  remaining: number;
+  overagePriceUsd: string;
+};
+
 export type SessionPhotos = {
   front: string | null;
   back: string | null;
@@ -48,6 +56,7 @@ export function GenerateClient({
   autoStart = false,
   shopifyPush = null,
   back,
+  quota = null,
 }: {
   spinId: string;
   photos: SessionPhotos;
@@ -55,6 +64,7 @@ export function GenerateClient({
   autoStart?: boolean;
   shopifyPush?: ShopifyPushInfo | null;
   back?: { href: string; label: string };
+  quota?: QuotaInfo | null;
 }) {
   // The payload IS the state machine: draft → preview, generating → progress
   // (poll until terminal), ready/failed → result. A ready row renders
@@ -102,7 +112,13 @@ export function GenerateClient({
     setStartError(null);
     startTransition(async () => {
       try {
-        setPayload(await startSpinGeneration(spinId, { force }));
+        const res = await startSpinGeneration(spinId, { force });
+        if (res.blocked) {
+          // Quota refused the run — stay where we are and surface the why.
+          setStartError(res.blocked);
+          return;
+        }
+        setPayload(res);
       } catch (e) {
         setStartError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -144,6 +160,7 @@ export function GenerateClient({
           onGenerate={() => generate(false)}
           isPending={isPending}
           error={startError}
+          quota={quota}
         />
       )}
       {showGenerating && (
@@ -160,6 +177,7 @@ export function GenerateClient({
           onRegenerate={() => generate(true)}
           isPending={isPending}
           shopifyPush={shopifyPush}
+          error={startError}
         />
       )}
     </div>
@@ -167,13 +185,14 @@ export function GenerateClient({
 }
 
 function PreviewPhase({
-  spinId, photos, onGenerate, isPending, error,
+  spinId, photos, onGenerate, isPending, error, quota,
 }: {
   spinId: string;
   photos: SessionPhotos;
   onGenerate: () => void;
   isPending: boolean;
   error: string | null;
+  quota: QuotaInfo | null;
 }) {
   const provided = (["front", "back", "left", "right"] as const).filter((k) => photos[k]);
   return (
@@ -220,6 +239,18 @@ function PreviewPhase({
         </a>
         <span className="text-[12px] text-fw-lightGray">Usually 2-3 minutes.</span>
       </div>
+
+      {quota && (
+        <p className="mt-3 text-[12px] text-fw-darkGray">
+          {quota.plan === "free"
+            ? quota.remaining > 0
+              ? `This build uses 1 of your ${quota.remaining} remaining free spin${quota.remaining === 1 ? "" : "s"}.`
+              : "You've used your free spins — upgrade to Spinr Pro in your Studio to keep going."
+            : quota.remaining > 0
+              ? `This build uses 1 of ${quota.remaining} included spin${quota.remaining === 1 ? "" : "s"} left this cycle.`
+              : `Included spins used — this build adds $${quota.overagePriceUsd} to your Shopify bill.`}
+        </p>
+      )}
     </div>
   );
 }
@@ -281,7 +312,7 @@ function GeneratingPhase({
 }
 
 function ResultPhase({
-  spinId, photos, payload, onRegenerate, isPending, shopifyPush,
+  spinId, photos, payload, onRegenerate, isPending, shopifyPush, error,
 }: {
   spinId: string;
   photos: SessionPhotos;
@@ -289,6 +320,7 @@ function ResultPhase({
   onRegenerate: () => void;
   isPending: boolean;
   shopifyPush: ShopifyPushInfo | null;
+  error: string | null;
 }) {
   const succeeded = payload.status === "ready" && !!payload.videoUrl;
   const proxiedVideo = payload.videoUrl ? `/api/proxy?url=${encodeURIComponent(payload.videoUrl)}` : undefined;
@@ -317,6 +349,10 @@ function ResultPhase({
           </Button>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-xl bg-destructive/10 px-4 py-3 text-[13px] text-destructive">{error}</div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded-2xl border border-fw-border bg-white p-4">

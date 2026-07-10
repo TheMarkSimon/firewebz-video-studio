@@ -18,6 +18,27 @@ model User {
   createdAt          DateTime            @default(now())
   spins              Spin[]
   shopifyConnections ShopifyConnection[]
+  spinUsages         SpinUsage[]
+}
+
+// Billing ledger (Phase 5): one row per generation run that consumes quota.
+// kind: free (lifetime free credits) | included (Pro monthly quota) |
+// overage (Pro beyond quota — billed to Shopify on SUCCESS via usage record).
+// `counted` flips to false when the run terminally fails: our failures never
+// consume the merchant's quota. Regenerations create a NEW row (they cost us
+// a real Seedance run, so they count).
+model SpinUsage {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  spinId         String
+  kind           String
+  counted        Boolean  @default(true)
+  usageRecordGid String? // set once the overage is billed on Shopify
+  createdAt      DateTime @default(now())
+
+  @@index([userId, kind, counted, createdAt])
+  @@index([spinId, createdAt(sort: Desc)])
 }
 
 // Phase 4: a merchant's Shopify store connected to their Spinr account.
@@ -43,6 +64,8 @@ model ShopifyConnection {
   subscriptionName      String?
   subscriptionTest      Boolean  @default(true)
   subscriptionUpdatedAt DateTime?
+  // The subscription's usage-pricing line item — target for overage charges.
+  usageLineItemGid      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
