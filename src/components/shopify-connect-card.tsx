@@ -184,8 +184,8 @@ function PlanRow({
           </p>
           <p className="mt-0.5 text-[12px] text-fw-darkGray">
             {active
-              ? `${billing.includedSpins} spins/mo included, then $${billing.overageUsd}/spin — on your regular Shopify invoice. Views are never metered.`
-              : `$${billing.priceUsd}/mo for ${billing.includedSpins} spins a month, then $${billing.overageUsd}/spin. Billed through Shopify — no card entry.`}
+              ? `${billing.includedSpins} spin${billing.includedSpins === 1 ? "" : "s"}/mo included, then $${billing.overageUsd}/spin — on your regular Shopify invoice. Views are never metered.`
+              : `$${billing.priceUsd}/mo for ${billing.includedSpins} spin${billing.includedSpins === 1 ? "" : "s"} a month, then $${billing.overageUsd}/spin. Billed through Shopify — no card entry.`}
           </p>
         </div>
         {active ? (
