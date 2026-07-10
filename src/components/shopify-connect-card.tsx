@@ -38,6 +38,8 @@ export function ShopifyConnectCard({
     priceUsd: string;
     includedSpins: number;
     overageUsd: string;
+    includedUsed: number;
+    overageCount: number;
   } | null;
   billingNotice: string | null; // "active" | "incomplete" | "error" | null
 }) {
@@ -141,7 +143,15 @@ export function ShopifyConnectCard({
 function PlanRow({
   billing,
 }: {
-  billing: { status: string | null; test: boolean; priceUsd: string; includedSpins: number; overageUsd: string };
+  billing: {
+    status: string | null;
+    test: boolean;
+    priceUsd: string;
+    includedSpins: number;
+    overageUsd: string;
+    includedUsed: number;
+    overageCount: number;
+  };
 }) {
   const [isPending, startTransition] = useTransition();
   const [confirmCancel, setConfirmCancel] = useState(false);
@@ -184,7 +194,11 @@ function PlanRow({
           </p>
           <p className="mt-0.5 text-[12px] text-fw-darkGray">
             {active
-              ? `${billing.includedSpins} spin${billing.includedSpins === 1 ? "" : "s"}/mo included, then $${billing.overageUsd}/spin — on your regular Shopify invoice. Views are never metered.`
+              ? `${Math.min(billing.includedUsed, billing.includedSpins)} of ${billing.includedSpins} included spin${billing.includedSpins === 1 ? "" : "s"} used this cycle` +
+                (billing.overageCount > 0
+                  ? ` · ${billing.overageCount} extra ($${(billing.overageCount * parseFloat(billing.overageUsd)).toFixed(2)}) on your Shopify invoice`
+                  : ` · extras are $${billing.overageUsd}/spin`) +
+                ". Views are never metered."
               : `$${billing.priceUsd}/mo for ${billing.includedSpins} spin${billing.includedSpins === 1 ? "" : "s"} a month, then $${billing.overageUsd}/spin. Billed through Shopify — no card entry.`}
           </p>
         </div>

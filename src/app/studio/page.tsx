@@ -8,6 +8,7 @@ import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SignInButton } from "@/components/auth-buttons";
 import { overagePriceUsd, proIncludedSpins, proPriceUsd } from "@/lib/shopify";
+import { getCycleUsage } from "@/lib/billing";
 import { Plus } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -39,12 +40,13 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
   }
 
   const sp = await searchParams;
-  const [spins, shopifyConnection] = await Promise.all([
+  const [spins, shopifyConnection, cycleUsage] = await Promise.all([
     prisma.spin.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
     }),
     prisma.shopifyConnection.findFirst({ where: { userId: user.id } }),
+    getCycleUsage(user.id),
   ]);
 
   return (
@@ -82,6 +84,8 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
                   priceUsd: proPriceUsd(),
                   includedSpins: proIncludedSpins(),
                   overageUsd: overagePriceUsd(),
+                  includedUsed: cycleUsage.includedUsed,
+                  overageCount: cycleUsage.overageCount,
                 }
               : null
           }

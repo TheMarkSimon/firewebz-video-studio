@@ -63,6 +63,22 @@ export async function getPlanState(userId: string): Promise<PlanState> {
   };
 }
 
+// Live usage counters for the Studio plan row (trailing 30-day cycle).
+export async function getCycleUsage(
+  userId: string,
+): Promise<{ includedUsed: number; overageCount: number }> {
+  const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const [includedUsed, overageCount] = await Promise.all([
+    prisma.spinUsage.count({
+      where: { userId, kind: "included", counted: true, createdAt: { gte: since } },
+    }),
+    prisma.spinUsage.count({
+      where: { userId, kind: "overage", counted: true, createdAt: { gte: since } },
+    }),
+  ]);
+  return { includedUsed, overageCount };
+}
+
 export type ConsumeResult =
   | { ok: true; kind: "free" | "included" | "overage" | "unmetered" }
   | { ok: false; error: string };
