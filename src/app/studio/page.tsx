@@ -7,8 +7,8 @@ import { ShopifyConnectCard } from "@/components/shopify-connect-card";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SignInButton } from "@/components/auth-buttons";
-import { overagePriceUsd, proIncludedSpins, proPriceUsd } from "@/lib/shopify";
-import { getCycleUsage } from "@/lib/billing";
+import { freeSpins, overagePriceUsd, proIncludedSpins, proPriceUsd, quotaEnforced } from "@/lib/shopify";
+import { getCycleUsage, getPlanState } from "@/lib/billing";
 import { Plus } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -40,13 +40,14 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
   }
 
   const sp = await searchParams;
-  const [spins, shopifyConnection, cycleUsage] = await Promise.all([
+  const [spins, shopifyConnection, cycleUsage, planState] = await Promise.all([
     prisma.spin.findMany({
       where: { userId: user.id },
       orderBy: { createdAt: "desc" },
     }),
     prisma.shopifyConnection.findFirst({ where: { userId: user.id } }),
     getCycleUsage(user.id),
+    getPlanState(user.id),
   ]);
 
   return (
@@ -86,6 +87,9 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
                   overageUsd: overagePriceUsd(),
                   includedUsed: cycleUsage.includedUsed,
                   overageCount: cycleUsage.overageCount,
+                  enforced: quotaEnforced(),
+                  freeRemaining: planState.plan === "free" ? planState.remaining : 0,
+                  freeTotal: freeSpins(),
                 }
               : null
           }

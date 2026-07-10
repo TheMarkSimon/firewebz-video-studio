@@ -40,6 +40,9 @@ export function ShopifyConnectCard({
     overageUsd: string;
     includedUsed: number;
     overageCount: number;
+    enforced: boolean;
+    freeRemaining: number;
+    freeTotal: number;
   } | null;
   billingNotice: string | null; // "active" | "incomplete" | "error" | null
 }) {
@@ -151,6 +154,9 @@ function PlanRow({
     overageUsd: string;
     includedUsed: number;
     overageCount: number;
+    enforced: boolean;
+    freeRemaining: number;
+    freeTotal: number;
   };
 }) {
   const [isPending, startTransition] = useTransition();
@@ -192,14 +198,19 @@ function PlanRow({
               </span>
             )}
           </p>
+          {/* Lead with the user's OWN balance ("N left"), never just the
+              plan pitch — merchants must always know where they stand. */}
           <p className="mt-0.5 text-[12px] text-fw-darkGray">
             {active
-              ? `${Math.min(billing.includedUsed, billing.includedSpins)} of ${billing.includedSpins} included spin${billing.includedSpins === 1 ? "" : "s"} used this cycle` +
+              ? `${Math.max(0, billing.includedSpins - billing.includedUsed)} of ${billing.includedSpins} included spin${billing.includedSpins === 1 ? "" : "s"} left this cycle` +
                 (billing.overageCount > 0
                   ? ` · ${billing.overageCount} extra ($${(billing.overageCount * parseFloat(billing.overageUsd)).toFixed(2)}) on your Shopify invoice`
                   : ` · extras are $${billing.overageUsd}/spin`) +
                 ". Views are never metered."
-              : `$${billing.priceUsd}/mo for ${billing.includedSpins} spin${billing.includedSpins === 1 ? "" : "s"} a month, then $${billing.overageUsd}/spin. Billed through Shopify — no card entry.`}
+              : (billing.enforced
+                  ? `You have ${billing.freeRemaining} of ${billing.freeTotal} free spins left. `
+                  : "") +
+                `Pro: $${billing.priceUsd}/mo for ${billing.includedSpins} spin${billing.includedSpins === 1 ? "" : "s"} a month, then $${billing.overageUsd}/spin. Billed through Shopify — no card entry.`}
           </p>
         </div>
         {active ? (
