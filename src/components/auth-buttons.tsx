@@ -55,7 +55,9 @@ export function UserMenu({ name, image }: { name: string | null; image: string |
               <LayoutGrid className="h-4 w-4" /> My Studio
             </Link>
             <button
-              onClick={() => signOut({ callbackUrl: "/" })}
+              // clear-session expires every legacy cookie variant, then
+              // lands on the homepage — see api/auth/clear-session.
+              onClick={() => signOut({ callbackUrl: "/api/auth/clear-session" })}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[14px] text-fw-text hover:bg-fw-disabled"
             >
               <LogOut className="h-4 w-4" /> Sign out

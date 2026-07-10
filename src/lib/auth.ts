@@ -10,7 +10,7 @@ const IS_HTTPS = AUTH_URL.startsWith("https://");
 // default) means signing in on www.thespinr.com and later typing
 // thespinr.com looks like being logged out — the cookie exists, just on the
 // other hostname. Domain=.thespinr.com makes the session valid on both.
-function sessionCookieDomain(): string | undefined {
+export function sessionCookieDomain(): string | undefined {
   try {
     const host = new URL(AUTH_URL).hostname;
     if (!host || host === "localhost") return undefined;
