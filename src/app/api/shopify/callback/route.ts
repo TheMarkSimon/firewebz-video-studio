@@ -62,8 +62,9 @@ export async function GET(req: NextRequest) {
 
   let accessToken: string;
   let scope: string;
+  let expiresAt: Date | null;
   try {
-    ({ accessToken, scope } = await exchangeCodeForToken(shop, code));
+    ({ accessToken, scope, expiresAt } = await exchangeCodeForToken(shop, code));
   } catch (err) {
     console.error("[shopify/callback] token exchange failed:", err);
     return studioRedirect(origin, { shopify: "error", reason: "token" });
@@ -94,8 +95,8 @@ export async function GET(req: NextRequest) {
 
   await prisma.shopifyConnection.upsert({
     where: { shop },
-    create: { userId, shop, shopName, accessToken, scope },
-    update: { shopName, accessToken, scope },
+    create: { userId, shop, shopName, accessToken, tokenExpiresAt: expiresAt, scope },
+    update: { shopName, accessToken, tokenExpiresAt: expiresAt, scope },
   });
 
   return studioRedirect(origin, { shopify: "connected", shop });

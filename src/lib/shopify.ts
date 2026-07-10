@@ -10,6 +10,7 @@
 //   SHOPIFY_SCOPES      — optional override, default below
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { prisma } from "@/lib/db";
 
 // read_products: catalog import. write_products: set the custom.spinr_id
 // metafield when pushing embeds back (validated dev-store pattern).
@@ -65,7 +66,7 @@ export function verifyOAuthHmac(searchParams: URLSearchParams): boolean {
 export async function exchangeCodeForToken(
   shop: string,
   code: string,
-): Promise<{ accessToken: string; scope: string }> {
+): Promise<{ accessToken: string; scope: string; expiresAt: Date | null }> {
   const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -79,9 +80,68 @@ export async function exchangeCodeForToken(
   if (!res.ok) {
     throw new Error(`Token exchange failed: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
   }
-  const json = (await res.json()) as { access_token?: string; scope?: string };
+  const json = (await res.json()) as { access_token?: string; scope?: string; expires_in?: number };
   if (!json.access_token) throw new Error("Token exchange returned no access_token");
-  return { accessToken: json.access_token, scope: json.scope ?? "" };
+  return {
+    accessToken: json.access_token,
+    scope: json.scope ?? "",
+    expiresAt: json.expires_in ? new Date(Date.now() + json.expires_in * 1000) : null,
+  };
+}
+
+// Public-distribution apps only get EXPIRING Admin tokens (~24h); static
+// tokens 403 with "Non-expiring access tokens are no longer accepted". The
+// client-credentials grant mints a fresh token server-to-server for any
+// shop the app is installed on — no merchant interaction needed.
+async function mintClientCredentialsToken(
+  shop: string,
+): Promise<{ accessToken: string; expiresAt: Date | null }> {
+  const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: process.env.SHOPIFY_API_KEY,
+      client_secret: process.env.SHOPIFY_API_SECRET,
+      grant_type: "client_credentials",
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`client_credentials grant failed: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
+  }
+  const json = (await res.json()) as { access_token?: string; expires_in?: number };
+  if (!json.access_token) throw new Error("client_credentials grant returned no access_token");
+  return {
+    accessToken: json.access_token,
+    expiresAt: json.expires_in ? new Date(Date.now() + json.expires_in * 1000) : null,
+  };
+}
+
+// The one true way to get a usable Admin token for a connection: returns the
+// stored token while fresh, otherwise mints + persists a new one. ALWAYS use
+// this instead of reading connection.accessToken directly.
+export async function getShopToken(connection: {
+  id: string;
+  shop: string;
+  accessToken: string;
+  tokenExpiresAt: Date | null;
+}): Promise<string> {
+  const freshUntil = connection.tokenExpiresAt?.getTime() ?? 0;
+  if (freshUntil > Date.now() + 2 * 60 * 1000) return connection.accessToken;
+
+  try {
+    const minted = await mintClientCredentialsToken(connection.shop);
+    await prisma.shopifyConnection.update({
+      where: { id: connection.id },
+      data: { accessToken: minted.accessToken, tokenExpiresAt: minted.expiresAt },
+    });
+    return minted.accessToken;
+  } catch (err) {
+    // Best effort: legacy stores (pre-public-distribution) may still accept
+    // the stored static token.
+    console.error("[shopify] token refresh failed, using stored token:", err);
+    return connection.accessToken;
+  }
 }
 
 // --- Catalog + metafield operations ----------------------------------------

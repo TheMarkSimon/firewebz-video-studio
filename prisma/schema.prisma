@@ -55,6 +55,9 @@ model ShopifyConnection {
   // ⚠️ Plaintext for beta — encrypt at rest before public launch
   // (pre-launch checklist).
   accessToken String
+  // Public-distribution apps get EXPIRING tokens (~24h); getShopToken()
+  // auto-refreshes via the client-credentials grant when this passes.
+  tokenExpiresAt DateTime?
   scope       String
   // Shopify Billing (Phase 5): the merchant's app subscription, if any.
   // status: PENDING | ACTIVE | CANCELLED | ... (Shopify's AppSubscription

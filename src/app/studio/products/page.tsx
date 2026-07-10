@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ProductImportCard } from "@/components/product-import-card";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { fetchProducts, type ShopifyProduct } from "@/lib/shopify";
+import { fetchProducts, getShopToken, type ShopifyProduct } from "@/lib/shopify";
 import { ArrowLeft } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -48,7 +48,7 @@ export default async function ProductsPage() {
   let products: ShopifyProduct[] = [];
   let loadError: string | null = null;
   try {
-    products = await fetchProducts(connection.shop, connection.accessToken, 50);
+    products = await fetchProducts(connection.shop, await getShopToken(connection), 50);
   } catch (err) {
     console.error("[studio/products] fetch failed:", err);
     // Most common real-world cause: app uninstalled on Shopify → token dead.

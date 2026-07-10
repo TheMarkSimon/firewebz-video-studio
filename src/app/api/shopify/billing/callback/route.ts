@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
 import { getAppOrigin } from "@/lib/app-origin";
-import { getActiveSubscription } from "@/lib/shopify";
+import { getActiveSubscription, getShopToken } from "@/lib/shopify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   if (!connection) return studioRedirect(origin, { billing: "error" });
 
   try {
-    const sub = await getActiveSubscription(connection.shop, connection.accessToken);
+    const sub = await getActiveSubscription(connection.shop, await getShopToken(connection));
     await prisma.shopifyConnection.update({
       where: { id: connection.id },
       data: sub

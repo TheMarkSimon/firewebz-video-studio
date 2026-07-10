@@ -14,6 +14,7 @@ import { prisma } from "@/lib/db";
 import {
   createAppUsageRecord,
   freeSpins,
+  getShopToken,
   overagePriceUsd,
   proIncludedSpins,
   quotaEnforced,
@@ -129,7 +130,7 @@ export async function billOverageIfNeeded(spinId: string): Promise<void> {
     const spin = await prisma.spin.findUnique({ where: { id: spinId }, select: { title: true } });
     const gid = await createAppUsageRecord(
       connection.shop,
-      connection.accessToken,
+      await getShopToken(connection),
       connection.usageLineItemGid,
       `Extra 360° spin: ${(spin?.title ?? spinId).slice(0, 60)}`,
     );

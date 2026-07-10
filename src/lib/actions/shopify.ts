@@ -9,6 +9,7 @@ import {
   cancelAppSubscription,
   createAppSubscription,
   fetchProduct,
+  getShopToken,
   setSpinMetafield,
 } from "@/lib/shopify";
 
@@ -43,7 +44,7 @@ export async function startShopifySubscription(): Promise<
   try {
     const { confirmationUrl, subscriptionGid, usageLineItemGid } = await createAppSubscription(
       connection.shop,
-      connection.accessToken,
+      await getShopToken(connection),
       `${origin}/api/shopify/billing/callback`,
     );
     await prisma.shopifyConnection.update({
@@ -70,7 +71,7 @@ export async function cancelShopifySubscription(): Promise<{ ok: boolean; error?
   if (!connection?.subscriptionGid) return { ok: false, error: "No subscription to cancel." };
 
   try {
-    await cancelAppSubscription(connection.shop, connection.accessToken, connection.subscriptionGid);
+    await cancelAppSubscription(connection.shop, await getShopToken(connection), connection.subscriptionGid);
   } catch (err) {
     console.error("[shopify] subscription cancel failed:", err);
     return { ok: false, error: "Shopify rejected the cancellation — try again." };
@@ -103,7 +104,7 @@ export async function importShopifyProduct(productGid: string): Promise<string> 
   });
   if (existing) return existing.id;
 
-  const product = await fetchProduct(connection.shop, connection.accessToken, productGid);
+  const product = await fetchProduct(connection.shop, await getShopToken(connection), productGid);
   if (!product) throw new Error("Product not found on your store.");
   if (product.imageUrls.length === 0) {
     throw new Error("This product has no photos on Shopify — add at least one photo there first.");
@@ -155,7 +156,7 @@ export async function pushSpinToShopify(
   if (!connection) return { ok: false, error: "No Shopify store connected." };
 
   try {
-    await setSpinMetafield(connection.shop, connection.accessToken, spin.shopifyProductGid, spin.id);
+    await setSpinMetafield(connection.shop, await getShopToken(connection), spin.shopifyProductGid, spin.id);
   } catch (err) {
     console.error("[shopify] metafield push failed:", err);
     return { ok: false, error: "Shopify rejected the update — try reconnecting your store." };
