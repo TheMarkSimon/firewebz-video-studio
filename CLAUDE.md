@@ -152,6 +152,12 @@ npm run dev
     non-Intuit hosts** — the founder pushes from their personal terminal.
     Agents: commit locally, then ask the founder to run
     `git push && git push --tags`.
+11. **Transparent reference PNGs make Seedance hallucinate backdrops
+    mid-spin** (sunglasses run rendered a gray hex-camo pattern late in the
+    rotation — transparent pixels are "unspecified", not "white"). Fix:
+    every reference image is flattened onto opaque white before upload
+    (providers/spinvideo/flatten.ts, ffmpeg drawbox+overlay). Never feed
+    the video model alpha transparency.
 
 ## Current state & roadmap
 

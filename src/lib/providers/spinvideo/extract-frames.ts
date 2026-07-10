@@ -18,7 +18,8 @@ import { join } from "node:path";
 
 // Guarded dynamic imports so Next.js doesn't try to bundle the ffmpeg binary
 // into the client. These modules are only loaded inside the extraction call.
-async function loadFfmpeg() {
+// Exported for flatten.ts (reference-image white-background compositing).
+export async function loadFfmpeg() {
   // Some bundlers wrap the installer's CommonJS export inside .default; the
   // path can live at either .path or .default.path depending on how Next
   // resolves it. Coalesce both shapes.

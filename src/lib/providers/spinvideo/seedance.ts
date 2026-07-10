@@ -24,6 +24,7 @@ import type {
   SpinVideoSubmission,
 } from "./types";
 import { extractFramesFromVideo } from "./extract-frames";
+import { flattenToWhite } from "./flatten";
 
 const MODEL_ID = "fal-ai/bytedance/seedance/v1/lite/reference-to-video";
 
@@ -66,12 +67,18 @@ async function getFal(key: string): Promise<any> {
 
 // Upload any data-URL photos to fal storage; pass URLs through. Front first,
 // then the extra angles in the order given — the prompt tells the model to
-// rotate through them in order.
+// rotate through them in order. Every reference is then FLATTENED onto
+// opaque white: transparent PNG pixels make the model hallucinate patterned
+// backdrops mid-spin (see flatten.ts). Flattening failure falls back to the
+// original rather than blocking the run.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function buildReferenceUrls(fal: any, input: SpinVideoInput): Promise<string[]> {
+async function buildReferenceUrls(fal: any, input: SpinVideoInput, key: string): Promise<string[]> {
   const toUrl = async (u: string) =>
     u.startsWith("data:") ? fal.storage.upload(dataUrlToBlob(u)) : u;
-  return Promise.all([input.imageUrl, ...(input.extraImageUrls ?? [])].map(toUrl));
+  const urls: string[] = await Promise.all(
+    [input.imageUrl, ...(input.extraImageUrls ?? [])].map(toUrl),
+  );
+  return Promise.all(urls.map(async (u) => (await flattenToWhite(u, key)) ?? u));
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -120,7 +127,7 @@ export const falSeedance: SpinVideoProvider = {
     const started = Date.now();
     try {
       const fal = await getFal(key);
-      const referenceImageUrls = await buildReferenceUrls(fal, input);
+      const referenceImageUrls = await buildReferenceUrls(fal, input, key);
       const payload = buildPayload(referenceImageUrls, input);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -174,7 +181,7 @@ export const falSeedance: SpinVideoProvider = {
 
     try {
       const fal = await getFal(key);
-      const referenceImageUrls = await buildReferenceUrls(fal, input);
+      const referenceImageUrls = await buildReferenceUrls(fal, input, key);
       const payload = buildPayload(referenceImageUrls, input);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
