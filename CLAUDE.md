@@ -91,6 +91,11 @@ npx prisma generate
 npm run dev
 ```
 
+Tests: `npm test` (vitest unit tests — Shopify OAuth/HMAC, plan config,
+origins). `npm run smoke` runs 12 endpoint checks against a running
+instance (default http://localhost:3100 — `npx next start -p 3100` after a
+build; set SMOKE_BASE_URL=https://thespinr.com for a post-deploy check).
+
 ## Architecture (src/)
 
 - `app/page.tsx` — one-page marketing site (Canva-style: hero + demo video +
@@ -110,9 +115,12 @@ npm run dev
 - `components/spin-scrubber.tsx` — canvas flipbook (preferred) + `<video>`
   fallback. Horizontal drag only; auto-rotates idle; drag direction follows
   the finger.
-- `lib/providers/spinvideo/` — provider interface. `seedance.ts` (DEFAULT),
-  `kling.ts` (opt-in fallback via SPIN_PROVIDER=kling, single-image, ~$3),
-  `extract-frames.ts` (bundled ffmpeg → 60 JPEGs → fal storage).
+- `lib/providers/spinvideo/` — provider interface (queue-only: submit +
+  fetchQueueResult). `seedance.ts` is THE provider; the Kling fallback and
+  the sync generate() path were REMOVED 2026-07 (dead code — resurrect from
+  git history only if a provider comparison is ever needed).
+  `extract-frames.ts` (bundled ffmpeg → 60 JPEGs → fal storage),
+  `flatten.ts` (reference images composited onto white — lesson 11).
 - `lib/actions/` — `spins.ts` (CRUD, auth-gated), `spinvideo.ts` (generate,
   auth-gated, cache-first), `remove-bg.ts` (birefnet/v2; anonymous by design).
 - `lib/auth.ts` — NextAuth v4, Google-only, JWT sessions, User upsert on

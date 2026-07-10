@@ -137,8 +137,8 @@ export function GenerateClient({
     right: proxied(photos.right),
   };
 
-  // isPending covers the submit round-trip (and the whole run for the sync
-  // Kling fallback) so the progress screen shows before the row flips.
+  // isPending covers the submit round-trip so the progress screen shows
+  // before the row flips to "generating".
   const showGenerating =
     payload.status === "generating" || ((isPending || autoStarting) && !startError);
   const showResult = !showGenerating && (payload.status === "ready" || payload.status === "failed");

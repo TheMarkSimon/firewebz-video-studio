@@ -279,7 +279,7 @@ export function OnboardingWizard({
             <div className="mt-6 flex justify-center">
               <SignInButton label="Continue with Google" callbackUrl="/onboarding" variant="default" />
             </div>
-            <p className="mt-4 text-[12px] text-fw-lightGray">Free while in beta. No credit card.</p>
+            <p className="mt-4 text-[12px] text-fw-lightGray">Free to start. No credit card.</p>
           </div>
         </div>
       )}

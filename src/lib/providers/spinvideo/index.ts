@@ -1,17 +1,14 @@
-// Router. Adding a new provider = one new file + one case here.
-//   default / SPIN_PROVIDER=seedance → Seedance 1.0 Lite reference-to-video:
-//     multi-image (uses all uploaded angles), native camera_fixed, ~$0.5/run.
-//     Won the A/B against Kling — THE production provider.
-//   SPIN_PROVIDER=kling → Kling v3 Pro, single image, ~$3/run. Kept as an
-//     explicit opt-in fallback / comparison baseline.
+// Provider router. Seedance won the A/B (multi-image reference-to-video,
+// native camera_fixed, ~$0.5/run) and is THE production provider; the Kling
+// fallback was removed 2026-07 (single-image, ~$3/run, lost on quality and
+// cost — see git history if it's ever needed for comparison again).
+// Adding a future provider = one new file implementing SpinVideoProvider
+// (queue-based: submit + fetchQueueResult) + a case here.
 import type { SpinVideoProvider } from "./types";
-import { falKling } from "./kling";
 import { falSeedance } from "./seedance";
 
 export type { SpinVideoInput, SpinVideoResult, SpinVideoProvider } from "./types";
 
 export function getSpinVideoProvider(): SpinVideoProvider {
-  const selection = (process.env.SPIN_PROVIDER ?? "").toLowerCase();
-  if (selection === "kling") return falKling;
   return falSeedance;
 }

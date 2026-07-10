@@ -154,8 +154,8 @@ function CanvasFlipbook({
       if (!s) return;
       const revolutionPx = pixelsPerRevolution ?? s.widgetWidth;
       const delta = e.clientX - s.startX;
-      // Negate so a right-drag advances the video forward (which the trained
-      // Kling turntable renders as the product rotating right-to-left, i.e.,
+      // Negate so a right-drag advances the video forward (the generated
+      // turntable renders as the product rotating right-to-left, i.e.,
       // the shopper "grabs" the near edge and pushes it in the drag direction).
       const framesDelta = -(delta / revolutionPx) * frameUrls.length;
       let next = s.startFloat + framesDelta;

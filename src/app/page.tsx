@@ -230,7 +230,7 @@ export default function WelcomePage() {
             Turn your product photos<br />into your best sales pitch.
           </h2>
           <p className="mt-4 text-[16px] text-white/70">
-            Free while in beta. See your first spin in under three minutes.
+            Start free — no credit card. See your first spin in under three minutes.
           </p>
           <div className="mt-8">
             <Button asChild size="lg" className="min-w-[240px]">

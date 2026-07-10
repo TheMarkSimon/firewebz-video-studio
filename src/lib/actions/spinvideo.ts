@@ -7,7 +7,7 @@ import { getUserId } from "@/lib/auth";
 import { getSpinVideoProvider } from "@/lib/providers/spinvideo";
 import { reconcileSpinGeneration, GENERATION_TIMEOUT_MS } from "@/lib/spin-completion";
 import { getAppOrigin, isPublicOrigin } from "@/lib/app-origin";
-import { consumeSpinCredit, refundSpinUsage, billOverageIfNeeded } from "@/lib/billing";
+import { consumeSpinCredit, refundSpinUsage } from "@/lib/billing";
 
 // What the generate page renders from — a snapshot of the spin's generation
 // state. Terminal states carry the result; "generating" carries startedAtMs
@@ -94,9 +94,6 @@ export async function startSpinGeneration(
     durationSeconds: 10 as const,
   };
 
-  // Sync fallback for providers without queue support (SPIN_PROVIDER=kling).
-  if (!provider.submit) return generateSync(spin, input, provider.name);
-
   const submitted = await provider.submit(input, { webhookUrl: buildWebhookUrl() });
   if (!submitted.requestId) {
     await refundSpinUsage(spin.id);
@@ -148,7 +145,7 @@ export async function getSpinGenerationStatus(spinId: string): Promise<SpinStatu
     }
   }
 
-  if (spin.status === "generating" && spin.falRequestId && provider.fetchQueueResult) {
+  if (spin.status === "generating" && spin.falRequestId) {
     try {
       const outcome = await reconcileSpinGeneration(spin.id);
       if (outcome !== "pending") {
@@ -164,44 +161,6 @@ export async function getSpinGenerationStatus(spinId: string): Promise<SpinStatu
   return toPayload(spin, provider.name, {
     emailNotify: spin.status === "generating" ? emailConfigured() : undefined,
   });
-}
-
-// Blocking generation for providers without a queue mode. The tab must stay
-// open; no email is sent (the merchant is watching the result arrive).
-async function generateSync(
-  spin: Spin,
-  input: { imageUrl: string; extraImageUrls: string[]; durationSeconds: 5 | 10 },
-  providerName: string,
-): Promise<SpinStatusPayload> {
-  const provider = getSpinVideoProvider();
-  await prisma.spin.update({
-    where: { id: spin.id },
-    data: { status: "generating", generateStartedAt: new Date(), errorMessage: null },
-  });
-
-  const result = await provider.generate(input);
-  const ok = result.status === "completed" && !!result.videoUrl;
-
-  const updated = await prisma.spin.update({
-    where: { id: spin.id },
-    data: ok
-      ? {
-          status: "ready",
-          videoUrl: result.videoUrl,
-          frameUrls: result.frameUrls ?? undefined,
-          modelUsed: result.modelUsed,
-          durationMs: result.durationMs,
-          errorMessage: null,
-        }
-      : {
-          status: "failed",
-          errorMessage: result.errorMessage ?? "Generation failed.",
-        },
-  });
-  if (ok) await billOverageIfNeeded(spin.id);
-  else await refundSpinUsage(spin.id);
-  revalidatePath("/studio");
-  return toPayload(updated, providerName);
 }
 
 function emailConfigured(): boolean {

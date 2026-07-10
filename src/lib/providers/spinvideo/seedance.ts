@@ -1,9 +1,8 @@
-// ByteDance Seedance 1.0 Lite reference-to-video provider (fal.ai).
-//
-// Why this exists next to Kling: Seedance's reference mode accepts MULTIPLE
-// images of the same product, so the model grounds the back/sides in real
-// photos instead of hallucinating them. It also has a native camera_fixed
-// flag — the thing we fought Kling's prompt for.
+// ByteDance Seedance 1.0 Lite reference-to-video provider (fal.ai) — THE
+// production provider. Its reference mode accepts MULTIPLE images of the
+// same product, so the model grounds the back/sides in real photos instead
+// of hallucinating them, and it has a native camera_fixed flag. (It beat
+// the removed Kling fallback on both quality and cost — ~$0.5 vs ~$3/run.)
 //
 // Endpoint verified live via fal's openapi (2026-07):
 //   fal-ai/bytedance/seedance/v1/lite/reference-to-video
@@ -12,10 +11,9 @@
 // Note: only the LITE tier has reference-to-video; there is no pro variant
 // and no "Seedance 2.0" on fal despite what other tools may claim.
 //
-// Two execution modes:
-//   generate()          — blocking fal.subscribe (legacy sync path, kept for
-//                         providers/local flows without queue support).
-//   submit()/fetchQueueResult() — fal queue + webhook (Phase 3 async path).
+// Queue-only execution: submit() enqueues (with the fal webhook attached),
+// fetchQueueResult() resolves the outcome — called by the webhook and by
+// status polling, converging in lib/spin-completion.ts.
 
 import type {
   SpinVideoInput,
@@ -118,58 +116,6 @@ function describeError(err: unknown): string {
 export const falSeedance: SpinVideoProvider = {
   name: "fal-seedance-v1-lite-ref",
   isConfigured: () => Boolean(getKey()),
-
-  async generate(input: SpinVideoInput): Promise<SpinVideoResult> {
-    const key = getKey();
-    if (!key) return { status: "failed", errorMessage: "FAL_KEY is not set" };
-    if (!input.imageUrl) return { status: "failed", errorMessage: "imageUrl is required" };
-
-    const started = Date.now();
-    try {
-      const fal = await getFal(key);
-      const referenceImageUrls = await buildReferenceUrls(fal, input, key);
-      const payload = buildPayload(referenceImageUrls, input);
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const result: any = await fal.subscribe(MODEL_ID, { input: payload, logs: false });
-      const videoUrl = parseVideoUrl(result);
-
-      if (!videoUrl) {
-        return {
-          status: "failed",
-          modelUsed: MODEL_ID,
-          errorMessage: `No video URL in result: ${JSON.stringify(result).slice(0, 400)}`,
-          durationMs: Date.now() - started,
-        };
-      }
-
-      const frames = await extractFramesFromVideo(videoUrl, key);
-
-      return {
-        status: "completed",
-        videoUrl,
-        frameUrls: frames?.frameUrls,
-        modelUsed: MODEL_ID,
-        providerJobId: result?.requestId,
-        durationMs: Date.now() - started,
-        rawInput: {
-          model: MODEL_ID,
-          referenceImageCount: referenceImageUrls.length,
-          duration: input.durationSeconds ?? 10,
-          cameraFixed: true,
-          resolution: "720p",
-          frameCount: frames?.frameCount ?? 0,
-        },
-      };
-    } catch (err) {
-      return {
-        status: "failed",
-        modelUsed: MODEL_ID,
-        errorMessage: describeError(err),
-        durationMs: Date.now() - started,
-      };
-    }
-  },
 
   // Enqueue the generation and return immediately. fal calls webhookUrl when
   // the job finishes; getSpinGenerationStatus also reconciles by polling, so

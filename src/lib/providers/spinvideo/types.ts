@@ -7,7 +7,7 @@ export interface SpinVideoInput {
   imageUrl: string;      // fal.media URL or data URL of the bg-removed front photo
   // Optional extra angles (bg-removed URLs). Multi-image providers (Seedance
   // reference-to-video) use these to ground the unseen sides of the product;
-  // single-image providers (Kling) ignore them.
+  // single-image providers would ignore them.
   extraImageUrls?: string[];
   durationSeconds?: 5 | 10;
 }
@@ -31,17 +31,18 @@ export interface SpinVideoSubmission {
   errorMessage?: string;
 }
 
+// Queue-based contract (the only mode since the sync/Kling path was removed):
+// submit() enqueues and returns immediately; completion arrives via the fal
+// webhook and/or status polling, both of which call fetchQueueResult.
 export interface SpinVideoProvider {
   name: string;
   isConfigured(): boolean;
-  generate(input: SpinVideoInput): Promise<SpinVideoResult>;
-  // Async queue mode (Phase 3). Optional — providers without it fall back to
-  // the blocking generate() path. `webhookUrl` is called by the provider when
-  // the job finishes (only works from a public https origin).
-  submit?(input: SpinVideoInput, opts?: { webhookUrl?: string }): Promise<SpinVideoSubmission>;
+  // Enqueue a generation. `webhookUrl` is called by the provider when the
+  // job finishes (only works from a public https origin).
+  submit(input: SpinVideoInput, opts?: { webhookUrl?: string }): Promise<SpinVideoSubmission>;
   // Fetch the outcome of a queued job. Returns null while the job is still
   // in queue / in progress; a terminal SpinVideoResult otherwise (frames
   // already extracted on success). Throws on transient errors (network) so
   // callers can retry on the next poll instead of marking the spin failed.
-  fetchQueueResult?(requestId: string): Promise<SpinVideoResult | null>;
+  fetchQueueResult(requestId: string): Promise<SpinVideoResult | null>;
 }

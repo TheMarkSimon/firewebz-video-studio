@@ -46,7 +46,7 @@ export interface ExtractFramesResult {
 }
 
 // 60 frames over ~360° of rotation = 6° per frame. Smooth on any device.
-// If Kling clips ever get longer/shorter, this stays a good target.
+// If clips ever get longer/shorter, this stays a good target.
 const TARGET_FRAME_COUNT = 60;
 
 export async function extractFramesFromVideo(
@@ -74,11 +74,11 @@ export async function extractFramesFromVideo(
     //    than -r flag (which fights with frame timing).
     const ffmpeg = await loadFfmpeg();
     const framePattern = join(tmp, "f%03d.jpg");
-    // Kling clips are always ~10s. Sample TARGET_FRAME_COUNT frames evenly.
-    // If we ever support variable-length clips, ffprobe first — but the
-    // installer's binary lacks it, so hardcoded 10s covers current usage.
-    const KLING_DURATION = 10;
-    const fps = TARGET_FRAME_COUNT / KLING_DURATION;
+    // Seedance clips are always ~10s. Sample TARGET_FRAME_COUNT frames
+    // evenly. If we ever support variable-length clips, ffprobe first — but
+    // the installer's binary lacks it, so hardcoded 10s covers current usage.
+    const CLIP_DURATION = 10;
+    const fps = TARGET_FRAME_COUNT / CLIP_DURATION;
     await new Promise<void>((resolve, reject) => {
       const stderrLines: string[] = [];
       ffmpeg(videoPath)

@@ -209,7 +209,7 @@ function PlanRow({
                 ". Views are never metered."
               : (billing.enforced
                   ? `You have ${billing.freeRemaining} of ${billing.freeTotal} free spins left. `
-                  : `Includes ${billing.freeTotal} free spins — and everything's free while we're in beta. `) +
+                  : `Includes ${billing.freeTotal} free spins to get started. `) +
                 `Pro: $${billing.priceUsd}/mo for ${billing.includedSpins} spin${billing.includedSpins === 1 ? "" : "s"} a month, then $${billing.overageUsd}/spin. Billed through Shopify — no card entry.`}
           </p>
         </div>

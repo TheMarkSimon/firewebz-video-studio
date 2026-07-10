@@ -17,13 +17,23 @@ const nextConfig = {
       "./node_modules/@ffmpeg-installer/**/*",
     ],
   },
-  // /embed/* is meant to be iframed by merchant storefronts. Override the
-  // default X-Frame-Options: SAMEORIGIN so third-party pages can embed us.
+  // /embed/* is meant to be iframed by merchant storefronts (frame-ancestors
+  // *); everything else refuses framing (clickjacking). nosniff + referrer
+  // policy everywhere. HSTS is added by Vercel automatically.
   async headers() {
+    const baseline = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+    ];
     return [
+      {
+        source: "/((?!embed).*)",
+        headers: [...baseline, { key: "X-Frame-Options", value: "SAMEORIGIN" }],
+      },
       {
         source: "/embed/:path*",
         headers: [
+          ...baseline,
           { key: "Content-Security-Policy", value: "frame-ancestors *;" },
           { key: "X-Frame-Options", value: "ALLOWALL" },
         ],
