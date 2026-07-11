@@ -21,3 +21,8 @@ storage/generated-videos/*
 tsconfig.tsbuildinfo
 .vercel
 .env*
+
+# Never commit strays from the assets drop folder
+assets/Videos/*.html
+assets/Videos/adidas.mp4
+assets/Videos/allstar.mp4
