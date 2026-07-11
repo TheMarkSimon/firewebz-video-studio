@@ -21,13 +21,15 @@ export const metadata: Metadata = {
   authors: [{ name: "Spinr" }],
   robots: { index: true, follow: true },
   formatDetection: { telephone: false },
+  // ?v=2 busts browsers' notoriously sticky favicon cache — bump it any
+  // time the favicon artwork changes.
   icons: {
     icon: [
-      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-64.png", sizes: "64x64", type: "image/png" },
-      { url: "/favicon-256.png", sizes: "256x256", type: "image/png" },
+      { url: "/favicon-32.png?v=2", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-64.png?v=2", sizes: "64x64", type: "image/png" },
+      { url: "/favicon-256.png?v=2", sizes: "256x256", type: "image/png" },
     ],
-    apple: [{ url: "/favicon-256.png", sizes: "256x256", type: "image/png" }],
+    apple: [{ url: "/favicon-256.png?v=2", sizes: "256x256", type: "image/png" }],
   },
 };
 
