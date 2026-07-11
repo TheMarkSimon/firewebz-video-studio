@@ -55,7 +55,7 @@ export default function WelcomePage() {
           <div className="mt-8">
             <Button asChild size="lg" className="min-w-[240px]">
               <Link href="/onboarding">
-                Create your first spin
+                Create your first spin — free
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
@@ -252,7 +252,7 @@ export default function WelcomePage() {
           <div className="mt-8">
             <Button asChild size="lg" className="min-w-[240px]">
               <Link href="/onboarding">
-                Create your first spin
+                Create your first spin — free
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>

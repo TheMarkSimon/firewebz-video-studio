@@ -109,7 +109,7 @@ export function AppShell({
             )}
             {isMarketing && (
               <Button asChild className="h-10 px-5 text-[14px]">
-                <Link href="/onboarding">Create a spin</Link>
+                <Link href="/onboarding">Create a free spin</Link>
               </Button>
             )}
             {sessionUser ? <UserMenu name={sessionUser.name} image={sessionUser.image} /> : <SignInButton />}
