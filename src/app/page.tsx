@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { RotatingWord } from "@/components/hero";
-import { ArrowRight, Camera, Store, Check, MousePointerClick, TrendingUp, Undo2, MonitorSmartphone } from "lucide-react";
+import { ArrowRight, Camera, Store, Check, TrendingUp, Undo2, MonitorSmartphone } from "lucide-react";
 import { SpinrIcon } from "@/components/spinr-icon";
+import { SequenceVideo } from "@/components/sequence-video";
 import { overagePriceUsd, proIncludedSpins, proPriceUsd } from "@/lib/shopify";
 
 export const metadata: Metadata = {
@@ -60,16 +61,12 @@ export default function WelcomePage() {
             </Button>
           </div>
 
-          {/* Demo video — user-provided process reel (photos → Spinr → spin).
-              Muted looping autoplay, the Canva/Ramp hero pattern. */}
+          {/* Demo reel — founder-provided clips playing back-to-back in a
+              loop (main → handbag → furniture). Muted autoplay, the
+              Canva/Ramp hero pattern. */}
           <div className="mt-14 w-full max-w-5xl">
-            <video
-              src="/videos/hero-demo.mp4"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
+            <SequenceVideo
+              sources={["/videos/main.mp4", "/videos/handbag.mp4", "/videos/furniture.mp4"]}
               className="aspect-video w-full rounded-3xl border border-fw-border object-cover shadow-[0_24px_80px_-32px_rgba(16,16,18,0.25)]"
             />
           </div>
@@ -96,28 +93,20 @@ export default function WelcomePage() {
             </div>
           </div>
           <VisualPanel>
-            <div className="grid w-full max-w-xs grid-cols-3 gap-3">
-              {["Front", "Back", "Left"].map((l) => (
-                <div key={l} className="flex aspect-[3/4] flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-fw-lighterGray bg-white text-[11px] font-semibold text-fw-lightGray">
-                  <Camera className="h-4 w-4" />
-                  {l}
-                </div>
-              ))}
-            </div>
+            <SequenceVideo
+              sources={["/videos/photographer.mp4"]}
+              className="w-full rounded-2xl object-cover"
+            />
           </VisualPanel>
         </section>
 
         {/* Feature row B — visual left, text right */}
         <section id="why" className="mt-32 grid scroll-mt-24 items-center gap-12 md:grid-cols-2">
           <VisualPanel className="order-last md:order-first">
-            <div className="w-full max-w-sm rounded-2xl border border-fw-border bg-white p-5 shadow-sm">
-              <div className="flex aspect-video items-center justify-center rounded-xl bg-fw-disabled">
-                <MousePointerClick className="h-8 w-8 text-fw-lightGray" />
-              </div>
-              <div className="mt-4 h-3 w-2/3 rounded-full bg-fw-disabled" />
-              <div className="mt-2 h-3 w-1/3 rounded-full bg-fw-disabled" />
-              <div className="mt-4 h-9 w-full rounded-pill bg-fw-purple" />
-            </div>
+            <SequenceVideo
+              sources={["/videos/main2.mp4"]}
+              className="w-full rounded-2xl object-cover"
+            />
           </VisualPanel>
           <div>
             <h2 className="font-display text-[30px] font-bold leading-tight text-fw-text md:text-[38px]">
@@ -224,9 +213,10 @@ export default function WelcomePage() {
           </div>
         </section>
 
-        {/* Bottom CTA — black block */}
+        {/* Bottom CTA — black block, green mark accent (lime on dark) */}
         <section className="my-32 rounded-3xl bg-fw-black p-10 text-center text-white md:p-16">
-          <h2 className="font-display text-[32px] font-bold leading-tight md:text-[44px]">
+          <SpinrIcon variant="green" className="mx-auto h-12 w-12" />
+          <h2 className="mt-6 font-display text-[32px] font-bold leading-tight md:text-[44px]">
             Turn your product photos<br />into your best sales pitch.
           </h2>
           <p className="mt-4 text-[16px] text-white/70">

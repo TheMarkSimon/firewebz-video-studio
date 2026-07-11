@@ -5,10 +5,10 @@
 import { useEffect, useState } from "react";
 
 // Full-screen branded transition for the moments the app is working on the
-// user's behalf (post-auth resume, saving + queuing a spin). Spinning Spinr
-// swirl on a lime disc (lime = fill only, black content — button pattern),
-// with a Ramp-style mono micro-copy ticker underneath so latency reads as
-// "high-performance machine at work", never as a freeze.
+// user's behalf (post-auth resume, saving + queuing a spin). Spinning GREEN
+// Spinr swirl on a near-black disc (founder-picked pairing from the brand
+// set), with a Ramp-style mono micro-copy ticker underneath so latency
+// reads as "high-performance machine at work", never as a freeze.
 //
 // Pure CSS (tailwindcss-animate) — deliberately no framer-motion dep.
 export function LoadingTransition({
@@ -31,11 +31,11 @@ export function LoadingTransition({
       aria-live="polite"
     >
       <div className="flex flex-col items-center px-6 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-fw-purple">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-fw-black">
           <img
-            src="/brand/spinr-icon.svg"
+            src="/brand/spinr-mark-green.png"
             alt=""
-            className="h-11 w-11 animate-spin"
+            className="h-12 w-12 animate-spin"
             style={{ animationDuration: "1.4s" }}
           />
         </div>
