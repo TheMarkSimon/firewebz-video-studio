@@ -64,29 +64,33 @@ export function AppShell({
       <header
         className={
           isMarketing
-            ? "sticky top-0 z-40 border-b border-fw-border/70 bg-white/90 backdrop-blur"
+            ? // Ramp-style glassy sticky bar: translucent white + heavy blur,
+              // hairline bottom border.
+              "sticky top-0 z-40 border-b border-fw-border/50 bg-white/60 backdrop-blur-xl"
             : ""
         }
       >
-        {/* Full-width header, logo hugging the left edge — Canva pattern. */}
+        {/* Full-width header: logo + nav clustered LEFT (Ramp pattern),
+            account/CTA on the right. */}
         <div className="flex w-full items-center justify-between px-4 py-2 lg:px-6">
-          <Link href="/" aria-label="Spinr home">
-            <BrandLogo size={50} />
-          </Link>
-
-          {isMarketing && (
-            <nav className="hidden items-center gap-8 md:flex" aria-label="Main">
-              {NAV_LINKS.map((l) => (
-                <Link
-                  key={l.href}
-                  href={l.href}
-                  className="text-[14px] font-semibold text-fw-text hover:opacity-60"
-                >
-                  {l.label}
-                </Link>
-              ))}
-            </nav>
-          )}
+          <div className="flex items-center gap-8">
+            <Link href="/" aria-label="Spinr home">
+              <BrandLogo size={50} />
+            </Link>
+            {isMarketing && (
+              <nav className="hidden items-center gap-7 md:flex" aria-label="Main">
+                {NAV_LINKS.map((l) => (
+                  <Link
+                    key={l.href}
+                    href={l.href}
+                    className="text-[14px] font-semibold text-fw-text hover:opacity-60"
+                  >
+                    {l.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
+          </div>
 
           <div className="flex items-center gap-3">
             {variant === "onboarding" && onReset && (

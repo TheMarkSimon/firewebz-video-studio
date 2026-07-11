@@ -72,6 +72,32 @@ export default function WelcomePage() {
           </div>
         </section>
 
+        {/* Social proof — the HONEST version. No unlicensed brand logos, no
+            invented stats (we're pre-revenue; fabricated trust signals are
+            a legal and credibility trap). Real merchant logos slot in here
+            WITH PERMISSION as design partners sign — see the flex row. */}
+        <section className="mt-24 text-center">
+          <p className="mx-auto max-w-2xl text-[16px] leading-[26px] text-fw-darkGray">
+            Join the first wave of merchants turning flat product pages into products
+            shoppers can <span className="font-semibold text-fw-text">pick up and turn over</span> —
+            on any Shopify theme, from the photos you already have.
+          </p>
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
+            {["Furniture", "Handbags", "Footwear", "Eyewear", "Home decor", "Apparel"].map((c) => (
+              <span
+                key={c}
+                className="rounded-full border border-fw-border bg-white px-4 py-1.5 text-[12px] font-semibold text-fw-darkGray"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+          {/* Design-partner logos land here (permission-based), e.g.:
+              <div className="mt-8 flex items-center justify-center gap-10 opacity-70">
+                <img src="/partners/store1.png" ... />
+              </div> */}
+        </section>
+
         {/* Feature row A — text left, visual right (Canva pattern) */}
         <section id="how" className="mt-32 grid scroll-mt-24 items-center gap-12 md:grid-cols-2">
           <div>
