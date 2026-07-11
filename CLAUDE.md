@@ -203,11 +203,13 @@ call getSessionUser in app/page.tsx — it kills static rendering).
 - Phase 5: Stripe billing (chosen over PayPal deliberately).
 - Phase 6: admin dashboard (users/revenue/fal spend), FAQ/support chat.
 
-Pre-launch checklist: regenerate hero video (current one has hallucinated
-third-party logos + a Nike shoe), Google Workspace for contact@thespinr.com
-(then swap OAuth support email + verify consent screen), move demo frames +
-generated media off fal.media to owned storage, rate-limit anonymous bg
-removal, publish OAuth app out of Testing mode, weekly Neon pg_dump backup.
+Deferred/scale work lives in **SCALING.md** (living checklist — the
+founder triggers it by saying real customers arrived; prune done items,
+add new deferred items there instead of building early). Highlights:
+media off fal.media to owned storage, rate-limit anonymous bg removal,
+uninstall/subscription webhooks, error alerting, App Store submission
+items (GDPR webhooks, listing, payout setup W-8BEN, go-live env switches),
+OAuth out of Testing mode + Workspace for contact@thespinr.com.
 
 ## Voice & design rules
 
