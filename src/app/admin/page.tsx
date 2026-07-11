@@ -67,10 +67,22 @@ export default async function AdminPage() {
   const overageRevenue = billedOverages * parseFloat(overagePriceUsd());
   const estCogs = totalSpins * EST_COGS_PER_SPIN;
 
-  const recentSpins = await prisma.spin.findMany({
+  // EVERY spin ever created (founder call: complaints get investigated by
+  // watching the actual video, which lives on fal.media). Fine unpaginated
+  // at beta volume; add search/pagination when this table gets long.
+  const allSpins = await prisma.spin.findMany({
     orderBy: { createdAt: "desc" },
-    take: 15,
-    select: { id: true, title: true, status: true, createdAt: true, pushedToShopifyAt: true, user: { select: { email: true } } },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      createdAt: true,
+      pushedToShopifyAt: true,
+      videoUrl: true,
+      durationMs: true,
+      errorMessage: true,
+      user: { select: { email: true } },
+    },
   });
 
   return (
@@ -103,7 +115,6 @@ export default async function AdminPage() {
                 <th className="px-4 py-3">Spins</th>
                 <th className="px-4 py-3">Store</th>
                 <th className="px-4 py-3">Plan</th>
-                <th className="px-4 py-3">Contact</th>
               </tr>
             </thead>
             <tbody>
@@ -119,7 +130,18 @@ export default async function AdminPage() {
                     <td className="px-4 py-3 text-fw-darkGray">{u.createdAt.toISOString().slice(0, 10)}</td>
                     <td className="px-4 py-3 text-fw-text">{u._count.spins}</td>
                     <td className="px-4 py-3 text-fw-darkGray">
-                      {conn ? (conn.shopName ?? conn.shop) : "—"}
+                      {conn ? (
+                        <a
+                          href={`https://${conn.shop}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-semibold text-fw-text underline-offset-4 hover:underline"
+                        >
+                          {conn.shopName ?? conn.shop}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {sub === "ACTIVE" ? (
@@ -132,11 +154,6 @@ export default async function AdminPage() {
                         <span className="rounded-full bg-fw-disabled px-2.5 py-1 text-[11px] font-semibold text-fw-darkGray">Free</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <a className="font-semibold text-fw-text underline-offset-4 hover:underline" href={`mailto:${u.email}`}>
-                        Email
-                      </a>
-                    </td>
                   </tr>
                 );
               })}
@@ -144,7 +161,9 @@ export default async function AdminPage() {
           </table>
         </div>
 
-        <h2 className="mt-12 text-[18px] font-bold text-fw-text">Recent spins</h2>
+        <h2 className="mt-12 text-[18px] font-bold text-fw-text">
+          All spins <span className="text-[13px] font-normal text-fw-lightGray">({allSpins.length})</span>
+        </h2>
         <div className="mt-3 overflow-x-auto rounded-2xl border border-fw-border bg-white">
           <table className="w-full text-left text-[13px]">
             <thead className="border-b border-fw-border text-[11px] uppercase tracking-wider text-fw-lightGray">
@@ -152,12 +171,13 @@ export default async function AdminPage() {
                 <th className="px-4 py-3">Title</th>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Video</th>
                 <th className="px-4 py-3">Pushed</th>
                 <th className="px-4 py-3">Created</th>
               </tr>
             </thead>
             <tbody>
-              {recentSpins.map((s) => (
+              {allSpins.map((s) => (
                 <tr key={s.id} className="border-b border-fw-border/60 last:border-0">
                   <td className="px-4 py-3">
                     <a className="font-semibold text-fw-text underline-offset-4 hover:underline" href={`/embed/${s.id}`} target="_blank" rel="noreferrer">
@@ -165,7 +185,30 @@ export default async function AdminPage() {
                     </a>
                   </td>
                   <td className="px-4 py-3 text-fw-darkGray">{s.user.email}</td>
-                  <td className="px-4 py-3 text-fw-darkGray">{s.status}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-fw-darkGray">{s.status}</span>
+                    {s.status === "failed" && s.errorMessage && (
+                      <div className="mt-1 max-w-[260px] truncate text-[11px] text-destructive" title={s.errorMessage}>
+                        {s.errorMessage}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {s.videoUrl ? (
+                      // Raw MP4 on fal.media — the source of truth when a
+                      // merchant complains about quality.
+                      <a
+                        className="font-semibold text-fw-text underline-offset-4 hover:underline"
+                        href={s.videoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        MP4{s.durationMs ? ` (${Math.round(s.durationMs / 1000)}s gen)` : ""}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-fw-darkGray">{s.pushedToShopifyAt ? "✓" : "—"}</td>
                   <td className="px-4 py-3 text-fw-darkGray">{s.createdAt.toISOString().slice(0, 16).replace("T", " ")}</td>
                 </tr>
