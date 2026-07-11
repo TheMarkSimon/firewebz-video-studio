@@ -36,15 +36,19 @@ const MODEL_ID = "fal-ai/bytedance/seedance/v1/lite/reference-to-video";
 const PROMPT =
   "A single product rotating smoothly in place against a pure seamless white " +
   "background, completing exactly one full 360 degree revolution at constant " +
-  "angular velocity. The reference images show the same product from " +
-  "different angles — front, back, and sides; rotate smoothly through all of " +
-  "them in order. Render exactly one item: if the reference photos show a " +
-  "pair or multiple copies of the product, show only a single one. Nothing " +
-  "else in frame — no stand, no pedestal, no platform, no turntable, no " +
-  "stage, no floor, no surface, no shadow, no string, no wire, no thread, no " +
-  "hanging mount, no rig. No acceleration, no deceleration. High-end " +
-  "commercial product photography lighting, crisp sharp textures, product " +
-  "perfectly centered and locked in place for the entire rotation.";
+  "angular velocity. The rotation continues in ONE single direction for the " +
+  "entire clip: it never reverses, never rocks back and forth, never swings " +
+  "back — the product keeps turning the same way until the full circle is " +
+  "complete and the starting view returns at the final frame. The reference " +
+  "images show the same product from different angles — front, back, and " +
+  "sides; rotate smoothly through all of them in order. Render exactly one " +
+  "item: if the reference photos show a pair or multiple copies of the " +
+  "product, show only a single one. Nothing else in frame — no stand, no " +
+  "pedestal, no platform, no turntable, no stage, no floor, no surface, no " +
+  "shadow, no string, no wire, no thread, no hanging mount, no rig. No " +
+  "acceleration, no deceleration. High-end commercial product photography " +
+  "lighting, crisp sharp textures, product perfectly centered and locked in " +
+  "place for the entire rotation.";
 
 function dataUrlToBlob(dataUrl: string): Blob {
   const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
@@ -76,6 +80,11 @@ async function buildReferenceUrls(fal: any, input: SpinVideoInput, key: string):
   const urls: string[] = await Promise.all(
     [input.imageUrl, ...(input.extraImageUrls ?? [])].map(toUrl),
   );
+  // SPINR_DISABLE_FLATTEN=1: A/B lever for diagnosing generation quality —
+  // flattening fixed backdrop hallucination (lesson 11) but is the prime
+  // suspect for the 180°-rock regression (2026-07-11). Toggle, regenerate,
+  // compare; remove the lever once the verdict is in.
+  if (process.env.SPINR_DISABLE_FLATTEN === "1") return urls;
   return Promise.all(urls.map(async (u) => (await flattenToWhite(u, key)) ?? u));
 }
 
