@@ -70,6 +70,24 @@ export default function WelcomePage() {
               className="aspect-video w-full rounded-3xl border border-fw-border object-cover shadow-[0_24px_80px_-32px_rgba(16,16,18,0.25)]"
             />
           </div>
+
+          {/* Real-spin strip — proof instead of claims: actual generator
+              output across categories, where a borrowed-logo wall would
+              have stood. */}
+          <div className="mt-12 w-full max-w-5xl">
+            <p className="text-center text-[12px] font-semibold uppercase tracking-[0.18em] text-fw-lightGray">
+              Real spins, straight out of Spinr
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
+              {["shoes", "handbag", "furniture", "main2"].map((v) => (
+                <SequenceVideo
+                  key={v}
+                  sources={[`/videos/${v}.mp4`]}
+                  className="aspect-square w-full rounded-2xl border border-fw-border bg-white object-cover"
+                />
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* Social proof — the HONEST version. No unlicensed brand logos, no
