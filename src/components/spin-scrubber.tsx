@@ -4,19 +4,24 @@ import { useEffect, useRef, useState } from "react";
 
 // Horizontal drag-to-spin widget.
 //
-// Preferred mode: canvas flipbook over N pre-decoded WebP frames. This is
-// what makes it feel instant on mobile Safari — no video decoding on the
-// interaction path, just Image → canvas blit.
+// Preferred mode: HYBRID — the raw MP4 plays on loop while idle (native
+// 24-30fps smoothness, the same file fal renders), and the instant the
+// shopper grabs it we swap to a canvas flipbook over the pre-decoded frames
+// at the matching angle (instant scrubbing, no video decode on the
+// interaction path). On release the video resumes from that same angle.
+// Kill switch: NEXT_PUBLIC_DISABLE_HYBRID=1 (build-time env) reverts to the
+// frames-only flipbook without a code change.
 //
-// Fallback mode: HTML5 <video> currentTime scrubbing. Used when frame
-// extraction failed server-side. Laggy on iOS, acceptable on desktop.
+// Degradations, in order: video missing/fails → frames-only flipbook;
+// frames missing → <video> currentTime scrubbing (laggy on iOS, acceptable
+// on desktop); neither → placeholder.
 //
-// Vertical drag is intentionally ignored (rotation only). Auto-rotates
-// slowly when idle. Same props whichever mode ends up active.
+// Vertical drag is intentionally ignored (rotation only). Same props
+// whichever mode ends up active.
 
 interface SpinScrubberProps {
-  frameUrls?: string[];          // preferred: WebP frame sequence
-  videoUrl?: string;             // fallback: MP4 for currentTime scrubbing
+  frameUrls?: string[];          // JPEG frame sequence (drag surface)
+  videoUrl?: string;             // MP4 (idle surface / scrub fallback)
   className?: string;
   pixelsPerRevolution?: number;  // default = container width
   autoRotate?: boolean;
@@ -24,13 +29,221 @@ interface SpinScrubberProps {
 }
 
 export function SpinScrubber(props: SpinScrubberProps) {
-  if (props.frameUrls && props.frameUrls.length > 1) {
-    return <CanvasFlipbook {...props} frameUrls={props.frameUrls} />;
+  const hybridDisabled = process.env.NEXT_PUBLIC_DISABLE_HYBRID === "1";
+  const hasFrames = Boolean(props.frameUrls && props.frameUrls.length > 1);
+  if (hasFrames && props.videoUrl && !hybridDisabled) {
+    return <HybridSpin {...props} frameUrls={props.frameUrls!} videoUrl={props.videoUrl} />;
+  }
+  if (hasFrames) {
+    return <CanvasFlipbook {...props} frameUrls={props.frameUrls!} />;
   }
   if (props.videoUrl) {
     return <VideoScrubber {...props} videoUrl={props.videoUrl} />;
   }
   return <div className={`flex items-center justify-center bg-fw-disabled ${props.className ?? ""}`}>No spin available</div>;
+}
+
+// -----------------------------------------------------------------------------
+// Hybrid: video while idle, frames while dragging
+// -----------------------------------------------------------------------------
+
+function HybridSpin({
+  frameUrls,
+  videoUrl,
+  className = "",
+  pixelsPerRevolution,
+  autoRotate = true,
+}: Required<Pick<SpinScrubberProps, "frameUrls" | "videoUrl">> & SpinScrubberProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const imagesRef = useRef<HTMLImageElement[]>([]);
+  const frameFloatRef = useRef<number>(0);
+  const drawnFrameRef = useRef<number>(-1);
+  const dragStateRef = useRef<{ startX: number; startFloat: number; widgetWidth: number } | null>(null);
+  const pendingSeekCleanupRef = useRef<(() => void) | null>(null);
+
+  const [loadedCount, setLoadedCount] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  // Which layer is visible. Video by default; canvas while dragging.
+  const [surface, setSurface] = useState<"video" | "canvas">("video");
+
+  const N = frameUrls.length;
+  const allLoaded = loadedCount === N;
+
+  // Preload frames in the background — the video covers the experience
+  // meanwhile; dragging arms itself once every frame is decoded.
+  useEffect(() => {
+    setLoadedCount(0);
+    imagesRef.current = [];
+    let cancelled = false;
+    let loaded = 0;
+    frameUrls.forEach((url, i) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = url;
+      const done = () => {
+        if (cancelled) return;
+        loaded++;
+        setLoadedCount(loaded);
+      };
+      img.onload = () => {
+        if (cancelled) return;
+        imagesRef.current[i] = img;
+        done();
+      };
+      img.onerror = done;
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frameUrls]);
+
+  // Video wiring: autoplay (muted+inline is allowed everywhere) + failure
+  // detection. A failed video demotes the whole widget to frames-only.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const onCanPlay = () => {
+      setVideoReady(true);
+      if (autoRotate) v.play().catch(() => { /* poster frame is fine */ });
+    };
+    const onError = () => setVideoFailed(true);
+    if (v.readyState >= 3) onCanPlay();
+    v.addEventListener("canplay", onCanPlay);
+    v.addEventListener("error", onError);
+    return () => {
+      v.removeEventListener("canplay", onCanPlay);
+      v.removeEventListener("error", onError);
+    };
+  }, [videoUrl, autoRotate]);
+
+  function drawFrame(index: number) {
+    if (drawnFrameRef.current === index) return;
+    const canvas = canvasRef.current;
+    const img = imagesRef.current[index];
+    if (!canvas || !img) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    if (canvas.width !== img.naturalWidth || canvas.height !== img.naturalHeight) {
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+    }
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    drawnFrameRef.current = index;
+  }
+
+  // Pointer events: grab → freeze video at its current angle and hand the
+  // same angle to the flipbook; release → seek the video back to the final
+  // angle and resume, swapping surfaces only after the seek completes so
+  // there is no visible jump.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onDown = (e: PointerEvent) => {
+      if (!allLoaded) return; // drag arms once frames are decoded
+      const v = videoRef.current;
+      pendingSeekCleanupRef.current?.();
+      el.setPointerCapture(e.pointerId);
+      let startFloat = frameFloatRef.current;
+      if (v && v.duration && !videoFailed) {
+        v.pause();
+        startFloat = ((v.currentTime / v.duration) * N) % N;
+      }
+      frameFloatRef.current = startFloat;
+      drawnFrameRef.current = -1; // force a fresh paint at the grab angle
+      drawFrame(Math.floor(startFloat));
+      setSurface("canvas");
+      dragStateRef.current = { startX: e.clientX, startFloat, widgetWidth: el.clientWidth };
+      setIsDragging(true);
+    };
+    const onMove = (e: PointerEvent) => {
+      const s = dragStateRef.current;
+      if (!s) return;
+      const revolutionPx = pixelsPerRevolution ?? s.widgetWidth;
+      const delta = e.clientX - s.startX;
+      // Negate so a right-drag pushes the near edge in the drag direction.
+      const framesDelta = -(delta / revolutionPx) * N;
+      let next = s.startFloat + framesDelta;
+      next = ((next % N) + N) % N;
+      frameFloatRef.current = next;
+      drawFrame(Math.floor(next));
+    };
+    const onUp = (e: PointerEvent) => {
+      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+      if (!dragStateRef.current) return;
+      dragStateRef.current = null;
+      setIsDragging(false);
+
+      const v = videoRef.current;
+      if (!v || !v.duration || videoFailed) return; // stay on canvas
+      const t = (frameFloatRef.current / N) * v.duration;
+      const swapBack = () => {
+        pendingSeekCleanupRef.current?.();
+        setSurface("video");
+        if (autoRotate) v.play().catch(() => {});
+      };
+      const onSeeked = () => swapBack();
+      v.addEventListener("seeked", onSeeked, { once: true });
+      // Safety: if `seeked` never fires (some in-app browsers), swap anyway.
+      const timer = setTimeout(swapBack, 250);
+      pendingSeekCleanupRef.current = () => {
+        v.removeEventListener("seeked", onSeeked);
+        clearTimeout(timer);
+        pendingSeekCleanupRef.current = null;
+      };
+      v.currentTime = t;
+    };
+
+    el.addEventListener("pointerdown", onDown);
+    el.addEventListener("pointermove", onMove);
+    el.addEventListener("pointerup", onUp);
+    el.addEventListener("pointercancel", onUp);
+    return () => {
+      el.removeEventListener("pointerdown", onDown);
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerup", onUp);
+      el.removeEventListener("pointercancel", onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allLoaded, pixelsPerRevolution, N, videoFailed, autoRotate]);
+
+  // Video hard-failed → the plain flipbook IS the experience.
+  if (videoFailed) {
+    return <CanvasFlipbook frameUrls={frameUrls} className={className} pixelsPerRevolution={pixelsPerRevolution} autoRotate={autoRotate} />;
+  }
+
+  const showCanvas = surface === "canvas";
+
+  return (
+    <div
+      ref={containerRef}
+      className={`relative select-none touch-none ${allLoaded ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-default"} ${className}`}
+      style={{ touchAction: "none" }}
+    >
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        preload="auto"
+        muted
+        loop
+        playsInline
+        autoPlay={autoRotate}
+        className={`h-full w-full object-contain pointer-events-none ${showCanvas ? "invisible" : ""}`}
+      />
+      <canvas
+        ref={canvasRef}
+        className={`absolute inset-0 h-full w-full object-contain pointer-events-none ${showCanvas ? "" : "invisible"}`}
+      />
+      {!videoReady && !allLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/60 text-[13px] text-fw-darkGray">
+          Loading spin…
+        </div>
+      )}
+    </div>
+  );
 }
 
 // Tiny badge you can drop next to the scrubber to see which mode is active

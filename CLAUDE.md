@@ -112,9 +112,12 @@ build; set SMOKE_BASE_URL=https://thespinr.com for a post-deploy check).
 - `app/embed/[spinId]` — public, serves ONLY ready spins from DB, can never
   trigger a paid generation. `app/embed/spin.js` — script merchants paste
   (`<div data-spinr="ID">` → iframe). iframe headers in next.config.mjs.
-- `components/spin-scrubber.tsx` — canvas flipbook (preferred) + `<video>`
-  fallback. Horizontal drag only; auto-rotates idle; drag direction follows
-  the finger.
+- `components/spin-scrubber.tsx` — HYBRID playback: raw MP4 loops while
+  idle (native smoothness), swaps to the canvas flipbook at the matching
+  angle on grab (instant scrubbing), video resumes from that angle on
+  release. NEXT_PUBLIC_DISABLE_HYBRID=1 reverts to frames-only without a
+  code change. Degrades: video fails → flipbook; no frames → `<video>`
+  scrubbing. Horizontal drag only; drag direction follows the finger.
 - `lib/providers/spinvideo/` — provider interface (queue-only: submit +
   fetchQueueResult). `seedance.ts` is THE provider; the Kling fallback and
   the sync generate() path were REMOVED 2026-07 (dead code — resurrect from
