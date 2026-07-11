@@ -6,6 +6,7 @@ import { RotatingWord } from "@/components/hero";
 import { ArrowRight, Camera, Store, Check, TrendingUp, Undo2, MonitorSmartphone } from "lucide-react";
 import { SpinrIcon } from "@/components/spinr-icon";
 import { SequenceVideo } from "@/components/sequence-video";
+import { SpinScrubber } from "@/components/spin-scrubber";
 import { overagePriceUsd, proIncludedSpins, proPriceUsd } from "@/lib/shopify";
 
 export const metadata: Metadata = {
@@ -71,19 +72,18 @@ export default function WelcomePage() {
             />
           </div>
 
-          {/* Real-spin strip — proof instead of claims: actual generator
-              output across categories, where a borrowed-logo wall would
-              have stood. */}
+          {/* Real-spin strip — proof instead of claims: the founder's actual
+              generated spins, LIVE and draggable right on the homepage. */}
           <div className="mt-12 w-full max-w-5xl">
             <p className="text-center text-[12px] font-semibold uppercase tracking-[0.18em] text-fw-lightGray">
-              Real spins, straight out of Spinr
+              Real spins, straight out of Spinr — grab one and turn it
             </p>
             <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
-              {["shoes", "handbag", "furniture", "main2"].map((v) => (
-                <SequenceVideo
+              {["spin-bag", "spin-sunglasses", "spin-chair", "spin-sandal"].map((v) => (
+                <SpinScrubber
                   key={v}
-                  sources={[`/videos/${v}.mp4`]}
-                  className="aspect-square w-full rounded-2xl border border-fw-border bg-white object-cover"
+                  videoUrl={`/videos/${v}.mp4`}
+                  className="aspect-square w-full overflow-hidden rounded-2xl border border-fw-border bg-white"
                 />
               ))}
             </div>

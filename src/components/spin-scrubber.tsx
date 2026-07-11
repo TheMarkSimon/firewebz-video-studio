@@ -220,8 +220,9 @@ function HybridSpin({
   return (
     <div
       ref={containerRef}
-      className={`relative select-none touch-none ${allLoaded ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-default"} ${className}`}
-      style={{ touchAction: "none" }}
+      className={`relative select-none ${allLoaded ? (isDragging ? "cursor-grabbing" : "cursor-grab") : "cursor-default"} ${className}`}
+      // pan-y: horizontal drag spins, vertical swipe still scrolls the page.
+      style={{ touchAction: "pan-y" }}
     >
       <video
         ref={videoRef}
@@ -398,8 +399,8 @@ function CanvasFlipbook({
   return (
     <div
       ref={containerRef}
-      className={`relative select-none touch-none ${isDragging ? "cursor-grabbing" : "cursor-grab"} ${className}`}
-      style={{ touchAction: "none" }}
+      className={`relative select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"} ${className}`}
+      style={{ touchAction: "pan-y" }}
     >
       <canvas
         ref={canvasRef}
@@ -426,49 +427,27 @@ function VideoScrubber({
   className = "",
   pixelsPerRevolution,
   autoRotate = true,
-  autoRotateSpeed = 0.1,
 }: Required<Pick<SpinScrubberProps, "videoUrl">> & SpinScrubberProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragStateRef = useRef<{ startX: number; startTime: number; widgetWidth: number } | null>(null);
-  const idleAnimRef = useRef<number | null>(null);
-  const lastFrameTimeRef = useRef<number>(0);
 
+  // Idle = NATIVE looping playback (smooth 24-30fps, no seek-stepping);
+  // grab = pause + currentTime scrubbing; release = resume from that angle.
+  // Same feel as the hybrid widget, minus the frame set.
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
-    const onReady = () => setIsReady(true);
-    if (v.readyState >= 4) onReady();
-    v.addEventListener("canplaythrough", onReady);
-    return () => v.removeEventListener("canplaythrough", onReady);
-  }, [videoUrl]);
-
-  useEffect(() => {
-    if (!autoRotate || !isReady || isDragging) {
-      if (idleAnimRef.current) cancelAnimationFrame(idleAnimRef.current);
-      return;
-    }
-    const tick = (t: number) => {
-      const v = videoRef.current;
-      if (!v || !v.duration || isNaN(v.duration)) {
-        idleAnimRef.current = requestAnimationFrame(tick);
-        return;
-      }
-      if (lastFrameTimeRef.current === 0) lastFrameTimeRef.current = t;
-      const dt = (t - lastFrameTimeRef.current) / 1000;
-      lastFrameTimeRef.current = t;
-      const newTime = (v.currentTime + dt * v.duration * autoRotateSpeed) % v.duration;
-      v.currentTime = newTime < 0 ? newTime + v.duration : newTime;
-      idleAnimRef.current = requestAnimationFrame(tick);
+    const onReady = () => {
+      setIsReady(true);
+      if (autoRotate) v.play().catch(() => { /* poster frame is fine */ });
     };
-    idleAnimRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (idleAnimRef.current) cancelAnimationFrame(idleAnimRef.current);
-      lastFrameTimeRef.current = 0;
-    };
-  }, [autoRotate, autoRotateSpeed, isReady, isDragging]);
+    if (v.readyState >= 3) onReady();
+    v.addEventListener("canplay", onReady);
+    return () => v.removeEventListener("canplay", onReady);
+  }, [videoUrl, autoRotate]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -477,6 +456,7 @@ function VideoScrubber({
       const v = videoRef.current;
       if (!v || !v.duration) return;
       el.setPointerCapture(e.pointerId);
+      v.pause();
       dragStateRef.current = { startX: e.clientX, startTime: v.currentTime, widgetWidth: el.clientWidth };
       setIsDragging(true);
     };
@@ -492,8 +472,10 @@ function VideoScrubber({
     };
     const onUp = (e: PointerEvent) => {
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+      if (!dragStateRef.current) return;
       dragStateRef.current = null;
       setIsDragging(false);
+      if (autoRotate) videoRef.current?.play().catch(() => {});
     };
     el.addEventListener("pointerdown", onDown);
     el.addEventListener("pointermove", onMove);
@@ -505,20 +487,24 @@ function VideoScrubber({
       el.removeEventListener("pointerup", onUp);
       el.removeEventListener("pointercancel", onUp);
     };
-  }, [isReady, pixelsPerRevolution]);
+  }, [isReady, pixelsPerRevolution, autoRotate]);
 
   return (
     <div
       ref={containerRef}
-      className={`relative select-none touch-none ${isDragging ? "cursor-grabbing" : "cursor-grab"} ${className}`}
-      style={{ touchAction: "none" }}
+      className={`relative select-none ${isDragging ? "cursor-grabbing" : "cursor-grab"} ${className}`}
+      // pan-y: horizontal drags spin the product, vertical swipes still
+      // scroll the page — without this, tiles are scroll traps on mobile.
+      style={{ touchAction: "pan-y" }}
     >
       <video
         ref={videoRef}
         src={videoUrl}
         preload="auto"
         muted
+        loop
         playsInline
+        autoPlay={autoRotate}
         className="w-full h-full object-contain pointer-events-none"
       />
       {!isReady && (
