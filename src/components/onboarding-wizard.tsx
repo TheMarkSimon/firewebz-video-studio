@@ -222,7 +222,7 @@ export function OnboardingWizard({
 
         <div className="mt-10 flex flex-wrap items-center gap-3">
           <Button disabled={!canGenerate || isPending} onClick={onGenerateClick} className="h-11 px-8">
-            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SpinrIcon className="h-4 w-4" />}
             {isEdit ? "Save & continue" : "Generate my spin"}
           </Button>
           {blockReason && <span className="text-[12px] text-fw-darkGray">{blockReason}</span>}
