@@ -52,11 +52,11 @@ export default function WelcomePage() {
             shoppers can drag. Any Shopify page, three minutes, no code.
           </p>
 
-          <div className="mt-8">
-            <Button asChild size="lg" className="min-w-[240px]">
+          <div className="mt-8 flex w-full justify-center px-4">
+            <Button asChild size="lg" className="h-auto min-w-0 max-w-full whitespace-normal py-3.5 sm:min-w-[240px]">
               <Link href="/onboarding">
                 Create your first spin — free
-                <ArrowRight className="ml-1.5 h-4 w-4" />
+                <ArrowRight className="ml-1.5 h-4 w-4 shrink-0" />
               </Link>
             </Button>
           </div>
@@ -73,26 +73,99 @@ export default function WelcomePage() {
 
         </section>
 
+        {/* Real work examples — the designer's ask: show the spin IN a store,
+            not floating in space. A neutral storefront mockup (no fake brand)
+            with real generated spins looping in the gallery slot. Interaction
+            deliberately lives behind the "live spin" link → a real /embed
+            page with the production frame-based widget (the smooth one) —
+            we don't re-ship the laggy video-scrub tiles. */}
+        <section className="mt-24">
+          <h2 className="text-center font-display text-[28px] font-bold leading-tight text-fw-text md:text-[34px]">
+            This is how it looks on your store.
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-center text-[15px] text-fw-darkGray">
+            Real spins, generated from ordinary product photos — sitting on a product page
+            like yours.
+          </p>
+
+          <div className="mx-auto mt-10 max-w-4xl overflow-hidden rounded-3xl border border-fw-border bg-white shadow-[0_24px_80px_-40px_rgba(16,16,18,0.3)]">
+            {/* browser chrome */}
+            <div className="flex items-center gap-2 border-b border-fw-border bg-fw-disabled/40 px-4 py-2.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-fw-lighterGray" />
+              <span className="h-2.5 w-2.5 rounded-full bg-fw-lighterGray" />
+              <span className="h-2.5 w-2.5 rounded-full bg-fw-lighterGray" />
+              <span className="ml-3 flex-1 truncate rounded-full bg-white px-3 py-1 text-[11px] text-fw-lightGray">
+                yourstore.com/products/best-seller
+              </span>
+            </div>
+            {/* product page: spin in the gallery slot, buy box beside it */}
+            <div className="grid items-center gap-8 p-6 md:grid-cols-2 md:p-10">
+              <SequenceVideo
+                sources={[
+                  "/videos/spin-bag.mp4",
+                  "/videos/spin-sunglasses.mp4",
+                  "/videos/spin-chair.mp4",
+                  "/videos/spin-sandal.mp4",
+                ]}
+                className="aspect-square w-full rounded-2xl bg-white object-contain"
+              />
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-fw-lightGray">
+                  Your store
+                </p>
+                <h3 className="mt-1.5 text-[24px] font-bold text-fw-text">Your product</h3>
+                <p className="mt-2 text-[18px] font-semibold text-fw-text">$149.00</p>
+                <div className="mt-6 flex h-11 w-full items-center justify-center rounded-pill bg-fw-black text-[14px] font-semibold text-white">
+                  Add to cart
+                </div>
+                <div className="mt-5 space-y-2.5">
+                  <div className="h-2.5 w-full rounded-full bg-fw-disabled" />
+                  <div className="h-2.5 w-5/6 rounded-full bg-fw-disabled" />
+                  <div className="h-2.5 w-2/3 rounded-full bg-fw-disabled" />
+                </div>
+                <p className="mt-6 text-[12px] text-fw-darkGray">
+                  ↑ Shoppers drag the spin right in the gallery — mouse on desktop, finger on
+                  mobile.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-fw-lightGray">
+              Works across categories
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+              {["Furniture", "Handbags", "Footwear", "Eyewear", "Home decor", "Apparel"].map((c) => (
+                <span
+                  key={c}
+                  className="rounded-full border border-fw-border bg-white px-4 py-1.5 text-[12px] font-semibold text-fw-darkGray"
+                >
+                  {c}
+                </span>
+              ))}
+            </div>
+            <a
+              href="/embed/cmrgqvptl0003wtn22rmsteha"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-6 inline-flex items-center gap-1.5 text-[14px] font-semibold text-fw-text underline-offset-4 hover:underline"
+            >
+              Play with a live spin <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
+        </section>
+
         {/* Social proof — the HONEST version. No unlicensed brand logos, no
             invented stats (we're pre-revenue; fabricated trust signals are
             a legal and credibility trap). Real merchant logos slot in here
-            WITH PERMISSION as design partners sign — see the flex row. */}
+            WITH PERMISSION as design partners sign. */}
         <section className="mt-24 text-center">
           <p className="mx-auto max-w-2xl text-[16px] leading-[26px] text-fw-darkGray">
             Join the first wave of merchants turning flat product pages into products
             shoppers can <span className="font-semibold text-fw-text">pick up and turn over</span> —
             on any Shopify theme, from the photos you already have.
           </p>
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-2.5">
-            {["Furniture", "Handbags", "Footwear", "Eyewear", "Home decor", "Apparel"].map((c) => (
-              <span
-                key={c}
-                className="rounded-full border border-fw-border bg-white px-4 py-1.5 text-[12px] font-semibold text-fw-darkGray"
-              >
-                {c}
-              </span>
-            ))}
-          </div>
           {/* Design-partner logos land here (permission-based), e.g.:
               <div className="mt-8 flex items-center justify-center gap-10 opacity-70">
                 <img src="/partners/store1.png" ... />
@@ -249,11 +322,11 @@ export default function WelcomePage() {
           <p className="mt-4 text-[16px] text-white/70">
             Start free — no credit card. See your first spin in under three minutes.
           </p>
-          <div className="mt-8">
-            <Button asChild size="lg" className="min-w-[240px]">
+          <div className="mt-8 flex w-full justify-center px-4">
+            <Button asChild size="lg" className="h-auto min-w-0 max-w-full whitespace-normal py-3.5 sm:min-w-[240px]">
               <Link href="/onboarding">
                 Create your first spin — free
-                <ArrowRight className="ml-1.5 h-4 w-4" />
+                <ArrowRight className="ml-1.5 h-4 w-4 shrink-0" />
               </Link>
             </Button>
           </div>
