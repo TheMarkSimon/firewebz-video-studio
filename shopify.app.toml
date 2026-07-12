@@ -1,0 +1,32 @@
+# Shopify app configuration — the source of truth for the app's settings in
+# Shopify's Dev Dashboard. Deploy changes with:  shopify app deploy
+# (Shopify removed the dashboard UI for compliance webhooks; this file is
+# how they're configured now.)
+
+client_id = "d6a3575d86d37718e0456917cb60666e"
+name = "Spinr"
+application_url = "https://thespinr.com/api/shopify/install"
+embedded = false
+
+[access_scopes]
+scopes = "read_products,write_products"
+
+[auth]
+redirect_urls = [
+  "https://thespinr.com/api/shopify/callback",
+  "http://localhost:3000/api/shopify/callback",
+]
+
+[webhooks]
+api_version = "2026-07"
+
+  # Mandatory GDPR compliance topics — all served by our HMAC-verified
+  # endpoint (see src/app/api/webhooks/shopify/route.ts). The app/uninstalled
+  # and subscription-update topics are registered per-shop via API at OAuth
+  # time, not here.
+  [[webhooks.subscriptions]]
+  compliance_topics = ["customers/data_request", "customers/redact", "shop/redact"]
+  uri = "https://thespinr.com/api/webhooks/shopify"
+
+[pos]
+embedded = false
