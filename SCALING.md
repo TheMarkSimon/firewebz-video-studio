@@ -28,27 +28,17 @@ when finished; add items as they're discovered; date additions.
   alerts) so a broken generation pipeline announces itself.
 - [ ] **Weekly Neon backups** (pg_dump cron or Neon PITR tier). The DB is
   the business: users, spins, connections, usage ledger.
-- [ ] **Shopify `app/uninstalled` webhook.** Right now, if a merchant
-  uninstalls the app from Shopify, our ShopifyConnection row keeps a dead
-  token and the UI says "connected". Webhook → mark disconnected, clear
-  subscription state.
-- [ ] **`APP_SUBSCRIPTIONS_UPDATE` webhook.** Merchant-side cancellations
-  currently only reconcile when they revisit the billing callback/studio.
-  Webhook keeps subscriptionStatus truthful in real time (matters once
-  quota enforcement is on).
 - [ ] **Website analytics** (Plausible — one script, privacy-friendly, no
   cookie banner). Funnel visibility: visits → onboarding → generate →
   connect. No admin table answers this.
 - [ ] **Encrypt Shopify access tokens at rest** (currently plaintext
   column; flagged in schema comment).
-- [ ] **Privacy policy + Terms pages.** Required for Shopify App Store
-  review anyway; also expected by any merchant who checks the footer.
 
 ## Do at App Store submission (launch chapter)
 
-- [ ] Shopify **GDPR webhooks** (customers/data_request, customers/redact,
-  shop/redact) — mandatory for review.
 - [ ] **App Store listing** (copy, screenshots, demo video) + review.
+- [ ] **Embedded admin app** (App Bridge + session tokens + admin UI for
+  the core loop) — required for listing; the long pole.
 - [ ] **Register for the 0% revenue-share plan** in the Partner dashboard
   (before the first real dollar, not after).
 - [ ] **Payout setup**: bank details + W-8BEN (founder is an Israeli tax
@@ -87,6 +77,14 @@ when finished; add items as they're discovered; date additions.
   merchant-of-record and handle global sales tax for a solo founder).
 
 ## Done (kept for the record)
+
+- [x] GDPR compliance webhooks + app/uninstalled + APP_SUBSCRIPTIONS_UPDATE
+  (one HMAC-verified endpoint, /api/webhooks/shopify; lifecycle topics
+  auto-registered at OAuth callback) (2026-07-12).
+- [x] Privacy policy (/privacy) + Terms (/terms), linked in footer —
+  founder review pending (2026-07-12).
+- [x] App Store install entry (/api/shopify/install: HMAC-checked, straight
+  to OAuth; signed-out installs resume after Google sign-in) (2026-07-12).
 
 - [x] Embeds serve directly from CDN, never via /api/proxy (2026-07-10) —
   per-view cost ≈ $0.

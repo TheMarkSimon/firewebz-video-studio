@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { SpinCard } from "@/components/spin-card";
@@ -37,6 +39,18 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
         </div>
       </AppShell>
     );
+  }
+
+  // App Store install resume: the install route parks the shop domain in a
+  // cookie when the merchant had no Spinr session; now that they're signed
+  // in, continue straight into the OAuth connect flow (which clears the
+  // cookie on its redirect).
+  const pendingShop = (await cookies()).get("spinr_pending_shop")?.value;
+  if (pendingShop) {
+    const existing = await prisma.shopifyConnection.findFirst({
+      where: { userId: user.id, shop: pendingShop },
+    });
+    if (!existing) redirect(`/api/shopify/connect?shop=${encodeURIComponent(pendingShop)}`);
   }
 
   const sp = await searchParams;

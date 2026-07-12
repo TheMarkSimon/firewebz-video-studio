@@ -267,6 +267,45 @@ export async function setSpinMetafield(
   }
 }
 
+// Register app-lifecycle webhooks (idempotent: "already taken" errors are
+// expected on reconnect and ignored). Called after every OAuth callback so
+// each installed shop reports uninstalls and subscription changes to
+// /api/webhooks/shopify. The GDPR compliance topics are NOT registered here
+// — Shopify only accepts those via the Partner dashboard configuration.
+export async function registerAppWebhooks(
+  shop: string,
+  accessToken: string,
+  origin: string,
+): Promise<void> {
+  const callbackUrl = `${origin}/api/webhooks/shopify`;
+  for (const topic of ["APP_UNINSTALLED", "APP_SUBSCRIPTIONS_UPDATE"]) {
+    try {
+      const data = await shopifyGraphQL<{
+        webhookSubscriptionCreate: {
+          userErrors: Array<{ message: string }>;
+        };
+      }>(
+        shop,
+        accessToken,
+        `mutation Register($topic: WebhookSubscriptionTopic!, $sub: WebhookSubscriptionInput!) {
+          webhookSubscriptionCreate(topic: $topic, webhookSubscription: $sub) {
+            userErrors { message }
+          }
+        }`,
+        { topic, sub: { callbackUrl, format: "JSON" } },
+      );
+      const errs = data.webhookSubscriptionCreate.userErrors ?? [];
+      const real = errs.filter((e) => !/taken/i.test(e.message));
+      if (real.length) {
+        console.error(`[shopify] webhook ${topic} registration:`, real.map((e) => e.message).join("; "));
+      }
+    } catch (err) {
+      // Non-fatal: the poll/reconcile paths still keep state roughly right.
+      console.error(`[shopify] webhook ${topic} registration failed:`, err);
+    }
+  }
+}
+
 // --- Billing (app subscriptions) --------------------------------------------
 //
 // Merchants pay THROUGH Shopify: we create an AppSubscription, they approve

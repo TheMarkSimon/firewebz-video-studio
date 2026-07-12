@@ -38,6 +38,9 @@ export async function GET(req: NextRequest) {
 
   const state = randomBytes(16).toString("hex");
   const res = NextResponse.redirect(buildAuthorizeUrl(shop, `${origin}/api/shopify/callback`, state));
+  // Consumed the App Store install hand-off (if any) — clear it so /studio
+  // stops redirecting here.
+  res.cookies.delete("spinr_pending_shop");
   res.cookies.set(SHOPIFY_STATE_COOKIE, state, {
     httpOnly: true,
     secure: origin.startsWith("https://"),

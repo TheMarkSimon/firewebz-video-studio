@@ -138,6 +138,10 @@ function MarketingFooter() {
           <a href="mailto:contact@thespinr.com" className="font-semibold text-fw-text hover:opacity-60">
             contact@thespinr.com
           </a>
+          <div className="flex gap-4">
+            <Link href="/privacy" className="hover:text-fw-text">Privacy</Link>
+            <Link href="/terms" className="hover:text-fw-text">Terms</Link>
+          </div>
           <span>© {new Date().getFullYear()} Spinr. All rights reserved.</span>
         </div>
       </div>

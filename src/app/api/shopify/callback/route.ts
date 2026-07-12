@@ -11,6 +11,7 @@ import { getAppOrigin } from "@/lib/app-origin";
 import {
   exchangeCodeForToken,
   normalizeShopDomain,
+  registerAppWebhooks,
   shopifyConfigured,
   shopifyGraphQL,
   verifyOAuthHmac,
@@ -98,6 +99,9 @@ export async function GET(req: NextRequest) {
     create: { userId, shop, shopName, accessToken, tokenExpiresAt: expiresAt, scope },
     update: { shopName, accessToken, tokenExpiresAt: expiresAt, scope },
   });
+
+  // Uninstall + subscription-change webhooks (non-fatal if it hiccups).
+  await registerAppWebhooks(shop, accessToken, origin);
 
   return studioRedirect(origin, { shopify: "connected", shop });
 }
