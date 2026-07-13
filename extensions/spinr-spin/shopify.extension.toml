@@ -3,3 +3,4 @@
 # paste. Deployed alongside the app config via `shopify app deploy`.
 type = "theme"
 name = "Spinr"
+uid = "d27183c7-3cf6-0f9c-5b6c-e5c140e93c47d90e8462"

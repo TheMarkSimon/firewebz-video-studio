@@ -29,6 +29,14 @@ declare global {
   }
 }
 
+// Theme-editor deep link that opens the product template WITH the Spinr
+// block pre-added — one click instead of add-block instructions. The uid is
+// the theme extension's public id from extensions/spinr-spin/*.toml.
+const THEME_EXTENSION_UID = "d27183c7-3cf6-0f9c-5b6c-e5c140e93c47d90e8462";
+function themeBlockDeepLink(shop: string): string {
+  return `https://${shop}/admin/themes/current/editor?template=product&addAppBlockId=${THEME_EXTENSION_UID}/spinr-spin&target=mainSection`;
+}
+
 interface EmbeddedState {
   shop: string;
   shopName: string;
@@ -133,7 +141,9 @@ function EmbeddedApp() {
     setNotice(null);
     try {
       await api("/api/embedded/push", { method: "POST", body: JSON.stringify({ spinId }) });
-      setNotice("Pushed — the spin is linked to the product. Add the Spinr block to your theme once and it appears on the page.");
+      setNotice(
+        "Pushed — the spin is linked to the product. If you haven't added the Spinr block to your theme yet, use the one-click setup at the bottom of this page (once, for the whole catalog).",
+      );
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Push failed.");
     } finally {
@@ -332,15 +342,24 @@ function EmbeddedApp() {
 
         <Card>
           <BlockStack gap="200">
-            <Text as="h2" variant="headingSm">
-              One-time theme setup
-            </Text>
-            <Text as="p" tone="subdued" variant="bodySm">
-              To show pushed spins on your product pages: open your theme editor (Online Store
-              → Customize), pick the Default product template, click Add block, and choose
-              &quot;Spinr 360° spin&quot; under Apps. Do it once — every pushed spin then
-              appears automatically, and products without a spin are untouched.
-            </Text>
+            <InlineStack align="space-between" blockAlign="center">
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingSm">
+                  One-time theme setup
+                </Text>
+                <Text as="p" tone="subdued" variant="bodySm">
+                  Pushed spins appear on product pages through the Spinr block in your theme.
+                  Add it once — every pushed spin shows automatically (even ones pushed before),
+                  and products without a spin are untouched.
+                </Text>
+              </BlockStack>
+              <Button
+                variant="primary"
+                onClick={() => window.open(themeBlockDeepLink(state.shop), "_top")}
+              >
+                Add the Spinr block
+              </Button>
+            </InlineStack>
           </BlockStack>
         </Card>
       </BlockStack>
