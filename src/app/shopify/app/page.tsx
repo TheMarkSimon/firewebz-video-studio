@@ -336,10 +336,10 @@ function EmbeddedApp() {
               One-time theme setup
             </Text>
             <Text as="p" tone="subdued" variant="bodySm">
-              Pushed spins attach to products via the custom.spinr_id metafield. In your theme
-              editor, add a Custom Liquid block to the product template with the snippet from
-              your Spinr studio — once, for the whole catalog. Products without a spin are
-              untouched.
+              To show pushed spins on your product pages: open your theme editor (Online Store
+              → Customize), pick the Default product template, click Add block, and choose
+              &quot;Spinr 360° spin&quot; under Apps. Do it once — every pushed spin then
+              appears automatically, and products without a spin are untouched.
             </Text>
           </BlockStack>
         </Card>

@@ -1,0 +1,44 @@
+{% comment %}
+  Spinr 360° spin — renders the interactive spin attached to this product
+  via the custom.spinr_id metafield (written by "Push to page" in the Spinr
+  app). Products without a pushed spin render nothing, so the block is safe
+  to add once for the whole catalog.
+{% endcomment %}
+
+{% if product.metafields.custom.spinr_id != blank %}
+  <div
+    data-spinr="{{ product.metafields.custom.spinr_id }}"
+    style="height: {{ block.settings.height }}px; max-width: {{ block.settings.max_width }}px; margin: 0 auto;"
+    {{ block.shopify_attributes }}
+  ></div>
+  <script src="https://thespinr.com/embed/spin.js" defer></script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Spinr 360° spin",
+  "target": "section",
+  "settings": [
+    {
+      "type": "range",
+      "id": "height",
+      "label": "Height",
+      "min": 300,
+      "max": 800,
+      "step": 20,
+      "unit": "px",
+      "default": 520
+    },
+    {
+      "type": "range",
+      "id": "max_width",
+      "label": "Maximum width",
+      "min": 320,
+      "max": 1200,
+      "step": 40,
+      "unit": "px",
+      "default": 640
+    }
+  ]
+}
+{% endschema %}

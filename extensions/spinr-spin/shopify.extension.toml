@@ -1,0 +1,5 @@
+# Theme app extension: gives merchants a native "Spinr 360° spin" block in
+# the theme editor (Add block → Apps) — replaces the manual Custom Liquid
+# paste. Deployed alongside the app config via `shopify app deploy`.
+type = "theme"
+name = "Spinr"
