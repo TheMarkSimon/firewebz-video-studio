@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ spinId, payload });
   } catch (err) {
     if (err instanceof EmbeddedAuthError) {
+      console.error("[embedded] auth refused:", err.message);
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     const message = err instanceof Error ? err.message : "Import failed — try again.";

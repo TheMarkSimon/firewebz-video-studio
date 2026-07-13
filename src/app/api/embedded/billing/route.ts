@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result, { status: result.ok ? 200 : 422 });
   } catch (err) {
     if (err instanceof EmbeddedAuthError) {
+      console.error("[embedded] auth refused:", err.message);
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     console.error("[embedded/billing]", err);

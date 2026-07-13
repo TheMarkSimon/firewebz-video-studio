@@ -91,6 +91,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     if (err instanceof EmbeddedAuthError) {
+      console.error("[embedded] auth refused:", err.message);
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     console.error("[embedded/state]", err);
