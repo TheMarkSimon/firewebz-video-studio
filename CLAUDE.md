@@ -131,6 +131,14 @@ build; set SMOKE_BASE_URL=https://thespinr.com for a post-deploy check).
 - `api/proxy` — allowlisted streaming proxy (fal.media etc.) because the
   founder's corporate network (Zscaler) blocks external CDNs. All remote
   media in the UI goes through it.
+- `app/shopify/app` — EMBEDDED admin app (App Store requirement): App
+  Bridge session tokens (lib/embedded-auth.ts verifies the JWT, token
+  exchange mints Admin tokens), Polaris UI, per-shop CSP frame-ancestors
+  via src/middleware.ts. First embedded open auto-provisions a SHADOW user
+  (email "shopify:<shop>") that merges into a Google account if the same
+  shop is later connected on the web (oauth callback). Core logic shared
+  with web via lib/generation.ts + lib/shopify-ops.ts (server actions are
+  thin wrappers).
 
 ## Hard-won lessons (do not relearn these)
 

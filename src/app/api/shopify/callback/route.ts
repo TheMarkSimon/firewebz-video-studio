@@ -55,10 +55,26 @@ export async function GET(req: NextRequest) {
   const code = sp.get("code");
   if (!shop || !code) return studioRedirect(origin, { shopify: "error", reason: "shop" });
 
-  // One Spinr account per shop — refuse silent takeovers.
-  const existing = await prisma.shopifyConnection.findUnique({ where: { shop } });
+  // One Spinr account per shop — refuse silent takeovers between REAL
+  // users. Exception: a SHADOW user (auto-provisioned when the merchant
+  // first opened the embedded admin app, email "shopify:<shop>") merges
+  // into the Google account connecting the same store: their spins and
+  // usage ledger move over, then the shadow row is removed.
+  const existing = await prisma.shopifyConnection.findUnique({
+    where: { shop },
+    include: { user: { select: { id: true, email: true } } },
+  });
   if (existing && existing.userId !== userId) {
-    return studioRedirect(origin, { shopify: "error", reason: "owned" });
+    if (existing.user.email.startsWith("shopify:")) {
+      await prisma.$transaction([
+        prisma.spin.updateMany({ where: { userId: existing.userId }, data: { userId } }),
+        prisma.spinUsage.updateMany({ where: { userId: existing.userId }, data: { userId } }),
+        prisma.shopifyConnection.update({ where: { id: existing.id }, data: { userId } }),
+        prisma.user.delete({ where: { id: existing.userId } }),
+      ]);
+    } else {
+      return studioRedirect(origin, { shopify: "error", reason: "owned" });
+    }
   }
 
   let accessToken: string;

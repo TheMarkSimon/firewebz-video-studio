@@ -33,6 +33,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid HMAC" }, { status: 401 });
   }
 
+  // Embedded open (inside the admin iframe): serve the embedded app —
+  // session tokens + token exchange handle auth from there, no OAuth
+  // redirect dance.
+  if (sp.get("embedded") === "1" || sp.get("host")) {
+    const dest = new URL("/shopify/app", origin);
+    dest.searchParams.set("shop", shop);
+    const host = sp.get("host");
+    if (host) dest.searchParams.set("host", host);
+    return NextResponse.redirect(dest);
+  }
+
   const userId = await getUserId();
   if (userId) {
     return NextResponse.redirect(new URL(`/api/shopify/connect?shop=${encodeURIComponent(shop)}`, origin));

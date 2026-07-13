@@ -20,6 +20,37 @@ function studioRedirect(origin: string, params: Record<string, string>): NextRes
 
 export async function GET(req: NextRequest) {
   const origin = getAppOrigin() ?? req.nextUrl.origin;
+  const sp = req.nextUrl.searchParams;
+
+  // Embedded return: the merchant approved (or declined) inside their
+  // Shopify admin and has no web session here. ?shop identifies the
+  // connection; reconciliation itself only trusts Shopify's API (no
+  // sensitive output), then we send them back into their admin.
+  const embeddedShop = sp.get("embedded") === "1" ? sp.get("shop") : null;
+  if (embeddedShop && /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(embeddedShop)) {
+    const conn = await prisma.shopifyConnection.findUnique({ where: { shop: embeddedShop } });
+    if (conn) {
+      try {
+        const sub = await getActiveSubscription(conn.shop, await getShopToken(conn));
+        await prisma.shopifyConnection.update({
+          where: { id: conn.id },
+          data: sub
+            ? {
+                subscriptionGid: sub.gid,
+                subscriptionStatus: sub.status,
+                subscriptionName: sub.name,
+                subscriptionTest: sub.test,
+                subscriptionUpdatedAt: new Date(),
+              }
+            : { subscriptionStatus: null, subscriptionUpdatedAt: new Date() },
+        });
+      } catch (err) {
+        console.error("[shopify/billing] embedded reconcile failed:", err);
+      }
+    }
+    // Back into the admin's app list (the app reopens embedded from there).
+    return NextResponse.redirect(`https://${embeddedShop}/admin/apps`);
+  }
 
   const userId = await getUserId();
   if (!userId) return studioRedirect(origin, { billing: "error" });

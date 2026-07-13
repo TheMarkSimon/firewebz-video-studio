@@ -17,9 +17,11 @@ const nextConfig = {
       "./node_modules/@ffmpeg-installer/**/*",
     ],
   },
-  // /embed/* is meant to be iframed by merchant storefronts (frame-ancestors
-  // *); everything else refuses framing (clickjacking). nosniff + referrer
-  // policy everywhere. HSTS is added by Vercel automatically.
+  // Framing zones: /embed/* is iframed by merchant storefronts
+  // (frame-ancestors *); /shopify/* is iframed by the Shopify admin (CSP set
+  // per-request in middleware.ts — needs the shop domain); everything else
+  // refuses framing (clickjacking). nosniff + referrer policy everywhere.
+  // HSTS is added by Vercel automatically.
   async headers() {
     const baseline = [
       { key: "X-Content-Type-Options", value: "nosniff" },
@@ -27,8 +29,12 @@ const nextConfig = {
     ];
     return [
       {
-        source: "/((?!embed).*)",
+        source: "/((?!embed|shopify).*)",
         headers: [...baseline, { key: "X-Frame-Options", value: "SAMEORIGIN" }],
+      },
+      {
+        source: "/shopify/:path*",
+        headers: baseline,
       },
       {
         source: "/embed/:path*",

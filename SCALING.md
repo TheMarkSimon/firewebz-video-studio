@@ -37,8 +37,10 @@ when finished; add items as they're discovered; date additions.
 ## Do at App Store submission (launch chapter)
 
 - [ ] **App Store listing** (copy, screenshots, demo video) + review.
-- [ ] **Embedded admin app** (App Bridge + session tokens + admin UI for
-  the core loop) — required for listing; the long pole.
+- [x] **Embedded admin app** — BUILT 2026-07-13 (/shopify/app: App Bridge +
+  session-token auth + token exchange + Polaris UI + per-shop CSP;
+  shadow-user provisioning with web-account merge). Founder verification
+  inside a real admin still pending.
 - [ ] **Register for the 0% revenue-share plan** in the Partner dashboard
   (before the first real dollar, not after).
 - [ ] **Payout setup**: bank details + W-8BEN (founder is an Israeli tax

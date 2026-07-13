@@ -6,7 +6,9 @@
 client_id = "d6a3575d86d37718e0456917cb60666e"
 name = "Spinr"
 application_url = "https://thespinr.com/api/shopify/install"
-embedded = false
+# Embedded admin app (App Bridge + session tokens) — /shopify/app renders
+# inside the Shopify admin. Review requirement for App Store listing.
+embedded = true
 
 [access_scopes]
 scopes = "read_products,write_products"

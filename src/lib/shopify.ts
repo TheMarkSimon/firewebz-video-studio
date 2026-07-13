@@ -267,6 +267,38 @@ export async function setSpinMetafield(
   }
 }
 
+// Token exchange (embedded app): swap a verified App Bridge session token
+// for an offline Admin API access token — no OAuth redirect dance. Works
+// for any shop where the app is installed.
+export async function exchangeSessionToken(
+  shop: string,
+  sessionToken: string,
+): Promise<{ accessToken: string; scope: string; expiresAt: Date | null }> {
+  const res = await fetch(`https://${shop}/admin/oauth/access_token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      client_id: process.env.SHOPIFY_API_KEY,
+      client_secret: process.env.SHOPIFY_API_SECRET,
+      grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
+      subject_token: sessionToken,
+      subject_token_type: "urn:ietf:params:oauth:token-type:id_token",
+      requested_token_type: "urn:shopify:params:oauth:token-type:offline-access-token",
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error(`Token exchange failed: HTTP ${res.status} ${(await res.text()).slice(0, 300)}`);
+  }
+  const json = (await res.json()) as { access_token?: string; scope?: string; expires_in?: number };
+  if (!json.access_token) throw new Error("Token exchange returned no access_token");
+  return {
+    accessToken: json.access_token,
+    scope: json.scope ?? "",
+    expiresAt: json.expires_in ? new Date(Date.now() + json.expires_in * 1000) : null,
+  };
+}
+
 // Register app-lifecycle webhooks (idempotent: "already taken" errors are
 // expected on reconnect and ignored). Called after every OAuth callback so
 // each installed shop reports uninstalls and subscription changes to

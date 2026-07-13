@@ -1,17 +1,18 @@
 "use server";
 
+// Thin Google-auth wrappers around lib/shopify-ops.ts (the shared core,
+// also used by the embedded admin app's session-token routes).
+
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getUserId } from "@/lib/auth";
-import { removeBackgroundFromUrl } from "@/lib/actions/remove-bg";
 import { getAppOrigin } from "@/lib/app-origin";
 import {
-  cancelAppSubscription,
-  createAppSubscription,
-  fetchProduct,
-  getShopToken,
-  setSpinMetafield,
-} from "@/lib/shopify";
+  cancelSubscriptionCore,
+  importProductCore,
+  pushSpinCore,
+  subscribeCore,
+} from "@/lib/shopify-ops";
 
 // Remove the store connection. Note: this only forgets the token on our
 // side — merchants can also uninstall the app from their Shopify admin,
@@ -23,9 +24,6 @@ export async function disconnectShopify(shop: string): Promise<void> {
   revalidatePath("/studio");
 }
 
-// Start a Spinr Pro subscription billed through Shopify. Returns the
-// confirmation URL — the client sends the merchant there to approve; they
-// come back via /api/shopify/billing/callback which records the outcome.
 export async function startShopifySubscription(): Promise<
   { ok: true; confirmationUrl: string } | { ok: false; error: string }
 > {
@@ -34,33 +32,11 @@ export async function startShopifySubscription(): Promise<
 
   const connection = await prisma.shopifyConnection.findFirst({ where: { userId } });
   if (!connection) return { ok: false, error: "No Shopify store connected." };
-  if (connection.subscriptionStatus === "ACTIVE") {
-    return { ok: false, error: "You're already on Spinr Pro." };
-  }
 
   const origin = getAppOrigin();
   if (!origin) return { ok: false, error: "Server origin not configured." };
 
-  try {
-    const { confirmationUrl, subscriptionGid, usageLineItemGid } = await createAppSubscription(
-      connection.shop,
-      await getShopToken(connection),
-      `${origin}/api/shopify/billing/callback`,
-    );
-    await prisma.shopifyConnection.update({
-      where: { id: connection.id },
-      data: {
-        subscriptionGid,
-        usageLineItemGid,
-        subscriptionStatus: "PENDING",
-        subscriptionUpdatedAt: new Date(),
-      },
-    });
-    return { ok: true, confirmationUrl };
-  } catch (err) {
-    console.error("[shopify] subscription create failed:", err);
-    return { ok: false, error: "Couldn't start the subscription — try again." };
-  }
+  return subscribeCore(connection, `${origin}/api/shopify/billing/callback`);
 }
 
 export async function cancelShopifySubscription(): Promise<{ ok: boolean; error?: string }> {
@@ -68,30 +44,13 @@ export async function cancelShopifySubscription(): Promise<{ ok: boolean; error?
   if (!userId) return { ok: false, error: "Please sign in." };
 
   const connection = await prisma.shopifyConnection.findFirst({ where: { userId } });
-  if (!connection?.subscriptionGid) return { ok: false, error: "No subscription to cancel." };
+  if (!connection) return { ok: false, error: "No subscription to cancel." };
 
-  try {
-    await cancelAppSubscription(connection.shop, await getShopToken(connection), connection.subscriptionGid);
-  } catch (err) {
-    console.error("[shopify] subscription cancel failed:", err);
-    return { ok: false, error: "Shopify rejected the cancellation — try again." };
-  }
-
-  await prisma.shopifyConnection.update({
-    where: { id: connection.id },
-    data: { subscriptionStatus: "CANCELLED", subscriptionUpdatedAt: new Date() },
-  });
-  revalidatePath("/studio");
-  return { ok: true };
+  const result = await cancelSubscriptionCore(connection);
+  if (result.ok) revalidatePath("/studio");
+  return result;
 }
 
-// Catalog import: turn a Shopify product into a Spin draft. Pulls up to 4
-// product photos (merchant's order: 1st→front, 2nd→back, 3rd→left,
-// 4th→right — editable afterwards), removes their backgrounds, and creates
-// the Spin linked to the product for later push-back. Idempotent per
-// product: re-importing returns the existing spin instead of duplicating.
-// Costs pennies (bg removal only) — the $0.5 generation stays behind the
-// user's explicit click on /generate.
 export async function importShopifyProduct(productGid: string): Promise<string> {
   const userId = await getUserId();
   if (!userId) throw new Error("Please sign in.");
@@ -99,73 +58,19 @@ export async function importShopifyProduct(productGid: string): Promise<string> 
   const connection = await prisma.shopifyConnection.findFirst({ where: { userId } });
   if (!connection) throw new Error("No Shopify store connected.");
 
-  const existing = await prisma.spin.findFirst({
-    where: { userId, shopifyProductGid: productGid },
-  });
-  if (existing) return existing.id;
-
-  const product = await fetchProduct(connection.shop, await getShopToken(connection), productGid);
-  if (!product) throw new Error("Product not found on your store.");
-  if (product.imageUrls.length === 0) {
-    throw new Error("This product has no photos on Shopify — add at least one photo there first.");
-  }
-
-  const cleaned = await Promise.all(
-    product.imageUrls.slice(0, 4).map(async (url) => {
-      const res = await removeBackgroundFromUrl(url);
-      return res.status === "completed" ? (res.cleanedDataUrl ?? null) : null;
-    }),
-  );
-  if (!cleaned[0]) {
-    throw new Error("Background removal failed on the product's first photo — try again.");
-  }
-
-  const spin = await prisma.spin.create({
-    data: {
-      userId,
-      title: product.title,
-      photoFrontUrl: cleaned[0],
-      photoBackUrl: cleaned[1] ?? undefined,
-      photoLeftUrl: cleaned[2] ?? undefined,
-      photoRightUrl: cleaned[3] ?? undefined,
-      shopifyProductGid: product.gid,
-      shopifyProductHandle: product.handle,
-    },
-  });
+  const spinId = await importProductCore(userId, connection, productGid);
   revalidatePath("/studio");
   revalidatePath("/studio/products");
-  return spin.id;
+  return spinId;
 }
 
-// One-click embed push: write this spin's id onto its Shopify product as
-// the custom.spinr_id metafield — the field the storefront block reads.
 export async function pushSpinToShopify(
   spinId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const userId = await getUserId();
   if (!userId) return { ok: false, error: "Please sign in." };
 
-  const spin = await prisma.spin.findUnique({ where: { id: spinId } });
-  if (!spin || spin.userId !== userId) return { ok: false, error: "Spin not found." };
-  if (spin.status !== "ready") return { ok: false, error: "Generate the spin before pushing it." };
-  if (!spin.shopifyProductGid) {
-    return { ok: false, error: "This spin isn't linked to a Shopify product (import it from your catalog to link it)." };
-  }
-
-  const connection = await prisma.shopifyConnection.findFirst({ where: { userId } });
-  if (!connection) return { ok: false, error: "No Shopify store connected." };
-
-  try {
-    await setSpinMetafield(connection.shop, await getShopToken(connection), spin.shopifyProductGid, spin.id);
-  } catch (err) {
-    console.error("[shopify] metafield push failed:", err);
-    return { ok: false, error: "Shopify rejected the update — try reconnecting your store." };
-  }
-
-  await prisma.spin.update({
-    where: { id: spin.id },
-    data: { pushedToShopifyAt: new Date() },
-  });
-  revalidatePath("/studio/products");
-  return { ok: true };
+  const result = await pushSpinCore(userId, spinId);
+  if (result.ok) revalidatePath("/studio/products");
+  return result;
 }
