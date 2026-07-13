@@ -36,6 +36,11 @@ when finished; add items as they're discovered; date additions.
 
 ## Do at App Store submission (launch chapter)
 
+- [ ] **Theme app extension** — a "Spinr" block merchants toggle on in the
+  theme editor instead of pasting Custom Liquid (reads custom.spinr_id,
+  same markup). The last manual step in the merchant journey; reviewers
+  walk that journey, so strongly consider building BEFORE submission.
+  Needs Shopify CLI extension scaffolding + `shopify app deploy`.
 - [ ] **App Store listing** (copy, screenshots, demo video) + review.
 - [x] **Embedded admin app** — BUILT 2026-07-13 (/shopify/app: App Bridge +
   session-token auth + token exchange + Polaris UI + per-shop CSP;
