@@ -11,6 +11,7 @@ import {
   Banner,
   BlockStack,
   Button,
+  CalloutCard,
   Card,
   InlineStack,
   Page,
@@ -185,6 +186,12 @@ function EmbeddedApp() {
   }
 
   const pro = state.plan.name === "pro";
+  const anySpins = state.products.some((p) => p.spin);
+  // Spins first (working > ready > failed), then products with photos, then
+  // the un-photographed stragglers.
+  const rank = (p: EmbeddedState["products"][number]) =>
+    p.spin?.status === "generating" ? 0 : p.spin?.status === "ready" ? 1 : p.spin ? 2 : p.photoCount > 0 ? 3 : 4;
+  const products = [...state.products].sort((a, b) => rank(a) - rank(b) || a.title.localeCompare(b.title));
 
   return (
     <Page
@@ -196,6 +203,24 @@ function EmbeddedApp() {
           <Banner onDismiss={() => setNotice(null)}>
             <p>{notice}</p>
           </Banner>
+        )}
+
+        {!anySpins && (
+          <CalloutCard
+            title="Turn your first product into a 360° spin"
+            illustration={`${state.origin ?? ""}/brand/spinr-mark-green.png`}
+            primaryAction={{
+              content: "Learn how it works",
+              url: state.origin ?? "https://thespinr.com",
+              external: true,
+            }}
+          >
+            <p>
+              Pick any product below and press Create spin. We use the photos already on the
+              product — no new photography. About three minutes later it&apos;s ready to push
+              onto the product page.
+            </p>
+          </CalloutCard>
         )}
 
         <Card>
@@ -230,7 +255,7 @@ function EmbeddedApp() {
         <Card padding="0">
           <ResourceList
             resourceName={{ singular: "product", plural: "products" }}
-            items={state.products}
+            items={products}
             renderItem={(p) => {
               const spin = p.spin;
               const isBusy = Boolean(busy[p.gid]);
@@ -240,9 +265,13 @@ function EmbeddedApp() {
                   onClick={() => {}}
                   media={
                     <Thumbnail
-                      source={p.imageUrl ?? ""}
+                      source={
+                        p.imageUrl ??
+                        // neutral placeholder for photo-less products
+                        "data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' rx='8' fill='%23f1f1f3'/%3E%3Ctext x='40' y='46' text-anchor='middle' font-size='11' fill='%238a8a8f' font-family='sans-serif'%3ENo photo%3C/text%3E%3C/svg%3E"
+                      }
                       alt={p.title}
-                      size="medium"
+                      size="large"
                     />
                   }
                   accessibilityLabel={p.title}
