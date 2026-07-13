@@ -32,9 +32,11 @@ declare global {
 }
 
 // Theme-editor deep link that opens the product template WITH the Spinr
-// block pre-added — one click instead of add-block instructions. The uid is
-// the theme extension's public id from extensions/spinr-spin/*.toml.
-const THEME_EXTENSION_UID = "d27183c7-3cf6-0f9c-5b6c-e5c140e93c47d90e8462";
+// block pre-added — one click instead of add-block instructions. NOTE: the
+// deep link wants the extension's 36-char UUID; the CLI-written toml uid
+// carries 8 extra chars beyond it (using the full string makes the editor
+// show ""spinr-spin" not added").
+const THEME_EXTENSION_UID = "d27183c7-3cf6-0f9c-5b6c-e5c140e93c47";
 function themeBlockDeepLink(shop: string): string {
   return `https://${shop}/admin/themes/current/editor?template=product&addAppBlockId=${THEME_EXTENSION_UID}/spinr-spin&target=mainSection`;
 }
@@ -432,8 +434,14 @@ function EmbeddedApp() {
                 </Text>
                 <Text as="p" tone="subdued" variant="bodySm">
                   Pushed spins appear on product pages through the Spinr block in your theme.
-                  Add it once — every pushed spin shows automatically (even ones pushed before),
-                  and products without a spin are untouched.
+                  Add it once to your product template — every pushed spin then shows
+                  automatically on its product (even ones pushed before); products without a
+                  spin are untouched.
+                </Text>
+                <Text as="p" tone="subdued" variant="bodySm">
+                  If the button doesn&apos;t add it automatically: in the editor, click Add
+                  block inside Product information, open the Apps tab, choose &quot;Spinr 360°
+                  spin&quot;, then Save.
                 </Text>
               </BlockStack>
               <Button
