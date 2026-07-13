@@ -15,6 +15,7 @@ import { getSpinVideoProvider } from "@/lib/providers/spinvideo";
 import { sendSpinReadyEmail, sendSpinFailedEmail } from "@/lib/email";
 import { getAppOrigin } from "@/lib/app-origin";
 import { billOverageIfNeeded, refundSpinUsage } from "@/lib/billing";
+import { mirrorSpinMediaToR2 } from "@/lib/storage";
 
 // Seedance runs take 2-3 minutes; past this we assume the job is lost and
 // fail the spin so the merchant isn't stuck on an eternal progress bar.
@@ -78,6 +79,16 @@ export async function reconcileSpinGeneration(spinId: string): Promise<Reconcile
   // the reserved credit — merchants never pay for a failed run.
   if (ok) await billOverageIfNeeded(spin.id);
   else await refundSpinUsage(spin.id);
+
+  // Mirror the finished media into owned storage (R2) and repoint the row —
+  // embeds must never depend on fal.media's retention. Non-fatal on failure.
+  if (ok) {
+    try {
+      await mirrorSpinMediaToR2(spin.id);
+    } catch (err) {
+      console.error("[spin-completion] R2 mirror failed (kept fal URLs):", err);
+    }
+  }
 
   await notify(spin, ok);
   return ok ? "ready" : "failed";

@@ -73,7 +73,7 @@ single-image (Kling) because real back/side photos beat hallucinated ones.
 | Domain | thespinr.com (GoDaddy, 3yr) → Vercel | canonical = apex, www redirects |
 | Secrets | **Vercel env vars** (prod) — recreate locally via `vercel env pull` | never committed |
 | Database | Neon Postgres (`spinr` project) via Prisma | `User` + `Spin` tables |
-| Generated media | fal.media CDN URLs stored on Spin rows | ⚠️ move to owned storage before launch |
+| Generated media | Cloudflare R2 bucket `spinr-media` (pub-…r2.dev URLs on Spin rows; mirrored at completion, lib/storage.ts) | fal.media = compute scratch only |
 | Brand assets | `public/brand/` (used) + `assets/brand-source/*.zip` (originals) | brand color #D7FC47 |
 | Email | contact@thespinr.com (forwarding only for now) | Workspace before public launch |
 

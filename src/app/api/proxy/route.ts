@@ -44,7 +44,9 @@ export async function GET(req: NextRequest) {
     // Shopify serves product media from a couple of CDN domains.
     host.endsWith(".cdn.shopify.com") ||
     host.endsWith(".shopifycdn.net") ||
-    host.endsWith(".shopifycdn.com");
+    host.endsWith(".shopifycdn.com") ||
+    // Our own R2 media bucket (spin videos + frames).
+    host.endsWith(".r2.dev");
   if (!hostAllowed) {
     return new Response(`Host not allowed: ${host}`, { status: 403 });
   }

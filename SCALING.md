@@ -11,13 +11,13 @@ when finished; add items as they're discovered; date additions.
 
 ## Do at "first real customers" (the trigger for this file)
 
-- [ ] **Move media off fal.media to owned storage (Cloudflare R2).**
-  Every embed frame, MP4, and admin video link points at fal's CDN, which
-  makes no permanence promise. One expired asset = a merchant's product
-  page breaks silently. R2: ~$0.015/GB-mo, $0 egress (keeps the
-  "unlimited free views" promise true). Migration: copy on generation
-  completion + backfill script for existing spins. *The single most
-  important item here.*
+- [ ] **Cleaned reference photos still live on fal** (spin PHOTOS, not the
+  generated media — those are on R2 now). If fal expires them,
+  regeneration/photo-editing breaks for old spins. Mirror to R2 alongside
+  video/frames when it matters (added 2026-07-13).
+- [ ] **Custom media domain** (media.thespinr.com → R2 bucket) before
+  heavy launch traffic: branding + Cloudflare edge caching on our own
+  hostname instead of pub-*.r2.dev (added 2026-07-13).
 - [ ] **Rate-limit anonymous background removal.** The onboarding
   playground calls a paid API (pennies/image) with no auth and no cap —
   fine at zero traffic, a cost leak under real traffic or bots. Simple
@@ -83,6 +83,12 @@ when finished; add items as they're discovered; date additions.
   merchant-of-record and handle global sales tax for a solo founder).
 
 ## Done (kept for the record)
+
+- [x] **Media off fal.media → Cloudflare R2** (2026-07-13): bucket
+  spinr-media, aws4fetch SigV4 client (lib/storage.ts), mirror-on-
+  completion in spin-completion, all 13 existing spins backfilled and
+  rows repointed (scripts/backfill-r2.ts, idempotent). Embeds and admin
+  links now serve from owned storage; fal is compute-only.
 
 - [x] GDPR compliance webhooks + app/uninstalled + APP_SUBSCRIPTIONS_UPDATE
   (one HMAC-verified endpoint, /api/webhooks/shopify; lifecycle topics
