@@ -17,8 +17,10 @@ import {
   Page,
   ResourceItem,
   ResourceList,
+  Select,
   Spinner,
   Text,
+  TextField,
   Thumbnail,
 } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
@@ -37,10 +39,18 @@ function themeBlockDeepLink(shop: string): string {
   return `https://${shop}/admin/themes/current/editor?template=product&addAppBlockId=${THEME_EXTENSION_UID}/spinr-spin&target=mainSection`;
 }
 
+// Manual fallback for older themes without app-block support — same markup
+// the theme extension renders.
+const MANUAL_SNIPPET = `{% if product.metafields.custom.spinr_id != blank %}
+  <div data-spinr="{{ product.metafields.custom.spinr_id }}" style="height:520px;max-width:640px;margin:0 auto"></div>
+  <script src="https://thespinr.com/embed/spin.js" defer></script>
+{% endif %}`;
+
 interface EmbeddedState {
   shop: string;
   shopName: string;
   origin: string | null;
+  unlinkedSpins: Array<{ id: string; title: string; status: string }>;
   plan: {
     name: "free" | "pro";
     test: boolean;
@@ -73,6 +83,8 @@ function EmbeddedApp() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [attachTarget, setAttachTarget] = useState<Record<string, string>>({});
+  const [showSnippet, setShowSnippet] = useState(false);
 
   const api = useCallback(async (path: string, init?: RequestInit) => {
     const token = await window.shopify!.idToken();
@@ -148,6 +160,25 @@ function EmbeddedApp() {
       setNotice(e instanceof Error ? e.message : "Push failed.");
     } finally {
       setBusy((b) => ({ ...b, [gid]: false }));
+      void load();
+    }
+  }
+
+  async function attach(spinId: string) {
+    const productGid = attachTarget[spinId];
+    if (!productGid) return;
+    setBusy((b) => ({ ...b, [spinId]: true }));
+    setNotice(null);
+    try {
+      await api("/api/embedded/attach", {
+        method: "POST",
+        body: JSON.stringify({ spinId, productGid }),
+      });
+      setNotice("Attached — the spin now belongs to that product. Push it to the page when it's ready.");
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Attach failed.");
+    } finally {
+      setBusy((b) => ({ ...b, [spinId]: false }));
       void load();
     }
   }
@@ -340,6 +371,58 @@ function EmbeddedApp() {
           />
         </Card>
 
+        {state.unlinkedSpins.length > 0 && (
+          <Card>
+            <BlockStack gap="300">
+              <BlockStack gap="100">
+                <Text as="h2" variant="headingSm">
+                  Spins from your Spinr studio
+                </Text>
+                <Text as="p" tone="subdued" variant="bodySm">
+                  Created on thespinr.com from uploaded photos — attach one to a product to
+                  push it onto that product&apos;s page.
+                </Text>
+              </BlockStack>
+              {state.unlinkedSpins.map((s) => {
+                const options = state.products
+                  .filter((p) => !p.spin)
+                  .map((p) => ({ label: p.title, value: p.gid }));
+                return (
+                  <InlineStack key={s.id} align="space-between" blockAlign="center" wrap={false}>
+                    <InlineStack gap="200" blockAlign="center">
+                      <Text as="span" variant="bodyMd" fontWeight="semibold">
+                        {s.title}
+                      </Text>
+                      {s.status === "ready" ? (
+                        <Badge tone="success">Ready</Badge>
+                      ) : (
+                        <Badge>{s.status}</Badge>
+                      )}
+                    </InlineStack>
+                    <InlineStack gap="200" blockAlign="center">
+                      <Select
+                        label="Product"
+                        labelHidden
+                        placeholder="Choose a product"
+                        options={options}
+                        value={attachTarget[s.id] ?? ""}
+                        onChange={(v) => setAttachTarget((t) => ({ ...t, [s.id]: v }))}
+                      />
+                      <Button
+                        onClick={() => void attach(s.id)}
+                        loading={Boolean(busy[s.id])}
+                        disabled={!attachTarget[s.id]}
+                      >
+                        Attach
+                      </Button>
+                    </InlineStack>
+                  </InlineStack>
+                );
+              })}
+            </BlockStack>
+          </Card>
+        )}
+
         <Card>
           <BlockStack gap="200">
             <InlineStack align="space-between" blockAlign="center">
@@ -360,6 +443,27 @@ function EmbeddedApp() {
                 Add the Spinr block
               </Button>
             </InlineStack>
+            <Button variant="plain" onClick={() => setShowSnippet((v) => !v)}>
+              {showSnippet ? "Hide manual setup" : "Using an older theme? Manual setup"}
+            </Button>
+            {showSnippet && (
+              <BlockStack gap="200">
+                <Text as="p" tone="subdued" variant="bodySm">
+                  If your theme doesn&apos;t support app blocks: in the theme editor, add a
+                  &quot;Custom Liquid&quot; block to your product template and paste this.
+                  Same result — pushed spins appear automatically.
+                </Text>
+                <TextField
+                  label="Manual snippet"
+                  labelHidden
+                  value={MANUAL_SNIPPET}
+                  multiline={4}
+                  readOnly
+                  autoComplete="off"
+                  helpText="Click into the box, select all, copy."
+                />
+              </BlockStack>
+            )}
           </BlockStack>
         </Card>
       </BlockStack>

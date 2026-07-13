@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const [products, spins, plan] = await Promise.all([
+    const [products, spins, unlinkedSpins, plan] = await Promise.all([
       fetchProducts(shop, await getShopToken(connection), 50),
       prisma.spin.findMany({
         where: { userId, shopifyProductGid: { not: null } },
@@ -44,6 +44,13 @@ export async function GET(req: NextRequest) {
           pushedToShopifyAt: true,
           errorMessage: true,
         },
+      }),
+      // Spins created in the web studio (photo upload — no product link).
+      // Shown in their own section so merchants can attach them to products.
+      prisma.spin.findMany({
+        where: { userId, shopifyProductGid: null },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, title: true, status: true },
       }),
       getPlanState(userId),
     ]);
@@ -62,6 +69,7 @@ export async function GET(req: NextRequest) {
         includedSpins: proIncludedSpins(),
         overageUsd: overagePriceUsd(),
       },
+      unlinkedSpins,
       products: products.map((p) => {
         const spin = spinByGid.get(p.gid);
         return {
