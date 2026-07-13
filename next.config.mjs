@@ -6,17 +6,19 @@ const nextConfig = {
     // the native binary or the installer's dynamic platform require(). Under
     // Next 15+ this moves to top-level `serverExternalPackages`.
     serverComponentsExternalPackages: ["@ffmpeg-installer/ffmpeg", "fluent-ffmpeg"],
+    // In Next 14 this key lives under experimental — it sat at the top level
+    // (silently IGNORED, hence the old build warning) until 2026-07-13, which
+    // likely left ffmpeg untraced in some lambdas (flatten silently failing →
+    // transparent references → hex-pattern hallucinations, lesson 11).
+    outputFileTracingIncludes: {
+      "/**": [
+        "./node_modules/.prisma/client/**/*",
+        "./node_modules/@prisma/client/**/*",
+        "./node_modules/@ffmpeg-installer/**/*",
+      ],
+    },
   },
   images: { remotePatterns: [{ protocol: "https", hostname: "**" }] },
-  outputFileTracingIncludes: {
-    "/**": [
-            "./node_modules/.prisma/client/**/*",
-      "./node_modules/@prisma/client/**/*",
-      // ffmpeg binary needs to be traced into the serverless bundle;
-      // Next won't detect it because we load it via dynamic import path.
-      "./node_modules/@ffmpeg-installer/**/*",
-    ],
-  },
   // Framing zones: /embed/* is iframed by merchant storefronts
   // (frame-ancestors *); /shopify/* is iframed by the Shopify admin (CSP set
   // per-request in middleware.ts — needs the shop domain); everything else

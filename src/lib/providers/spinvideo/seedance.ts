@@ -85,7 +85,20 @@ async function buildReferenceUrls(fal: any, input: SpinVideoInput, key: string):
   // suspect for the 180°-rock regression (2026-07-11). Toggle, regenerate,
   // compare; remove the lever once the verdict is in.
   if (process.env.SPINR_DISABLE_FLATTEN === "1") return urls;
-  return Promise.all(urls.map(async (u) => (await flattenToWhite(u, key)) ?? u));
+  // Flattening is a QUALITY GATE, not best-effort: a transparent reference
+  // slipping through produces hex-pattern backdrop hallucinations mid-spin
+  // (recurred 2026-07-13 in an embedded-created spin). Failing the submit
+  // costs nothing (credit auto-refunds); shipping a haunted video costs
+  // $0.71 and merchant trust.
+  return Promise.all(
+    urls.map(async (u) => {
+      const flattened = await flattenToWhite(u, key);
+      if (!flattened) {
+        throw new Error("Photo preparation failed (background flattening) — please try again.");
+      }
+      return flattened;
+    }),
+  );
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
