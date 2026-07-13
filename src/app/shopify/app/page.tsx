@@ -32,13 +32,14 @@ declare global {
 }
 
 // Theme-editor deep link that opens the product template WITH the Spinr
-// block pre-added — one click instead of add-block instructions. NOTE: the
-// deep link wants the extension's 36-char UUID; the CLI-written toml uid
-// carries 8 extra chars beyond it (using the full string makes the editor
-// show ""spinr-spin" not added").
-const THEME_EXTENSION_UID = "d27183c7-3cf6-0f9c-5b6c-e5c140e93c47";
+// block pre-added — one click instead of add-block instructions.
+// addAppBlockId formats in the wild: {extension-uid}/{handle} (fails with
+// "problem with the app block" for dev-dashboard uids) vs
+// {api_key}/{handle} (the documented-working variant) — we use the latter.
+// The api key is the public client id; block handle = liquid filename.
+const APP_API_KEY = "d6a3575d86d37718e0456917cb60666e";
 function themeBlockDeepLink(shop: string): string {
-  return `https://${shop}/admin/themes/current/editor?template=product&addAppBlockId=${THEME_EXTENSION_UID}/spinr-spin&target=mainSection`;
+  return `https://${shop}/admin/themes/current/editor?template=product&addAppBlockId=${APP_API_KEY}/spinr-spin&target=mainSection`;
 }
 
 // Manual fallback for older themes without app-block support — same markup
