@@ -84,6 +84,9 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
         </div>
 
         <ShopifyConnectCard
+          // SPINR_INSTALL_URL: dev-dashboard install link during beta; swap
+          // to the App Store listing URL after approval (env change only).
+          installUrl={process.env.SPINR_INSTALL_URL ?? null}
           connection={
             shopifyConnection
               ? { shop: shopifyConnection.shop, shopName: shopifyConnection.shopName }

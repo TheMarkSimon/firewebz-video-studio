@@ -28,7 +28,9 @@ export function ShopifyConnectCard({
   reason,
   billing,
   billingNotice,
+  installUrl,
 }: {
+  installUrl?: string | null;
   connection: { shop: string; shopName: string | null } | null;
   notice: string | null; // "connected" | "error" | null, from the OAuth redirect
   reason: string | null;
@@ -120,19 +122,20 @@ export function ShopifyConnectCard({
               {confirming ? "Click again to confirm" : "Disconnect"}
             </Button>
           </div>
+        ) : installUrl ? (
+          // App Store requirement 2.3.1: never ask for manual entry of a
+          // myshopify.com domain — installation starts on a Shopify-owned
+          // surface and the connection completes automatically.
+          <Button asChild className="h-10 px-5 text-[13px]">
+            <a href={installUrl} target="_blank" rel="noreferrer">
+              Install Spinr on Shopify
+            </a>
+          </Button>
         ) : (
-          <form action="/api/shopify/connect" method="GET" className="flex flex-wrap items-center gap-2">
-            <input
-              type="text"
-              name="shop"
-              required
-              placeholder="your-store.myshopify.com"
-              className="h-10 w-64 rounded-xl border border-fw-border bg-white px-3.5 text-[13px] text-fw-text outline-none placeholder:text-fw-lightGray focus:border-fw-black"
-            />
-            <Button type="submit" className="h-10 px-5 text-[13px]">
-              Connect
-            </Button>
-          </form>
+          <p className="max-w-[260px] text-right text-[12px] text-fw-darkGray">
+            Install Spinr from the Shopify App Store, then return here — your store connects
+            automatically.
+          </p>
         )}
       </div>
 
