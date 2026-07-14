@@ -20,7 +20,6 @@ import {
   Select,
   Spinner,
   Text,
-  TextField,
   Thumbnail,
 } from "@shopify/polaris";
 import en from "@shopify/polaris/locales/en.json";
@@ -41,13 +40,6 @@ const APP_API_KEY = "d6a3575d86d37718e0456917cb60666e";
 function themeBlockDeepLink(shop: string): string {
   return `https://${shop}/admin/themes/current/editor?template=product&addAppBlockId=${APP_API_KEY}/spinr-spin&target=mainSection`;
 }
-
-// Manual fallback for older themes without app-block support — same markup
-// the theme extension renders.
-const MANUAL_SNIPPET = `{% if product.metafields.custom.spinr_id != blank %}
-  <div data-spinr="{{ product.metafields.custom.spinr_id }}" style="height:520px;max-width:640px;margin:0 auto"></div>
-  <script src="https://thespinr.com/embed/spin.js" defer></script>
-{% endif %}`;
 
 interface EmbeddedState {
   shop: string;
@@ -87,8 +79,7 @@ function EmbeddedApp() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [attachTarget, setAttachTarget] = useState<Record<string, string>>({});
-  const [showSnippet, setShowSnippet] = useState(false);
-
+  
   const api = useCallback(async (path: string, init?: RequestInit) => {
     const token = await window.shopify!.idToken();
     const res = await fetch(path, {
@@ -452,27 +443,9 @@ function EmbeddedApp() {
                 Add the Spinr block
               </Button>
             </InlineStack>
-            <Button variant="plain" onClick={() => setShowSnippet((v) => !v)}>
-              {showSnippet ? "Hide manual setup" : "Using an older theme? Manual setup"}
-            </Button>
-            {showSnippet && (
-              <BlockStack gap="200">
-                <Text as="p" tone="subdued" variant="bodySm">
-                  If your theme doesn&apos;t support app blocks: in the theme editor, add a
-                  &quot;Custom Liquid&quot; block to your product template and paste this.
-                  Same result — pushed spins appear automatically.
-                </Text>
-                <TextField
-                  label="Manual snippet"
-                  labelHidden
-                  value={MANUAL_SNIPPET}
-                  multiline={4}
-                  readOnly
-                  autoComplete="off"
-                  helpText="Click into the box, select all, copy."
-                />
-              </BlockStack>
-            )}
+            {/* NOTE (App Store req 5.1.1): never instruct merchants to paste
+                code into their theme — the app block + deep link is the only
+                setup path we may present. */}
           </BlockStack>
         </Card>
       </BlockStack>
