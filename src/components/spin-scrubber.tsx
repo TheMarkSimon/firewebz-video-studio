@@ -82,7 +82,9 @@ function HybridSpin({
     let loaded = 0;
     frameUrls.forEach((url, i) => {
       const img = new Image();
-      img.crossOrigin = "anonymous";
+      // NO crossOrigin: we only drawImage (never read pixels), and anonymous
+      // CORS mode makes frames from hosts without CORS headers (R2) fail to
+      // load entirely — the "spin disappears on grab" bug (2026-07-16).
       img.src = url;
       const done = () => {
         if (cancelled) return;
@@ -287,7 +289,9 @@ function CanvasFlipbook({
     let loaded = 0;
     frameUrls.forEach((url, i) => {
       const img = new Image();
-      img.crossOrigin = "anonymous";
+      // NO crossOrigin: we only drawImage (never read pixels), and anonymous
+      // CORS mode makes frames from hosts without CORS headers (R2) fail to
+      // load entirely — the "spin disappears on grab" bug (2026-07-16).
       img.src = url;
       img.onload = () => {
         if (cancelled) return;
