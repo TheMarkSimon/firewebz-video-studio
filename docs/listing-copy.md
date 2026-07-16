@@ -65,3 +65,16 @@ product spin, 3D product viewer, interactive images, product photography.
 ## Demo video (optional)
 main.mp4 intro (photos → spin) + screen recording of Create spin → Push →
 storefront drag. 30–60s, no voiceover.
+
+## Full submission-form fill sheet (updated 2026-07-16)
+- App card subtitle: 360° product spins from the photos you already have
+- Search terms: 360 product view / product spin / 3d product viewer / 360 photography / interactive images
+- Title tag: Spinr — 360° Product Spins for Shopify Stores
+- Meta description: Turn existing product photos into interactive 360° spins shoppers can drag. AI-generated in minutes, embedded on product pages, no code.
+- Install requirements: requires Shopify Online Store (theme app extension)
+- Support / review / submission email: contact@thespinr.com (verify forwarding!)
+- Demo store URL: https://kokok-ndm2wtj1.myshopify.com/products/chair (password must be OFF)
+- Test account: "app doesn't require an account" (embedded auto-provisions)
+- Pricing plans: Free — "3 free spins to try Spinr on your own store. Automatic background removal, one-click push to product pages, unlimited 360° views." / Pro $29/mo — "10 spins every month, then $2.50 per extra spin. Unlimited 360° views on every plan. Catalog import and one-click push included."
+- Screencast: 3–8 min unlisted YouTube (install → create → push → block → storefront drag → billing)
+- Testing instructions: see chat 2026-07-16 (7 steps, no account needed)
