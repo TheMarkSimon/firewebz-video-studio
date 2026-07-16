@@ -41,8 +41,18 @@ Unlimited free views on every plan — we charge for creating spins, never
 for your store's traffic. Billed through Shopify.
 
 ## Categorization
-Category: Product display (or nearest). Search terms: 360 product view,
-product spin, 3D product viewer, interactive images, product photography.
+- Primary category: Store design › Images and media › **3D/AR/VR**
+  (Shopify's umbrella for interactive product visualization — where
+  merchants searching for 360°/spin apps browse).
+- Secondary category: **none** (optional field; the honest candidates are
+  weak "Other" buckets that add review scrutiny without discoverability —
+  skip unless Shopify's review suggests one).
+- Category attributes:
+  - Visualization: 360 views, AI-powered, Embedded viewer
+    (deliberately NOT "3D models" — Spinr does not produce 3D models)
+  - Customization: Images, File upload, Mobile responsive, Videos
+- Search terms: 360 product view, product spin, 3d product viewer,
+  360 photography, interactive images.
 
 ## Support
 - Email: contact@thespinr.com
