@@ -11,15 +11,16 @@ Spinr
 Turn the product photos you already have into 360° spins shoppers can drag.
 
 ## App details
-(493/500 chars — fits the form's limit)
+(486/500 chars — passed Shopify's review tips: no "right", no "free"/"pay"
+outside the pricing section)
 
 Shoppers who can pick a product up and turn it over buy with more
 confidence — but 360° rigs and 3D artists are out of reach for most
 stores. Spinr closes that gap with AI: pick a product, and in ~3 minutes
 its existing photos become an interactive 360° spin shoppers can drag with
-a mouse or finger, right on the product page. No new photography, no 3D
-modeling, no code. Backgrounds are removed automatically, hosting is free
-with unlimited views, and pushing to a product page is one click.
+a mouse or finger, directly on the product page. No new photography, no 3D
+modeling, no code. Backgrounds are removed automatically, views are
+unlimited, and pushing a spin to a product page is one click.
 
 ## Features
 - Works from the photos already on your products — no studio, no reshoots
