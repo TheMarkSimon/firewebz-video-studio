@@ -175,7 +175,7 @@ export async function fetchProducts(
     shop,
     accessToken,
     `query Products($first: Int!) {
-      products(first: $first, sortKey: TITLE) {
+      products(first: $first, sortKey: TITLE, query: "status:active") {
         edges { node {
           id title handle status
           images(first: 4) { edges { node { url } } }
