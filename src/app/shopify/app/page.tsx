@@ -4,7 +4,7 @@
 // push to product page) living inside the Shopify admin, Polaris-styled,
 // authenticated per-request with App Bridge session tokens.
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AppProvider,
   Badge,
@@ -15,6 +15,7 @@ import {
   Card,
   InlineStack,
   Page,
+  ProgressBar,
   ResourceItem,
   ResourceList,
   Select,
@@ -26,8 +27,31 @@ import en from "@shopify/polaris/locales/en.json";
 
 declare global {
   interface Window {
-    shopify?: { idToken(): Promise<string> };
+    shopify?: {
+      idToken(): Promise<string>;
+      toast?: { show(message: string, opts?: { isError?: boolean }): void };
+    };
   }
+}
+
+// Native admin toast for successes (banner stays for errors). Falls back to
+// nothing gracefully if App Bridge's toast API is unavailable.
+function toast(message: string) {
+  window.shopify?.toast?.show?.(message);
+}
+
+// Generation runs server-side, so progress is time-driven: an asymptotic
+// curve anchored to the real submit time (same as the web app) — always
+// moving, capped at 97% until the poll flips the row to ready.
+function progressPct(startedAtMs: number | null): number {
+  const t = Math.max(0, (Date.now() - (startedAtMs ?? Date.now())) / 1000);
+  return Math.min(97, Math.round(97 * (1 - Math.exp(-t / 75))));
+}
+function progressStage(pct: number): string {
+  if (pct < 12) return "Reading the product photos…";
+  if (pct < 50) return "Generating the 360° rotation…";
+  if (pct < 85) return "Rendering studio lighting and textures…";
+  return "Almost there — preparing the drag frames…";
 }
 
 // Theme-editor deep link that opens the product template WITH the Spinr
@@ -61,7 +85,13 @@ interface EmbeddedState {
     handle: string;
     imageUrl: string | null;
     photoCount: number;
-    spin: { id: string; status: string; pushed: boolean; error: string | null } | null;
+    spin: {
+      id: string;
+      status: string;
+      pushed: boolean;
+      error: string | null;
+      startedAtMs: number | null;
+    } | null;
   }>;
 }
 
@@ -95,9 +125,23 @@ function EmbeddedApp() {
     return json;
   }, []);
 
+  const prevGeneratingRef = useRef<Map<string, string>>(new Map());
   const load = useCallback(async () => {
     try {
-      setState(await api("/api/embedded/state"));
+      const next: EmbeddedState = await api("/api/embedded/state");
+      // Celebrate finishes: anything we saw generating that is now ready.
+      const prev = prevGeneratingRef.current;
+      for (const p of next.products) {
+        if (p.spin?.status === "ready" && prev.has(p.spin.id)) {
+          toast(`"${p.title}" spin is ready — push it to the page!`);
+        }
+      }
+      prevGeneratingRef.current = new Map(
+        next.products
+          .filter((p) => p.spin?.status === "generating")
+          .map((p) => [p.spin!.id, p.title]),
+      );
+      setState(next);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't load your store.");
@@ -117,12 +161,18 @@ function EmbeddedApp() {
     return () => clearTimeout(timer);
   }, [load]);
 
-  // Poll while anything is generating.
+  // Poll while anything is generating, and tick twice a second so the
+  // progress bars advance smoothly between polls.
   const anyGenerating = state?.products.some((p) => p.spin?.status === "generating") ?? false;
+  const [, setTick] = useState(0);
   useEffect(() => {
     if (!anyGenerating) return;
-    const id = setInterval(() => void load(), 8000);
-    return () => clearInterval(id);
+    const poll = setInterval(() => void load(), 8000);
+    const tick = setInterval(() => setTick((t) => t + 1), 500);
+    return () => {
+      clearInterval(poll);
+      clearInterval(tick);
+    };
   }, [anyGenerating, load]);
 
   async function createSpin(gid: string) {
@@ -147,9 +197,7 @@ function EmbeddedApp() {
     setNotice(null);
     try {
       await api("/api/embedded/push", { method: "POST", body: JSON.stringify({ spinId }) });
-      setNotice(
-        "Pushed — the spin is linked to the product. If you haven't added the Spinr block to your theme yet, use the one-click setup at the bottom of this page (once, for the whole catalog).",
-      );
+      toast("Pushed — the spin is live on the product page.");
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Push failed.");
     } finally {
@@ -168,7 +216,7 @@ function EmbeddedApp() {
         method: "POST",
         body: JSON.stringify({ spinId, productGid }),
       });
-      setNotice("Attached — the spin now belongs to that product. Push it to the page when it's ready.");
+      toast("Attached — push it to the page when it's ready.");
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Attach failed.");
     } finally {
@@ -192,7 +240,7 @@ function EmbeddedApp() {
     setNotice(null);
     try {
       await api("/api/embedded/billing", { method: "POST", body: JSON.stringify({ action: "cancel" }) });
-      setNotice("Subscription cancelled — you're back on the Free plan.");
+      toast("Subscription cancelled — you're back on the Free plan.");
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Couldn't cancel.");
     } finally {
@@ -325,6 +373,17 @@ function EmbeddedApp() {
                         {spin?.status === "failed" && <Badge tone="critical">Failed</Badge>}
                         {spin?.pushed && <Badge>On product page</Badge>}
                       </InlineStack>
+                      {spin?.status === "generating" && (
+                        <BlockStack gap="100">
+                          <div style={{ width: 260, maxWidth: "100%" }}>
+                            <ProgressBar progress={progressPct(spin.startedAtMs)} size="small" />
+                          </div>
+                          <Text as="p" tone="subdued" variant="bodySm">
+                            {progressStage(progressPct(spin.startedAtMs))} Usually 2–3 minutes —
+                            feel free to keep working, this page updates itself.
+                          </Text>
+                        </BlockStack>
+                      )}
                       {spin?.status === "failed" && spin.error && (
                         <Text as="p" tone="critical" variant="bodySm">
                           {spin.error.slice(0, 140)}

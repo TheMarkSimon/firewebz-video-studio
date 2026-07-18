@@ -43,6 +43,7 @@ export async function GET(req: NextRequest) {
           shopifyProductGid: true,
           pushedToShopifyAt: true,
           errorMessage: true,
+          generateStartedAt: true,
         },
       }),
       // Spins created in the web studio (photo upload — no product link).
@@ -84,6 +85,9 @@ export async function GET(req: NextRequest) {
                 status: spin.status,
                 pushed: Boolean(spin.pushedToShopifyAt),
                 error: spin.status === "failed" ? (spin.errorMessage ?? null) : null,
+                // Anchors the client-side progress bar so it resumes at the
+                // right spot after reloads instead of restarting at 0.
+                startedAtMs: spin.generateStartedAt?.getTime() ?? null,
               }
             : null,
         };
