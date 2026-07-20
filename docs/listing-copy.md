@@ -64,17 +64,20 @@ for your store's traffic. Billed through Shopify.
 - Privacy: https://thespinr.com/privacy
 - Website: https://thespinr.com
 
-## Screenshots (1600×900, capture via Chrome device toolbar)
-1. Spin live on kokok chair product page — "An interactive 360° spin
-   embedded on a Shopify product page."
-2. Embedded app product list — "Pick any product — Spinr uses its existing
-   photos."
-3. Product row "Generating…" — "A full 360° spin generates in minutes."
-4. "Spin ready" + Push to page — "One click puts the spin on your product
-   page."
-5. Embed full-screen mid-drag — "Shoppers drag to turn the product — mouse
-   or finger."
-6. (Optional) Plan card — "Simple pricing, billed through Shopify."
+## Screenshots (1600×900; captured ones live in assets/listing-screenshots/)
+Image text = the quoted caption, all ≤64 chars (form limit):
+1. Spin live on storefront product page (backpack or chair; CAPTURED) —
+   "An interactive 360° spin live on the product page" (49)
+2. Embedded app product list — "Pick any product — Spinr works from its
+   existing photos" (55)
+3. Product row "Generating…" + progress bar — "A full 360° spin generates
+   in minutes" (37)
+4. "Spin ready" + Push to page — "One click pushes the spin to your
+   product page" (46)
+5. Embed full-screen mid-drag (CAPTURED) — "Shoppers drag to turn the
+   product — mouse or finger" (51)
+6. (Optional) Plan card, prices not legible — "Manage your plan without
+   leaving the Shopify admin" (50)
 
 ## Demo video (optional)
 main.mp4 intro (photos → spin) + screen recording of Create spin → Push →
