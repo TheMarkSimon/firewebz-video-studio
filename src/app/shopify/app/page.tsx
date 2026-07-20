@@ -47,6 +47,12 @@ function progressPct(startedAtMs: number | null): number {
   const t = Math.max(0, (Date.now() - (startedAtMs ?? Date.now())) / 1000);
   return Math.min(97, Math.round(97 * (1 - Math.exp(-t / 75))));
 }
+// "$29" stays whole, "$2.5" becomes "$2.50" — cents always show as cents.
+function usd(v: string | number): string {
+  const n = Number(v);
+  return `$${n % 1 === 0 ? n : n.toFixed(2)}`;
+}
+
 function progressStage(pct: number): string {
   if (pct < 12) return "Reading the product photos…";
   if (pct < 50) return "Generating the 360° rotation…";
@@ -323,11 +329,11 @@ function EmbeddedApp() {
               <Text as="p" tone="subdued" variant="bodySm">
                 {pro
                   ? state.plan.enforced
-                    ? `${state.plan.remaining} of ${state.plan.includedSpins} included spins left this cycle · extras $${state.plan.overageUsd}/spin on your Shopify invoice. Views are never metered.`
-                    : `${state.plan.includedSpins} spins/month included, then $${state.plan.overageUsd}/spin — on your Shopify invoice. Views are never metered.`
+                    ? `${state.plan.remaining} of ${state.plan.includedSpins} included spins left this cycle · extras ${usd(state.plan.overageUsd)}/spin on your Shopify invoice. Views are never metered.`
+                    : `${state.plan.includedSpins} spins/month included, then ${usd(state.plan.overageUsd)}/spin — on your Shopify invoice. Views are never metered.`
                   : state.plan.enforced
-                    ? `You have ${state.plan.remaining} free spins left. Pro: $${state.plan.priceUsd}/mo for ${state.plan.includedSpins} spins, then $${state.plan.overageUsd}/spin.`
-                    : `Pro: $${state.plan.priceUsd}/mo for ${state.plan.includedSpins} spins a month, then $${state.plan.overageUsd}/spin. Billed through Shopify.`}
+                    ? `You have ${state.plan.remaining} free spins left. Pro: ${usd(state.plan.priceUsd)}/mo for ${state.plan.includedSpins} spins, then ${usd(state.plan.overageUsd)}/spin.`
+                    : `Pro: ${usd(state.plan.priceUsd)}/mo for ${state.plan.includedSpins} spins a month, then ${usd(state.plan.overageUsd)}/spin. Billed through Shopify.`}
               </Text>
             </BlockStack>
             {pro ? (
