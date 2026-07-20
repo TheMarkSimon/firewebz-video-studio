@@ -11,12 +11,13 @@ Spinr
 Turn the product photos you already have into 360° spins shoppers can drag.
 
 ## App details
-(486/500 chars — passed Shopify's review tips: no "right", no "free"/"pay"
-outside the pricing section)
+(480/500 chars — passed Shopify's review tips: no "right", no "free"/"pay"
+outside the pricing section; no time figures — req 4.3.3 bans stats/data
+in listing content, so "~3 minutes" became "in minutes")
 
 Shoppers who can pick a product up and turn it over buy with more
 confidence — but 360° rigs and 3D artists are out of reach for most
-stores. Spinr closes that gap with AI: pick a product, and in ~3 minutes
+stores. Spinr closes that gap with AI: pick a product, and in minutes
 its existing photos become an interactive 360° spin shoppers can drag with
 a mouse or finger, directly on the product page. No new photography, no 3D
 modeling, no code. Backgrounds are removed automatically, views are
@@ -33,7 +34,7 @@ unlimited, and pushing a spin to a product page is one click.
 
 ## How it works
 1. Pick a product — Spinr reads its existing photos.
-2. Click Create spin — AI builds the 360° rotation in ~3 minutes.
+2. Click Create spin — AI builds the 360° rotation in minutes.
 3. Click Push to page — the spin appears on your product page.
 
 ## Pricing
@@ -68,8 +69,7 @@ for your store's traffic. Billed through Shopify.
    embedded on a Shopify product page."
 2. Embedded app product list — "Pick any product — Spinr uses its existing
    photos."
-3. Product row "Generating…" — "A full 360° spin generates in about three
-   minutes."
+3. Product row "Generating…" — "A full 360° spin generates in minutes."
 4. "Spin ready" + Push to page — "One click puts the spin on your product
    page."
 5. Embed full-screen mid-drag — "Shoppers drag to turn the product — mouse
@@ -86,6 +86,10 @@ storefront drag. 30–60s, no voiceover.
 - Title tag: Spinr — 360° Product Spins for Shopify Stores
 - Meta description: Turn existing product photos into interactive 360° spins shoppers can drag. AI-generated in minutes, embedded on product pages, no code.
 - Install requirements: requires Shopify Online Store (theme app extension)
+  — check "Merchant must have online store" under Sales channel
+  requirements (req 4.3.1)
+- Emergency developer contact (req 4.5.6): add in Partner account settings
+  BEFORE submitting — use marksimanduyev@gmail.com + phone
 - Support / review / submission email: contact@thespinr.com (verify forwarding!)
 - Demo store URL: https://kokok-ndm2wtj1.myshopify.com/products/chair (password must be OFF)
 - Test account: "app doesn't require an account" (embedded auto-provisions)
