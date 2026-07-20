@@ -15,13 +15,15 @@ export const maxDuration = 300;
 export async function POST(req: NextRequest) {
   try {
     const { userId, connection } = await requireShopContext(req);
-    const body = (await req.json().catch(() => ({}))) as { productGid?: string };
+    const body = (await req.json().catch(() => ({}))) as { productGid?: string; force?: boolean };
     if (!body.productGid || !body.productGid.startsWith("gid://shopify/Product/")) {
       return NextResponse.json({ error: "productGid required" }, { status: 400 });
     }
 
+    // force=true regenerates a ready spin (fresh run, counts as a spin) —
+    // the merchant's retry path when a generation comes out wrong.
     const spinId = await importProductCore(userId, connection, body.productGid);
-    const payload = await startGeneration(userId, spinId);
+    const payload = await startGeneration(userId, spinId, { force: body.force === true });
 
     return NextResponse.json({ spinId, payload });
   } catch (err) {

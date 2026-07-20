@@ -109,6 +109,9 @@ function EmbeddedApp() {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [attachTarget, setAttachTarget] = useState<Record<string, string>>({});
+  // Two-step inline confirm for Regenerate (it consumes a spin credit):
+  // first click arms the row, second click fires.
+  const [confirmRegen, setConfirmRegen] = useState<string | null>(null);
   
   const api = useCallback(async (path: string, init?: RequestInit) => {
     const token = await window.shopify!.idToken();
@@ -175,15 +178,17 @@ function EmbeddedApp() {
     };
   }, [anyGenerating, load]);
 
-  async function createSpin(gid: string) {
+  async function createSpin(gid: string, force = false) {
     setBusy((b) => ({ ...b, [gid]: true }));
     setNotice(null);
+    setConfirmRegen(null);
     try {
       const res = await api("/api/embedded/spins", {
         method: "POST",
-        body: JSON.stringify({ productGid: gid }),
+        body: JSON.stringify({ productGid: gid, force }),
       });
       if (res.payload?.blocked) setNotice(res.payload.blocked);
+      else if (force) toast("Regenerating — the current spin stays live until the new one is ready.");
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "Couldn't create the spin.");
     } finally {
@@ -411,6 +416,21 @@ function EmbeddedApp() {
                           Try again
                         </Button>
                       )}
+                      {spin?.status === "ready" &&
+                        (confirmRegen === p.gid ? (
+                          <Button
+                            onClick={() => void createSpin(p.gid, true)}
+                            loading={isBusy}
+                            tone="critical"
+                            variant="secondary"
+                          >
+                            Uses 1 spin — confirm
+                          </Button>
+                        ) : (
+                          <Button onClick={() => setConfirmRegen(p.gid)} disabled={isBusy} variant="secondary">
+                            Regenerate
+                          </Button>
+                        ))}
                       {spin?.status === "ready" && !spin.pushed && (
                         <Button onClick={() => void push(spin.id, p.gid)} loading={isBusy} variant="primary">
                           Push to page

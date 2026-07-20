@@ -16,7 +16,11 @@ export default async function EmbedPage({ params }: { params: Promise<{ spinId: 
   const { spinId } = await params;
   const spin = await prisma.spin.findUnique({ where: { id: spinId } });
 
-  if (!spin || spin.status !== "ready" || !spin.videoUrl) {
+  // Gate on media, not status: a spin being regenerated (or whose
+  // regeneration failed) keeps its previous video, so a live storefront
+  // embed never goes blank mid-redo. Success is the only path that
+  // overwrites videoUrl/frameUrls (lib/spin-completion.ts).
+  if (!spin || !spin.videoUrl) {
     return <EmbedError message="Spin not found." />;
   }
 
