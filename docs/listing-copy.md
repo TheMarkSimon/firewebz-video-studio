@@ -64,20 +64,22 @@ for your store's traffic. Billed through Shopify.
 - Privacy: https://thespinr.com/privacy
 - Website: https://thespinr.com
 
-## Screenshots (1600×900; captured ones live in assets/listing-screenshots/)
-Image text = the quoted caption, all ≤64 chars (form limit):
-1. Spin live on storefront product page (backpack or chair; CAPTURED) —
-   "An interactive 360° spin live on the product page" (49)
-2. Embedded app product list — "Pick any product — Spinr works from its
-   existing photos" (55)
-3. Product row "Generating…" + progress bar — "A full 360° spin generates
-   in minutes" (37)
-4. "Spin ready" + Push to page — "One click pushes the spin to your
-   product page" (46)
-5. Embed full-screen mid-drag (CAPTURED) — "Shoppers drag to turn the
-   product — mouse or finger" (51)
-6. (Optional) Plan card, prices not legible — "Manage your plan without
-   leaving the Shopify admin" (50)
+## Screenshots — ALL CAPTURED in assets/listing-screenshots/
+Desktop 1600×900, mobile 900×1600. Image text = quoted caption, ≤64 chars.
+Admin shots deliberately exclude the plan card (req 4.2.2: no pricing in
+images).
+1. 1-storefront-backpack.png — "An interactive 360° spin live on the
+   product page" (49)
+2. admin-list.png — "Pick any product — Spinr works from its existing
+   photos" (55)
+3. admin-generating.png — "A full 360° spin generates in minutes" (37)
+4. admin-ready.png — "One click pushes the spin to your product page" (46)
+5. 5-embed-mid-drag.png — "Shoppers drag to turn the product — mouse or
+   finger" (51)
+6. 1b-storefront-chair.png — "Every product on the store can carry its
+   own 360° spin" (54)
+7. mobile-storefront.png (mobile slot) — "Spins work beautifully on
+   mobile — drag with a finger" (53)
 
 ## Demo video (optional)
 main.mp4 intro (photos → spin) + screen recording of Create spin → Push →
