@@ -100,4 +100,26 @@ storefront drag. 30–60s, no voiceover.
 - Test account: "app doesn't require an account" (embedded auto-provisions)
 - Pricing plans: Free — "3 free spins to try Spinr on your own store. Automatic background removal, one-click push to product pages, unlimited 360° views." / Pro $29/mo — "10 spins every month, then $2.50 per extra spin. Unlimited 360° views on every plan. Catalog import and one-click push included."
 - Screencast: 3–8 min unlisted YouTube (install → create → push → block → storefront drag → billing)
-- Testing instructions: see chat 2026-07-16 (7 steps, no account needed)
+- Geographic requirements: none (leave unchecked)
+- Tracking (GA): skip for launch — add GA4 later to measure listing→install
+- Testing instructions (paste verbatim):
+
+  To test Spinr (no account needed — the app provisions itself on install):
+  1. Install Spinr on a development store. The embedded app opens in the
+     Shopify admin and automatically lists the store's products.
+  2. Make sure the store has at least one product with 1-4 photos. Any
+     ordinary product photos work — no special photography is needed.
+  3. Click "Create spin" on a product. The AI generation takes a few
+     minutes; the row shows a live progress bar and updates by itself.
+  4. When the badge says "Spin ready", click "Push to page".
+  5. One-time theme setup: click "Add the Spinr block" in the app. It
+     opens the Theme Editor with the "Spinr 360° spin" block added to the
+     product template. Click Save.
+  6. Open that product's page on the storefront: the 360° spin renders on
+     the page. Drag it with the mouse (or a finger on mobile) to turn the
+     product. Products without a pushed spin are unaffected by the block.
+  7. Billing: in the app's plan card, click "Upgrade to Pro" and approve
+     the charge on Shopify's confirmation screen (test mode — no real
+     charge). "Cancel plan" cancels it from the same card.
+  8. A live example is on our demo store:
+     https://kokok-ndm2wtj1.myshopify.com/products/forest-green-backpack
