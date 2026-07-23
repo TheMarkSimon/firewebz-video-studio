@@ -28,9 +28,10 @@ unlimited, and pushing a spin to a product page is one click.
 - Interactive 360° spin shoppers drag with mouse or finger, on any device
 - One-click push puts the spin on the product page — no theme code
 - Automatic background removal with clean studio-style lighting
-- Unlimited 360° views — no traffic caps or bandwidth limits, ever
-  (no pricing words in features — Shopify's review tip rejects "free"/"pay"
-  outside the pricing section)
+- Not happy with a result? Regenerate the spin in one click
+  (no pricing words or plan terms in features — Shopify's AI check
+  rejected the earlier "no traffic caps or bandwidth limits" bullet as
+  pricing information)
 
 ## How it works
 1. Pick a product — Spinr reads its existing photos.
@@ -74,8 +75,11 @@ images).
    photos" (55)
 3. admin-generating.png — "A full 360° spin generates in minutes" (37)
 4. admin-ready.png — "One click pushes the spin to your product page" (46)
-5. 5-embed-mid-drag.png — "Shoppers drag to turn the product — mouse or
-   finger" (51)
+5. 5-embed-mid-drag.png — REMOVED from listing 2026-07-23: Shopify's AI
+   check flagged it as "logo/illustration only" (no UI context). Replace
+   with a storefront capture showing the widget large in-page once the
+   theme block moves below the buy box. Caption if replaced: "Shoppers
+   drag to turn the product — mouse or finger" (51)
 6. 1b-storefront-chair.png — "Every product on the store can carry its
    own 360° spin" (54)
 7. mobile-storefront.png (mobile slot) — "Spins work beautifully on
