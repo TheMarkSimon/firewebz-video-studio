@@ -120,14 +120,17 @@ async function mintClientCredentialsToken(
 // The one true way to get a usable Admin token for a connection: returns the
 // stored token while fresh, otherwise mints + persists a new one. ALWAYS use
 // this instead of reading connection.accessToken directly.
-export async function getShopToken(connection: {
-  id: string;
-  shop: string;
-  accessToken: string;
-  tokenExpiresAt: Date | null;
-}): Promise<string> {
+export async function getShopToken(
+  connection: {
+    id: string;
+    shop: string;
+    accessToken: string;
+    tokenExpiresAt: Date | null;
+  },
+  opts: { force?: boolean } = {},
+): Promise<string> {
   const freshUntil = connection.tokenExpiresAt?.getTime() ?? 0;
-  if (freshUntil > Date.now() + 2 * 60 * 1000) return connection.accessToken;
+  if (!opts.force && freshUntil > Date.now() + 2 * 60 * 1000) return connection.accessToken;
 
   try {
     const minted = await mintClientCredentialsToken(connection.shop);

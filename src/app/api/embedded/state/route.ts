@@ -33,8 +33,21 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // A stored token can be invalidated out from under us (reinstall, token
+    // rotation). If the catalog read fails on auth, force-mint a fresh token
+    // once and retry before failing the whole state call.
+    const loadProducts = async () => {
+      try {
+        return await fetchProducts(shop, await getShopToken(connection), 50);
+      } catch (err) {
+        if (!(err instanceof Error && /HTTP 40[13]/.test(err.message))) throw err;
+        console.error(`[embedded/state] catalog read auth-failed for ${shop}, reminting:`, err.message);
+        return await fetchProducts(shop, await getShopToken(connection, { force: true }), 50);
+      }
+    };
+
     const [products, spins, unlinkedSpins, plan] = await Promise.all([
-      fetchProducts(shop, await getShopToken(connection), 50),
+      loadProducts(),
       prisma.spin.findMany({
         where: { userId, shopifyProductGid: { not: null } },
         select: {
@@ -98,7 +111,7 @@ export async function GET(req: NextRequest) {
       console.error("[embedded] auth refused:", err.message);
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
-    console.error("[embedded/state]", err);
+    console.error("[embedded/state] failed:", err instanceof Error ? (err.stack ?? err.message) : err);
     return NextResponse.json({ error: "Something went wrong loading your store." }, { status: 500 });
   }
 }

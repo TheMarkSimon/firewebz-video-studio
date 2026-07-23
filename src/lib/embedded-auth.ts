@@ -98,10 +98,48 @@ export async function requireShopContext(req: Request): Promise<ShopContext> {
 
   let connection = await prisma.shopifyConnection.findUnique({ where: { shop } });
   if (!connection) {
-    const minted = await exchangeSessionToken(shop, token).catch((err) => {
-      console.error("[embedded-auth] token exchange failed:", err);
-      throw new EmbeddedAuthError("Store setup incomplete — complete the connection first", 409);
-    });
+    const exchange = () =>
+      exchangeSessionToken(shop, token).catch((err) => {
+        console.error(`[embedded-auth] token exchange failed for ${shop}:`, err);
+        throw new EmbeddedAuthError("Store setup incomplete — complete the connection first", 409);
+      });
+
+    // Validate the minted token with a trivial Admin call before trusting
+    // it. Fresh App Store installs have produced tokens that 401 on first
+    // use (seen during app review 2026-07) — retry the exchange once with
+    // a short delay before giving up, and log everything: this path runs
+    // exactly once per store, when nobody is watching.
+    const validate = async (tok: string): Promise<string | null> => {
+      try {
+        const data = await shopifyGraphQL<{ shop: { name: string } }>(shop, tok, `{ shop { name } }`);
+        return data.shop?.name ?? "";
+      } catch (err) {
+        console.error(`[embedded-auth] minted-token validation failed for ${shop}:`, err);
+        return null;
+      }
+    };
+
+    let minted = await exchange();
+    console.error(
+      `[embedded-auth] provisioning ${shop}: scope="${minted.scope}" expiring=${Boolean(minted.expiresAt)}`,
+    );
+    let shopName = await validate(minted.accessToken);
+    if (shopName === null) {
+      await new Promise((r) => setTimeout(r, 1500));
+      minted = await exchange();
+      shopName = await validate(minted.accessToken);
+      console.error(
+        `[embedded-auth] exchange retry for ${shop}: ${shopName === null ? "STILL FAILING" : "recovered"}`,
+      );
+    }
+    if (shopName === null) {
+      // Surface a readable, retryable error instead of letting downstream
+      // Admin calls 401 into a generic 500.
+      throw new EmbeddedAuthError(
+        "Shopify hasn't finished activating this store's access yet — please reopen the app in a few seconds.",
+        503,
+      );
+    }
 
     const shadow = await prisma.user.upsert({
       where: { email: `${SHADOW_EMAIL_PREFIX}${shop}` },
@@ -117,30 +155,16 @@ export async function requireShopContext(req: Request): Promise<ShopContext> {
         accessToken: minted.accessToken,
         tokenExpiresAt: minted.expiresAt,
         scope: minted.scope,
+        shopName: shopName || undefined,
       },
       update: {
         accessToken: minted.accessToken,
         tokenExpiresAt: minted.expiresAt,
         scope: minted.scope,
+        shopName: shopName || undefined,
       },
     });
 
-    // Best-effort niceties: store display name + lifecycle webhooks.
-    try {
-      const data = await shopifyGraphQL<{ shop: { name: string } }>(
-        shop,
-        minted.accessToken,
-        `{ shop { name } }`,
-      );
-      if (data.shop?.name) {
-        connection = await prisma.shopifyConnection.update({
-          where: { id: connection.id },
-          data: { shopName: data.shop.name },
-        });
-      }
-    } catch {
-      /* non-fatal */
-    }
     const origin = getAppOrigin();
     if (origin) await registerAppWebhooks(shop, minted.accessToken, origin);
   }
