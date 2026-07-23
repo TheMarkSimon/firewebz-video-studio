@@ -17,7 +17,33 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
-  try {
+  // Neon suspends idle compute; the first query during wake-up can fail
+  // with "Can't reach database server" (seen in prod logs 2026-07-23).
+  // This is the embedded app's boot call — retry once before failing.
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await buildState(req);
+    } catch (err) {
+      const coldDb =
+        err instanceof Error &&
+        (err.name === "PrismaClientInitializationError" || err.message.includes("Can't reach database"));
+      if (coldDb && attempt === 0) {
+        console.error("[embedded/state] database waking up — retrying once");
+        await new Promise((r) => setTimeout(r, 2000));
+        continue;
+      }
+      if (err instanceof EmbeddedAuthError) {
+        console.error("[embedded] auth refused:", err.message);
+        return NextResponse.json({ error: err.message }, { status: err.status });
+      }
+      console.error("[embedded/state] failed:", err instanceof Error ? (err.stack ?? err.message) : err);
+      return NextResponse.json({ error: "Something went wrong loading your store." }, { status: 500 });
+    }
+  }
+}
+
+async function buildState(req: NextRequest) {
+  {
     const { shop, userId, connection } = await requireShopContext(req);
 
     // Reconcile any in-flight generations before reporting state.
@@ -106,12 +132,5 @@ export async function GET(req: NextRequest) {
         };
       }),
     });
-  } catch (err) {
-    if (err instanceof EmbeddedAuthError) {
-      console.error("[embedded] auth refused:", err.message);
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    console.error("[embedded/state] failed:", err instanceof Error ? (err.stack ?? err.message) : err);
-    return NextResponse.json({ error: "Something went wrong loading your store." }, { status: 500 });
   }
 }
