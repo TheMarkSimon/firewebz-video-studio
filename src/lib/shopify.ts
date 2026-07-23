@@ -74,6 +74,10 @@ export async function exchangeCodeForToken(
       client_id: process.env.SHOPIFY_API_KEY,
       client_secret: process.env.SHOPIFY_API_SECRET,
       code,
+      // Deprecated non-expiring offline tokens are REJECTED on new installs
+      // ("Invalid API key or access token") — always request the expiring
+      // variant; getShopToken refreshes via client_credentials.
+      expiring: 1,
     }),
     cache: "no-store",
   });
@@ -287,6 +291,10 @@ export async function exchangeSessionToken(
       subject_token: sessionToken,
       subject_token_type: "urn:ietf:params:oauth:token-type:id_token",
       requested_token_type: "urn:shopify:params:oauth:token-type:offline-access-token",
+      // Without this, the exchange mints a DEPRECATED non-expiring token that
+      // new stores refuse on every Admin call — the app-review blocker of
+      // 2026-07 (dev dashboard: "Deprecated offline token use detected").
+      expiring: 1,
     }),
     cache: "no-store",
   });
