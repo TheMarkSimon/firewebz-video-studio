@@ -237,7 +237,7 @@ export default function WelcomePage() {
             We charge for creating spins — never for your store&apos;s traffic. Every plan
             includes unlimited 360° views, no bandwidth caps.
           </p>
-          <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 gap-6 md:grid-cols-2">
+          <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
             <div className="rounded-3xl border border-fw-border bg-white p-8">
               <p className="text-[13px] font-bold uppercase tracking-wider text-fw-darkGray">Free</p>
               <p className="mt-3 font-display text-[40px] font-bold text-fw-text">$0</p>
@@ -252,6 +252,27 @@ export default function WelcomePage() {
                 <Link href="/onboarding">Start free</Link>
               </Button>
             </div>
+            <div className="rounded-3xl border border-fw-border bg-white p-8">
+              <p className="text-[13px] font-bold uppercase tracking-wider text-fw-darkGray">
+                Spin Pack
+              </p>
+              <p className="mt-3 font-display text-[40px] font-bold text-fw-text">
+                $39
+                <span className="text-[16px] font-semibold text-fw-darkGray"> one-time</span>
+              </p>
+              <p className="mt-1 text-[13px] text-fw-darkGray">
+                10 spins, no subscription — digitize your catalog in one go
+              </p>
+              <ul className="mt-6 space-y-3">
+                <PriceLine>10 spin credits that never expire</PriceLine>
+                <PriceLine>No subscription, no commitment</PriceLine>
+                <PriceLine>Works on any website — Shopify or not</PriceLine>
+                <PriceLine>Unlimited views, MP4 downloads included</PriceLine>
+              </ul>
+              <Button asChild variant="outline" className="mt-8 w-full">
+                <Link href="/studio">Buy in Studio</Link>
+              </Button>
+            </div>
             <div className="rounded-3xl border-2 border-fw-purple bg-white p-8">
               <p className="text-[13px] font-bold uppercase tracking-wider text-fw-text">Pro</p>
               <p className="mt-3 font-display text-[40px] font-bold text-fw-text">
@@ -262,21 +283,21 @@ export default function WelcomePage() {
                 {proIncludedSpins()} spins every month, then ${overagePriceUsd()} per extra spin
               </p>
               <ul className="mt-6 space-y-3">
-                <PriceLine>{proIncludedSpins()} spins/month + pay-as-you-go extras</PriceLine>
-                <PriceLine>Import products straight from Shopify</PriceLine>
-                <PriceLine>Push spins to product pages in one click</PriceLine>
+                <PriceLine>{proIncludedSpins()} spins/month — best rate per spin</PriceLine>
+                <PriceLine>Discounted extra spins (${overagePriceUsd()} each)</PriceLine>
+                <PriceLine>Import & one-click push for Shopify stores</PriceLine>
                 <PriceLine>Priority rendering</PriceLine>
               </ul>
               <Button asChild className="mt-8 w-full">
                 <Link href="/onboarding">Start free, upgrade in Studio</Link>
               </Button>
               <p className="mt-3 text-center text-[11px] text-fw-lightGray">
-                Billed through Shopify — no card entry, cancel anytime.
+                Billed through Shopify or card — cancel anytime.
               </p>
             </div>
           </div>
           <p className="mt-8 text-center text-[13px] text-fw-darkGray">
-            For scale: a 360° photography rig runs $75+ per product. A Spinr spin is ${overagePriceUsd()},
+            For scale: a 360° photography rig runs $75+ per product. A Spinr spin starts at ${overagePriceUsd()},
             from the photos you already have.
           </p>
         </section>

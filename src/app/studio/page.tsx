@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { SpinCard } from "@/components/spin-card";
 import { ShopifyConnectCard } from "@/components/shopify-connect-card";
+import { WebPlanCard } from "@/components/web-plan-card";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { SignInButton } from "@/components/auth-buttons";
@@ -82,6 +83,23 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
             </Link>
           </Button>
         </div>
+
+        {/* Web billing (Lemon Squeezy) — packs + Pro for non-Shopify users.
+            Hidden when the user already pays through Shopify. */}
+        {shopifyConnection?.subscriptionStatus !== "ACTIVE" && quotaEnforced() && (
+          <WebPlanCard
+            plan={{
+              plan: planState.plan,
+              provider: planState.provider,
+              enforced: planState.enforced,
+              remaining: planState.remaining,
+              packCredits: planState.packCredits,
+              freeTotal: freeSpins(),
+              includedSpins: proIncludedSpins(),
+            }}
+            purchaseNotice={sp.purchase === "success"}
+          />
+        )}
 
         <ShopifyConnectCard
           // SPINR_INSTALL_URL: dev-dashboard install link during beta; swap

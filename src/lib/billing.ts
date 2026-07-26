@@ -19,35 +19,51 @@ import {
   proIncludedSpins,
   quotaEnforced,
 } from "@/lib/shopify";
+import { lsStatusIsActive } from "@/lib/lemonsqueezy";
 
 export interface PlanState {
   plan: "free" | "pro";
+  // Which rail the Pro plan runs on (null when free).
+  provider: "shopify" | "web" | null;
   enforced: boolean;
   // Free plan: lifetime credits left. Pro: included spins left this cycle.
   remaining: number;
+  // Purchased pack/top-up credits still unspent (never expire).
+  packCredits: number;
   overagePriceUsd: string;
-  // Pro only: whether overage billing is possible (usage line item exists).
+  // Shopify Pro only: whether overage billing is possible.
   canUseOverage: boolean;
 }
 
 export async function getPlanState(userId: string): Promise<PlanState> {
-  const connection = await prisma.shopifyConnection.findFirst({ where: { userId } });
-  const pro = connection?.subscriptionStatus === "ACTIVE";
+  const [connection, user, creditUsed] = await Promise.all([
+    prisma.shopifyConnection.findFirst({ where: { userId } }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { extraCredits: true, lsSubscriptionStatus: true },
+    }),
+    prisma.spinUsage.count({ where: { userId, kind: "credit", counted: true } }),
+  ]);
+  const packCredits = Math.max(0, (user?.extraCredits ?? 0) - creditUsed);
+  const shopifyPro = connection?.subscriptionStatus === "ACTIVE";
+  const webPro = lsStatusIsActive(user?.lsSubscriptionStatus);
   const enforced = quotaEnforced();
 
-  if (pro) {
+  if (shopifyPro || webPro) {
     // Rolling 30-day window (beta simplification; close enough to the
-    // Shopify invoice cycle and needs no extra API call per generation).
+    // invoice cycle and needs no extra API call per generation).
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const used = await prisma.spinUsage.count({
       where: { userId, kind: "included", counted: true, createdAt: { gte: since } },
     });
     return {
       plan: "pro",
+      provider: shopifyPro ? "shopify" : "web",
       enforced,
       remaining: Math.max(0, proIncludedSpins() - used),
+      packCredits,
       overagePriceUsd: overagePriceUsd(),
-      canUseOverage: Boolean(connection?.usageLineItemGid),
+      canUseOverage: shopifyPro && Boolean(connection?.usageLineItemGid),
     };
   }
 
@@ -56,8 +72,10 @@ export async function getPlanState(userId: string): Promise<PlanState> {
   });
   return {
     plan: "free",
+    provider: null,
     enforced,
     remaining: Math.max(0, freeSpins() - used),
+    packCredits,
     overagePriceUsd: overagePriceUsd(),
     canUseOverage: false,
   };
@@ -80,34 +98,43 @@ export async function getCycleUsage(
 }
 
 export type ConsumeResult =
-  | { ok: true; kind: "free" | "included" | "overage" | "unmetered" }
+  | { ok: true; kind: "free" | "included" | "overage" | "credit" | "unmetered" }
   | { ok: false; error: string };
 
 // Reserve a credit for a generation run — call right before submitting to
 // the provider; pair with refundSpinUsage() on terminal failure.
+// Consumption order: plan allowance first, then overage (Shopify Pro),
+// then purchased pack credits, then a plan-appropriate refusal.
 export async function consumeSpinCredit(userId: string, spinId: string): Promise<ConsumeResult> {
   if (!quotaEnforced()) return { ok: true, kind: "unmetered" };
 
   const state = await getPlanState(userId);
 
-  let kind: "free" | "included" | "overage";
+  let kind: "free" | "included" | "overage" | "credit";
   if (state.plan === "pro") {
     if (state.remaining > 0) kind = "included";
     else if (state.canUseOverage) kind = "overage";
-    else {
+    else if (state.packCredits > 0) kind = "credit";
+    else if (state.provider === "web") {
+      return {
+        ok: false,
+        error: `You've used your ${proIncludedSpins()} included spins this month. Top up 5 extra spins from your Studio plan card to keep going.`,
+      };
+    } else {
       return {
         ok: false,
         error: "Your plan can't take extra spins right now — reconnect your Shopify store from Studio and try again.",
       };
     }
   } else {
-    if (state.remaining <= 0) {
+    if (state.remaining > 0) kind = "free";
+    else if (state.packCredits > 0) kind = "credit";
+    else {
       return {
         ok: false,
-        error: `You've used your ${freeSpins()} free spins. Upgrade to Spinr Pro in your Studio to keep going — billed through Shopify, no card entry.`,
+        error: `You've used your ${freeSpins()} free spins. Grab a 10-spin pack or go Pro from your Studio to keep going.`,
       };
     }
-    kind = "free";
   }
 
   await prisma.spinUsage.create({ data: { userId, spinId, kind } });

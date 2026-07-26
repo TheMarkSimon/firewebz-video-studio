@@ -16,9 +16,32 @@ model User {
   name               String?
   image              String?
   createdAt          DateTime            @default(now())
+  // Lemon Squeezy (web billing — non-Shopify merchants). Status follows
+  // LS subscription states: active | on_trial | cancelled | expired | ...
+  lsCustomerId         String?
+  lsSubscriptionId     String?
+  lsSubscriptionStatus String?
+  lsRenewsAt           DateTime?
+  // Purchased spin credits (packs + top-ups). Never expire; consumed after
+  // free/included allowances — see lib/billing.ts.
+  extraCredits         Int       @default(0)
   spins              Spin[]
   shopifyConnections ShopifyConnection[]
   spinUsages         SpinUsage[]
+  lsOrders           LsOrder[]
+}
+
+// Processed Lemon Squeezy orders — idempotency guard for credit grants
+// (LS retries webhooks; an order must credit spins exactly once).
+model LsOrder {
+  id        String   @id // LS order id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variantId String
+  credits   Int
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // Billing ledger (Phase 5): one row per generation run that consumes quota.
