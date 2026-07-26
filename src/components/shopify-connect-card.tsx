@@ -126,7 +126,8 @@ export function ShopifyConnectCard({
           // App Store requirement 2.3.1: never ask for manual entry of a
           // myshopify.com domain — installation starts on a Shopify-owned
           // surface and the connection completes automatically.
-          <Button asChild className="h-10 px-5 text-[13px]">
+          // Outline, not lime: Studio keeps ONE primary CTA (Create new spin).
+          <Button asChild variant="outline" className="h-10 px-5 text-[13px]">
             <a href={installUrl} target="_blank" rel="noreferrer">
               Install Spinr on Shopify
             </a>

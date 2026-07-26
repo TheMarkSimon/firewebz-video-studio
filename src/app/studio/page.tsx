@@ -76,6 +76,23 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
                 ? "Your spins will live here."
                 : `${spins.length} spin${spins.length === 1 ? "" : "s"}`}
             </p>
+            {/* Ambient plan status + purchase door (web billing rail).
+                Hidden for Shopify-billed users — their plan lives in the
+                Shopify card below. */}
+            {shopifyConnection?.subscriptionStatus !== "ACTIVE" && quotaEnforced() && (
+              <WebPlanCard
+                plan={{
+                  plan: planState.plan,
+                  provider: planState.provider,
+                  enforced: planState.enforced,
+                  remaining: planState.remaining,
+                  packCredits: planState.packCredits,
+                  freeTotal: freeSpins(),
+                  includedSpins: proIncludedSpins(),
+                }}
+                purchaseNotice={sp.purchase === "success"}
+              />
+            )}
           </div>
           <Button asChild className="h-11 px-6">
             <Link href="/onboarding">
@@ -83,23 +100,6 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
             </Link>
           </Button>
         </div>
-
-        {/* Web billing (Lemon Squeezy) — packs + Pro for non-Shopify users.
-            Hidden when the user already pays through Shopify. */}
-        {shopifyConnection?.subscriptionStatus !== "ACTIVE" && quotaEnforced() && (
-          <WebPlanCard
-            plan={{
-              plan: planState.plan,
-              provider: planState.provider,
-              enforced: planState.enforced,
-              remaining: planState.remaining,
-              packCredits: planState.packCredits,
-              freeTotal: freeSpins(),
-              includedSpins: proIncludedSpins(),
-            }}
-            purchaseNotice={sp.purchase === "success"}
-          />
-        )}
 
         <ShopifyConnectCard
           // SPINR_INSTALL_URL: dev-dashboard install link during beta; swap

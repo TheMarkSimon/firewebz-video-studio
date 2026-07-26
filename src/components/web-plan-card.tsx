@@ -1,11 +1,11 @@
 "use client";
 
-// Web billing card (non-Shopify rail, Lemon Squeezy). Shown in Studio for
-// users WITHOUT an active Shopify subscription. Purchases go through
-// /api/billing/checkout so every order carries the user id.
+// Slim plan line for Studio (web billing rail). Design rule: Studio has ONE
+// primary CTA (Create new spin) — billing is ambient status plus a door.
+// The purchase options only appear on intent ("Get more spins"), and the
+// line turns prominent when the user is actually out of spins.
 
 import { useState } from "react";
-import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface WebPlan {
@@ -19,9 +19,12 @@ interface WebPlan {
 }
 
 export function WebPlanCard({ plan, purchaseNotice }: { plan: WebPlan; purchaseNotice: boolean }) {
+  const [open, setOpen] = useState(purchaseNotice);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const webPro = plan.plan === "pro" && plan.provider === "web";
+  const total = plan.remaining + plan.packCredits;
+  const out = plan.enforced && total <= 0;
 
   async function buy(product: "pack" | "pro" | "topup") {
     setBusy(product);
@@ -42,40 +45,47 @@ export function WebPlanCard({ plan, purchaseNotice }: { plan: WebPlan; purchaseN
   }
 
   const summary = webPro
-    ? `${plan.remaining} of ${plan.includedSpins} included spins left this month` +
+    ? `Pro · ${plan.remaining} of ${plan.includedSpins} spins left this month` +
       (plan.packCredits > 0 ? ` · ${plan.packCredits} extra credits` : "")
-    : plan.enforced
-      ? `${plan.remaining} of ${plan.freeTotal} free spins left` +
-        (plan.packCredits > 0 ? ` · ${plan.packCredits} pack credits` : "")
-      : "Free plan";
+    : `${plan.remaining} of ${plan.freeTotal} free spins left` +
+      (plan.packCredits > 0 ? ` · ${plan.packCredits} pack credits` : "");
 
   return (
-    <div className="mt-6 rounded-3xl border border-fw-border bg-white p-6">
+    <div className="mt-1.5">
       {purchaseNotice && (
-        <div className="mb-4 rounded-2xl bg-fw-purpleSoft px-4 py-3 text-[13px] font-semibold text-fw-text">
-          Payment received — your plan updates within a few seconds. Refresh if you don&apos;t
-          see it yet.
-        </div>
+        <p className="mb-1 text-[13px] font-semibold text-fw-text">
+          ✓ Payment received — your balance updates within a few seconds.
+        </p>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-fw-black" />
-            <h2 className="text-[16px] font-bold text-fw-text">
-              {webPro ? "Spinr Pro" : "Your plan"}
-            </h2>
-          </div>
-          <p className="mt-1 text-[13px] text-fw-darkGray">{summary}</p>
-        </div>
-        <div className="flex flex-wrap gap-2.5">
+      <p className={`text-[13px] ${out ? "font-semibold text-amber-600" : "text-fw-darkGray"}`}>
+        {out ? "You're out of spins" : summary}
+        {" · "}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="font-semibold text-fw-text underline underline-offset-4 hover:opacity-70"
+        >
+          Get more spins
+        </button>
+      </p>
+
+      {open && (
+        <div className="mt-3 flex max-w-xl flex-wrap items-center gap-2.5 rounded-2xl border border-fw-border bg-white p-3">
           {webPro ? (
             <>
-              <Button onClick={() => void buy("topup")} disabled={busy !== null} className="h-10 px-5 text-[13px]">
-                {busy === "topup" ? "Opening checkout…" : "Top up 5 spins — $12.50"}
+              <Button
+                onClick={() => void buy("topup")}
+                disabled={busy !== null}
+                variant="outline"
+                className="h-9 px-4 text-[13px]"
+              >
+                {busy === "topup" ? "Opening…" : "Top up 5 spins — $12.50"}
               </Button>
-              <Button asChild variant="outline" className="h-10 px-5 text-[13px]">
-                <a href="/api/billing/portal">Manage subscription</a>
-              </Button>
+              <a
+                href="/api/billing/portal"
+                className="text-[13px] font-semibold text-fw-darkGray underline-offset-4 hover:underline"
+              >
+                Manage subscription
+              </a>
             </>
           ) : (
             <>
@@ -83,22 +93,26 @@ export function WebPlanCard({ plan, purchaseNotice }: { plan: WebPlan; purchaseN
                 onClick={() => void buy("pack")}
                 disabled={busy !== null}
                 variant="outline"
-                className="h-10 px-5 text-[13px]"
+                className="h-9 px-4 text-[13px]"
               >
-                {busy === "pack" ? "Opening checkout…" : "10-spin pack — $39"}
+                {busy === "pack" ? "Opening…" : "10-spin pack — $39"}
               </Button>
-              <Button onClick={() => void buy("pro")} disabled={busy !== null} className="h-10 px-5 text-[13px]">
-                {busy === "pro" ? "Opening checkout…" : "Go Pro — $29/mo"}
+              <Button
+                onClick={() => void buy("pro")}
+                disabled={busy !== null}
+                variant="outline"
+                className="h-9 px-4 text-[13px]"
+              >
+                {busy === "pro" ? "Opening…" : "Go Pro — $29/mo"}
               </Button>
+              <span className="text-[11px] text-fw-lightGray">
+                Secure checkout by Lemon Squeezy · pack spins never expire
+              </span>
             </>
           )}
+          {error && <p className="w-full text-[12px] font-semibold text-red-600">{error}</p>}
         </div>
-      </div>
-      {error && <p className="mt-3 text-[13px] font-semibold text-red-600">{error}</p>}
-      <p className="mt-3 text-[11px] text-fw-lightGray">
-        Secure checkout by Lemon Squeezy. Pack spins never expire · unlimited views on every
-        plan{webPro ? " · cancel anytime" : ""}.
-      </p>
+      )}
     </div>
   );
 }
