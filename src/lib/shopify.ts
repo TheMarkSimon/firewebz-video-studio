@@ -413,10 +413,28 @@ export interface AppSubscriptionInfo {
 // overage spins are billed against. The merchant approves both on one
 // confirmation screen; overages then appear on their Shopify invoice with
 // no further approval.
+// Development stores can never approve REAL charges — even with live
+// billing on, their subscriptions must be test charges or the approval
+// screen errors out (this includes Shopify's app reviewers).
+export async function shopIsDevelopmentStore(shop: string, accessToken: string): Promise<boolean> {
+  try {
+    const data = await shopifyGraphQL<{ shop: { plan: { partnerDevelopment: boolean } } }>(
+      shop,
+      accessToken,
+      `{ shop { plan { partnerDevelopment } } }`,
+    );
+    return Boolean(data.shop?.plan?.partnerDevelopment);
+  } catch (err) {
+    console.error("[shopify] dev-store check failed (assuming dev → test charge):", err);
+    return true; // safe default: a wrongly-test charge beats a failed real one
+  }
+}
+
 export async function createAppSubscription(
   shop: string,
   accessToken: string,
   returnUrl: string,
+  opts: { forceTest?: boolean } = {},
 ): Promise<{ confirmationUrl: string; subscriptionGid: string; usageLineItemGid: string | null }> {
   const data = await shopifyGraphQL<{
     appSubscriptionCreate: {
@@ -443,7 +461,7 @@ export async function createAppSubscription(
     {
       name: SPINR_PRO_PLAN_NAME,
       returnUrl,
-      test: billingIsTest(),
+      test: billingIsTest() || opts.forceTest === true,
       lineItems: [
         {
           plan: {

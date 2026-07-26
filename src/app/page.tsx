@@ -6,6 +6,7 @@ import { RotatingWord } from "@/components/hero";
 import { ArrowRight, Camera, Store, Check, TrendingUp, Undo2, MonitorSmartphone } from "lucide-react";
 import { SpinrIcon } from "@/components/spinr-icon";
 import { SequenceVideo } from "@/components/sequence-video";
+import { SpotlightShowcase } from "@/components/spotlight-showcase";
 import { overagePriceUsd, proIncludedSpins, proPriceUsd } from "@/lib/shopify";
 
 export const metadata: Metadata = {
@@ -37,9 +38,81 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
+// Structured data for search engines and AI answer engines. The FAQ
+// entries MIRROR the visible FAQ section below — keep them in sync
+// (invisible-only Q&As are a schema-spam signal).
+const JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      name: "Spinr",
+      url: "https://thespinr.com",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      description:
+        "Turn the product photos you already have into an interactive 360° spin shoppers can drag on any Shopify product page. AI-generated in minutes — no rig, no 3D modeling, no code.",
+      offers: [
+        { "@type": "Offer", name: "Free", price: "0", priceCurrency: "USD", description: "3 free spins, no card required" },
+        { "@type": "Offer", name: "Pro", price: "29", priceCurrency: "USD", description: "10 spins per month, then $2.50 per extra spin" },
+      ],
+      publisher: { "@type": "Organization", name: "Spinr", url: "https://thespinr.com", email: "contact@thespinr.com" },
+    },
+    {
+      "@type": "FAQPage",
+      mainEntity: [
+        {
+          "@type": "Question",
+          name: "Do I need special photos or equipment to create a 360° product spin?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "No. The photos already in your catalog usually work as-is — or take a few phone shots: front, back, and sides. Any background is fine; Spinr removes it automatically.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "How long does it take to generate a 360° spin?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "A few minutes from upload to a finished, embeddable interactive spin.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Does Spinr work with my Shopify theme?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Yes. The spin is a single line of HTML pasted into any product page, or one click through the Spinr Shopify app — no theme edits required.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "What product categories does Spinr support?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Spinr is product-agnostic: footwear, bags, furniture, eyewear, cosmetics, toys — anything you can photograph.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "Do shoppers need to install anything to use the spin?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Nothing. The spin runs on plain web technology — shoppers drag with their mouse or finger on any device.",
+          },
+        },
+      ],
+    },
+  ],
+};
+
 export default function WelcomePage() {
   return (
     <AppShell variant="marketing">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
       <div className="mx-auto max-w-7xl">
         {/* Hero — Canva pattern: title, one line, one CTA, demo video under it. */}
         <section className="flex flex-col items-center pt-14 text-center lg:pt-20">
@@ -199,6 +272,11 @@ export default function WelcomePage() {
             />
           </VisualPanel>
         </section>
+
+        {/* Category spotlight — live spins with their real source photos.
+            No invented merchants/metrics (honesty rule); real merchant
+            stories replace the facts panel as design partners sign. */}
+        <SpotlightShowcase />
 
         {/* Feature row B — visual left, text right */}
         <section id="why" className="mt-32 grid scroll-mt-24 items-center gap-12 md:grid-cols-2">

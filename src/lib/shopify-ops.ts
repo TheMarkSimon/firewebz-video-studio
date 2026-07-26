@@ -11,6 +11,7 @@ import {
   fetchProduct,
   getShopToken,
   setSpinMetafield,
+  shopIsDevelopmentStore,
 } from "@/lib/shopify";
 
 // Catalog import: turn a Shopify product into a Spin draft. Pulls up to 4
@@ -106,10 +107,14 @@ export async function subscribeCore(
     return { ok: false, error: "You're already on Spinr Pro." };
   }
   try {
+    const token = await getShopToken(connection);
+    // Dev stores (incl. app reviewers) can only approve TEST charges.
+    const forceTest = await shopIsDevelopmentStore(connection.shop, token);
     const { confirmationUrl, subscriptionGid, usageLineItemGid } = await createAppSubscription(
       connection.shop,
-      await getShopToken(connection),
+      token,
       returnUrl,
+      { forceTest },
     );
     await prisma.shopifyConnection.update({
       where: { id: connection.id },

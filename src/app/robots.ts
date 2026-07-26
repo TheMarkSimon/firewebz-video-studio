@@ -1,16 +1,15 @@
 import type { MetadataRoute } from "next";
 
-// Public marketing surface is indexable. User-generated session/embed URLs
-// contain a session id in the path and should never end up in search — that
-// data is transient (24h TTL) and hitting a stale one returns "Session not
-// found" which is a bad landing page.
+// Public marketing surface is indexable. App surfaces and per-spin embed
+// URLs stay out of search — an embed is an iframe fragment, not a landing
+// page, and /studio//shopify//admin are gated app UIs.
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
         allow: ["/", "/onboarding", "/spin-demo"],
-        disallow: ["/generate", "/embed/", "/api/"],
+        disallow: ["/generate", "/embed/", "/api/", "/studio", "/shopify/", "/admin"],
       },
     ],
     sitemap: "https://thespinr.com/sitemap.xml",

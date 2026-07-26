@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SupportChat } from "@/components/support-chat";
 
 // Site-wide metadata defaults. Individual pages override title/description
 // via their own `export const metadata` blocks.
@@ -36,7 +37,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        {children}
+        <SupportChat />
+      </body>
     </html>
   );
 }

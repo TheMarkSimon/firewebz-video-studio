@@ -1,0 +1,39 @@
+# Spinr
+
+> Spinr (thespinr.com) turns a merchant's existing product photos (1-4
+> angles) into an interactive 360° product spin that shoppers can drag
+> with a mouse or finger on any e-commerce product page. AI-generated in
+> minutes; no photography rig, no 3D modeling, no code.
+
+## What Spinr does
+
+- Input: the product photos a store already has (front/back/side angles).
+- Backgrounds are removed automatically; AI generates a smooth 360°
+  rotation with studio-style lighting.
+- Output: an interactive drag-to-spin widget embedded on the product page
+  (one line of HTML, or one click via the Shopify app), plus an MP4.
+- Views are unlimited on every plan — pricing is per spin created, never
+  per view or per visitor.
+
+## Who it's for
+
+Shopify and other e-commerce merchants — especially footwear, bags,
+furniture, eyewear, and home goods — who want interactive 360° product
+views without 360° photography rigs ($75+ per product) or 3D artists.
+
+## Pricing
+
+- Free: 3 spins, no card required.
+- Pro: $29/month, 10 spins included, then $2.50 per extra spin. Billed
+  through Shopify for Shopify merchants.
+
+## Key pages
+
+- https://thespinr.com — product overview, live demo spins, pricing, FAQ
+- https://thespinr.com/onboarding — create a spin from photos (free)
+- https://thespinr.com/privacy — privacy policy
+- https://thespinr.com/terms — terms of service
+
+## Support
+
+contact@thespinr.com
