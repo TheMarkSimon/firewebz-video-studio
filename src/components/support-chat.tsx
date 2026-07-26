@@ -24,12 +24,18 @@ export function SupportChat() {
   useEffect(() => {
     if (excluded) return;
     if (CHATBASE_ID) {
-      if (document.getElementById("spinr-chatbase")) return;
+      if (document.querySelector("script[data-spinr-chat]")) return;
+      // Chatbase's embed reads the chatbot id from the script tag's id
+      // attribute (current convention) — older builds read
+      // window.embeddedChatbotConfig / chatbotId attribute. Provide all.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).embeddedChatbotConfig = { chatbotId: CHATBASE_ID, domain: "www.chatbase.co" };
       const s = document.createElement("script");
-      s.id = "spinr-chatbase";
+      s.id = CHATBASE_ID;
       s.src = "https://www.chatbase.co/embed.min.js";
       s.setAttribute("chatbotId", CHATBASE_ID);
       s.setAttribute("domain", "www.chatbase.co");
+      s.setAttribute("data-spinr-chat", "1");
       s.defer = true;
       document.body.appendChild(s);
       return;
