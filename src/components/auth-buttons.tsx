@@ -28,6 +28,9 @@ export function SignInButton({
 
 export function UserMenu({ name, image }: { name: string | null; image: string | null }) {
   const [open, setOpen] = useState(false);
+  // Google avatar URLs go stale and some networks block googleusercontent —
+  // fall back to initials instead of the browser's broken-image icon.
+  const [imgFailed, setImgFailed] = useState(false);
   return (
     <div className="relative">
       <button
@@ -35,9 +38,15 @@ export function UserMenu({ name, image }: { name: string | null; image: string |
         className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-fw-border bg-fw-disabled"
         aria-label="Account menu"
       >
-        {image ? (
+        {image && !imgFailed ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={name ?? "Account"} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+          <img
+            src={image}
+            alt={name ?? "Account"}
+            className="h-full w-full object-cover"
+            referrerPolicy="no-referrer"
+            onError={() => setImgFailed(true)}
+          />
         ) : (
           <span className="text-[14px] font-bold text-fw-text">{(name ?? "?").slice(0, 1)}</span>
         )}

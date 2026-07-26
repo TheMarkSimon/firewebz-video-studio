@@ -15,8 +15,9 @@ const CHATBASE_ID = process.env.NEXT_PUBLIC_CHATBASE_ID;
 const CRISP_ID = process.env.NEXT_PUBLIC_CRISP_ID;
 
 // Never on merchant storefronts (/embed iframes) or inside the Shopify
-// admin app — the widget is for OUR site visitors only.
-const EXCLUDED = ["/embed", "/shopify"];
+// admin app — the widget is for OUR site visitors only. /help has its own
+// full-page chat, so the bubble would be a duplicate there.
+const EXCLUDED = ["/embed", "/shopify", "/help"];
 
 export function SupportChat() {
   const pathname = usePathname();

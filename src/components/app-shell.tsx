@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { href: "/#why", label: "Why Spinr" },
   { href: "/#pricing", label: "Pricing" },
   { href: "/#faq", label: "FAQ" },
+  { href: "/help", label: "Help" },
 ] as const;
 
 export function AppShell({
@@ -139,6 +140,7 @@ function MarketingFooter() {
             contact@thespinr.com
           </a>
           <div className="flex gap-4">
+            <Link href="/help" className="hover:text-fw-text">Help</Link>
             <Link href="/privacy" className="hover:text-fw-text">Privacy</Link>
             <Link href="/terms" className="hover:text-fw-text">Terms</Link>
           </div>
