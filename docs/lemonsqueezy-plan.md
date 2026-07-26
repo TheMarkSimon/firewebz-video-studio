@@ -5,24 +5,33 @@ Rationale: merchant-of-record (handles VAT/sales tax globally — important
 for an Israel-based founder selling worldwide), hosted checkout overlay,
 subscriptions + one-time purchases, simple webhooks.
 
-## Product model (mirrors Shopify pricing EXACTLY)
+## Product model (founder-revised 2026-07-26: packs for occasional
+## users, subscription for recurring users)
 
-- Free: 3 lifetime spins (already enforced by SpinUsage ledger).
-- Pro Web: $29/mo subscription → 10 spins/month included.
-- Extra spins: ONE-TIME "spin pack" purchases (5 spins for $12.50 =
-  $2.50/spin) — LS has no per-unit usage billing like Shopify's, so
-  packs replace metered overage.
-- **Packs are Pro-subscriber-only** (founder-caught pricing bug
-  2026-07-26: standalone packs at $2.50/spin would undercut the $29
-  subscription — 10 pack spins = $25 < $29 — so nobody would ever
-  subscribe). Same rule as Shopify, where overage only exists on an
-  active Pro subscription. LS can't gate this itself; OUR app enforces
-  it: the pack checkout only renders for users with an active web Pro
-  subscription, and the webhook rejects pack orders from
-  non-subscribers (auto-refund via LS API + support email).
-- Net effect: pricing is identical on both rails (Free 3 → Pro $29/10 →
-  $2.50/extra), which also avoids Shopify's rule against offering the
-  same service cheaper off-platform.
+Insight: for most merchants "spin my catalog" is a one-time PROJECT,
+not a monthly habit — subscription-only gates out the biggest segment.
+Rule that keeps it coherent: pay-as-you-go always costs MORE per spin
+than the subscription, so Pro stays the best deal for recurring use.
+
+- Free: 3 lifetime spins (SpinUsage ledger, already enforced).
+- **Spin Pack (public, NO subscription needed): 10 spins for $30**
+  ($3.00/spin) — the one-time catalog-project offer.
+- **Pro Web: $29/mo → 10 spins/month included** ($2.90/spin) — for
+  stores that keep adding products.
+- **Pro extras (subscriber-only): 5 spins for $12.50** ($2.50/spin) —
+  matches the Shopify overage rate; gated in OUR app (checkout link
+  only rendered for active subscribers).
+- Compliance note: the public pack's per-spin price ($3.00) is HIGHER
+  than Shopify's $2.50 overage, so web never undercuts Shopify billing.
+- Sub-and-cancel arbitrage ($29 for 10 vs $30 pack) exists and is
+  accepted — costs $1, standard SaaS reality.
+
+## LS products to create (revised)
+
+1. "Spinr Pro" — subscription, $29/month.
+2. "Spin Pack — 10 spins" — single payment, $30 (public offer).
+3. "Pro Extra Spins — 5 spins" — single payment, $12.50, description
+   states it requires an active Spinr Pro subscription (app-gated).
 
 ## Founder steps (blocking — only you can do these)
 
