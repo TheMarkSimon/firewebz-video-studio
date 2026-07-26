@@ -5,13 +5,24 @@ Rationale: merchant-of-record (handles VAT/sales tax globally — important
 for an Israel-based founder selling worldwide), hosted checkout overlay,
 subscriptions + one-time purchases, simple webhooks.
 
-## Product model (mirrors Shopify pricing, adapted)
+## Product model (mirrors Shopify pricing EXACTLY)
 
 - Free: 3 lifetime spins (already enforced by SpinUsage ledger).
 - Pro Web: $29/mo subscription → 10 spins/month included.
-- Extra spins: sold as ONE-TIME "spin pack" purchases (e.g. 5 spins for
-  $12.50) instead of metered overage — Lemon Squeezy has no per-unit
-  usage billing like Shopify's; packs are simpler and honest.
+- Extra spins: ONE-TIME "spin pack" purchases (5 spins for $12.50 =
+  $2.50/spin) — LS has no per-unit usage billing like Shopify's, so
+  packs replace metered overage.
+- **Packs are Pro-subscriber-only** (founder-caught pricing bug
+  2026-07-26: standalone packs at $2.50/spin would undercut the $29
+  subscription — 10 pack spins = $25 < $29 — so nobody would ever
+  subscribe). Same rule as Shopify, where overage only exists on an
+  active Pro subscription. LS can't gate this itself; OUR app enforces
+  it: the pack checkout only renders for users with an active web Pro
+  subscription, and the webhook rejects pack orders from
+  non-subscribers (auto-refund via LS API + support email).
+- Net effect: pricing is identical on both rails (Free 3 → Pro $29/10 →
+  $2.50/extra), which also avoids Shopify's rule against offering the
+  same service cheaper off-platform.
 
 ## Founder steps (blocking — only you can do these)
 
