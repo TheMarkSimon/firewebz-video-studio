@@ -34,28 +34,27 @@ const SPOTLIGHT = [
   {
     id: "bags",
     tab: "👜 Bags & Accessories",
-    title: "Forest Green Backpack",
-    spinId: "cmrtjv53i0001yt70gvnbyc2n",
-    photos: [`${R2}/backpack-front.png`, `${R2}/backpack-back.png`, `${R2}/backpack-left.png`, `${R2}/backpack-right.png`],
+    title: "Leather Handbag",
+    spinId: "cmrchlmbd0001c9vjuldddpou",
+    photos: [`${R2}/handbag-front.png`, `${R2}/handbag-back.png`, `${R2}/handbag-left.png`],
     story:
-      "Straps, zips, side pockets — the details buyers email support about. One drag answers the question before it's asked.",
+      "Straps, zips, texture — the details buyers email support about. This spin needed just three catalog photos; one drag answers the question before it's asked.",
   },
-] as const;
-
-const FACTS = [
-  { icon: Camera, label: "Source material", value: "4 ordinary product photos" },
-  { icon: Wand2, label: "Backgrounds", value: "Removed automatically" },
-  { icon: Clock3, label: "Photos to live spin", value: "A few minutes" },
-  { icon: MousePointer2, label: "Shopper experience", value: "Drag to turn — mouse or finger" },
 ] as const;
 
 export function SpotlightShowcase() {
   const [active, setActive] = useState(0);
   const [dragged, setDragged] = useState(false);
   const item = SPOTLIGHT[active];
+  const facts = [
+    { icon: Camera, label: "Source material", value: `${item.photos.length} ordinary product photos` },
+    { icon: Wand2, label: "Backgrounds", value: "Removed automatically" },
+    { icon: Clock3, label: "Photos to live spin", value: "A few minutes" },
+    { icon: MousePointer2, label: "Shopper experience", value: "Drag to turn — mouse or finger" },
+  ];
 
   return (
-    <section className="mt-32 scroll-mt-24" id="spotlight">
+    <section className="mt-24 scroll-mt-24" id="spotlight">
       {/* Header */}
       <div className="text-center">
         <span className="inline-flex items-center gap-2 rounded-full border border-fw-border bg-white px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-fw-darkGray">
@@ -147,7 +146,7 @@ export function SpotlightShowcase() {
             <p className="mt-3 text-[14px] leading-[23px] text-fw-darkGray">{item.story}</p>
 
             <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {FACTS.map((f) => (
+              {facts.map((f) => (
                 <div key={f.label} className="rounded-2xl border border-fw-border bg-white p-4">
                   <f.icon className="h-5 w-5 text-fw-black" />
                   <p className="mt-2 text-[11px] font-semibold uppercase tracking-wider text-fw-lightGray">
