@@ -63,6 +63,14 @@ const JSON_LD = {
       mainEntity: [
         {
           "@type": "Question",
+          name: "Do 360° product views actually increase sales?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Industry research says yes: Shopify's own data shows products with interactive 3D content convert up to 94% better than flat photos, returns drop by as much as 40%, and 63% of shoppers say they want a 360° view before buying. When ASOS added 360° views, published results showed conversion nearly doubling (1.33% to 2.48%).",
+          },
+        },
+        {
+          "@type": "Question",
           name: "Do I need special photos or equipment to create a 360° product spin?",
           acceptedAnswer: {
             "@type": "Answer",
@@ -153,6 +161,59 @@ export default function WelcomePage() {
             (honesty rule). */}
         <SpotlightShowcase />
 
+        {/* The business case — REAL industry numbers, attributed. These are
+            third-party research findings presented as such, never Spinr
+            results (we have none yet) and NEVER copied into the Shopify
+            listing (req 4.3.3 bans stats there). */}
+        <section className="mt-24 rounded-3xl bg-fw-black p-10 text-white md:p-14">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-fw-purple">
+            Why stores are switching
+          </p>
+          <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-[28px] font-bold leading-tight md:text-[36px]">
+            Flat photos leave money on the table.<br className="hidden md:block" /> The
+            research is loud about it.
+          </h2>
+          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-8 text-center md:grid-cols-3">
+            <div>
+              <p className="font-display text-[52px] font-bold leading-none text-fw-purple">+94%</p>
+              <p className="mx-auto mt-3 max-w-[240px] text-[14px] leading-[22px] text-white/75">
+                higher conversion for products with interactive 3D content vs. flat photos —
+                Shopify&apos;s own platform research
+              </p>
+            </div>
+            <div>
+              <p className="font-display text-[52px] font-bold leading-none text-fw-purple">−40%</p>
+              <p className="mx-auto mt-3 max-w-[240px] text-[14px] leading-[22px] text-white/75">
+                fewer returns when shoppers can inspect every angle before buying — what
+                arrives matches what they expected
+              </p>
+            </div>
+            <div>
+              <p className="font-display text-[52px] font-bold leading-none text-fw-purple">63%</p>
+              <p className="mx-auto mt-3 max-w-[240px] text-[14px] leading-[22px] text-white/75">
+                of shoppers say they want a 360° view before they purchase — most product
+                pages still don&apos;t offer one
+              </p>
+            </div>
+          </div>
+          <p className="mx-auto mt-8 max-w-2xl text-center text-[13px] leading-[21px] text-white/60">
+            When ASOS added 360° views, published results showed conversion nearly doubling
+            — from 1.33% to 2.48%. Your products already have the photos it takes.
+          </p>
+          <div className="mt-8 flex justify-center">
+            <Button asChild size="lg" className="h-auto py-3.5">
+              <Link href="/onboarding">
+                Put a spin on your page — free
+                <ArrowRight className="ml-1.5 h-4 w-4 shrink-0" />
+              </Link>
+            </Button>
+          </div>
+          <p className="mt-6 text-center text-[10px] text-white/40">
+            Sources: Shopify research on 3D/interactive product content · Adobe Analytics ·
+            published retailer results (ASOS). Industry benchmarks, not guarantees.
+          </p>
+        </section>
+
         {/* Social proof — the HONEST version. No unlicensed brand logos, no
             invented stats (we're pre-revenue; fabricated trust signals are
             a legal and credibility trap). Real merchant logos slot in here
@@ -238,11 +299,11 @@ export default function WelcomePage() {
             includes unlimited 360° views, no bandwidth caps.
           </p>
           <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="rounded-3xl border border-fw-border bg-white p-8">
+            <div className="flex flex-col rounded-3xl border border-fw-border bg-white p-8">
               <p className="text-[13px] font-bold uppercase tracking-wider text-fw-darkGray">Free</p>
               <p className="mt-3 font-display text-[40px] font-bold text-fw-text">$0</p>
               <p className="mt-1 text-[13px] text-fw-darkGray">3 spins to see it on your own store</p>
-              <ul className="mt-6 space-y-3">
+              <ul className="mt-6 flex-1 space-y-3">
                 <PriceLine>3 free 360° spins — no card required</PriceLine>
                 <PriceLine>Automatic background removal</PriceLine>
                 <PriceLine>Unlimited views on your storefront</PriceLine>
@@ -252,7 +313,7 @@ export default function WelcomePage() {
                 <Link href="/onboarding">Start free</Link>
               </Button>
             </div>
-            <div className="rounded-3xl border border-fw-border bg-white p-8">
+            <div className="flex flex-col rounded-3xl border border-fw-border bg-white p-8">
               <p className="text-[13px] font-bold uppercase tracking-wider text-fw-darkGray">
                 Spin Pack
               </p>
@@ -263,7 +324,7 @@ export default function WelcomePage() {
               <p className="mt-1 text-[13px] text-fw-darkGray">
                 10 spins, no subscription — digitize your catalog in one go
               </p>
-              <ul className="mt-6 space-y-3">
+              <ul className="mt-6 flex-1 space-y-3">
                 <PriceLine>10 spin credits that never expire</PriceLine>
                 <PriceLine>No subscription, no commitment</PriceLine>
                 <PriceLine>Works on any website — Shopify or not</PriceLine>
@@ -273,7 +334,7 @@ export default function WelcomePage() {
                 <Link href="/studio">Buy in Studio</Link>
               </Button>
             </div>
-            <div className="rounded-3xl border-2 border-fw-purple bg-white p-8">
+            <div className="flex flex-col rounded-3xl border-2 border-fw-purple bg-white p-8">
               <p className="text-[13px] font-bold uppercase tracking-wider text-fw-text">Pro</p>
               <p className="mt-3 font-display text-[40px] font-bold text-fw-text">
                 ${proPriceUsd()}
@@ -282,7 +343,7 @@ export default function WelcomePage() {
               <p className="mt-1 text-[13px] text-fw-darkGray">
                 {proIncludedSpins()} spins every month, then ${overagePriceUsd()} per extra spin
               </p>
-              <ul className="mt-6 space-y-3">
+              <ul className="mt-6 flex-1 space-y-3">
                 <PriceLine>{proIncludedSpins()} spins/month — best rate per spin</PriceLine>
                 <PriceLine>Discounted extra spins (${overagePriceUsd()} each)</PriceLine>
                 <PriceLine>Import & one-click push for Shopify stores</PriceLine>
@@ -296,9 +357,10 @@ export default function WelcomePage() {
               </p>
             </div>
           </div>
-          <p className="mt-8 text-center text-[13px] text-fw-darkGray">
-            For scale: a 360° photography rig runs $75+ per product. A Spinr spin starts at ${overagePriceUsd()},
-            from the photos you already have.
+          <p className="mx-auto mt-8 max-w-2xl text-center text-[13px] text-fw-darkGray">
+            For scale: traditional 360° product photography means a motorized rig, a specialist
+            photographer, and reshoots — $75–$200+ per product before you&apos;ve spun a single
+            item. A Spinr spin starts at ${overagePriceUsd()}, from the photos you already have.
           </p>
         </section>
 
@@ -308,6 +370,12 @@ export default function WelcomePage() {
             Questions, answered
           </h2>
           <div className="mt-10 divide-y divide-fw-border rounded-3xl border border-fw-border bg-white px-6">
+            <Faq q="Do 360° views actually increase sales?">
+              Industry research says yes, loudly: Shopify&apos;s own data shows products with
+              interactive 3D content convert up to 94% better than flat photos, returns drop
+              by as much as 40%, and 63% of shoppers say they want a 360° view before buying.
+              When ASOS added 360° views, published results showed conversion nearly doubling.
+            </Faq>
             <Faq q="Do I need special photos or equipment?">
               No. The photos already in your catalog usually work as-is — or take a few phone shots: front, back, and sides.
               Shoot with even lighting and keep the same distance for every angle; any
