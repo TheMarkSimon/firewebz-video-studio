@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { overagePriceUsd, proPriceUsd } from "@/lib/shopify";
+import { freeSpins, overagePriceUsd, proPriceUsd } from "@/lib/shopify";
+import { lsStatusIsActive, lsVariantIds } from "@/lib/lemonsqueezy";
+import { grantCredits } from "./actions";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -50,6 +52,7 @@ export default async function AdminPage() {
         include: {
           _count: { select: { spins: true } },
           shopifyConnections: { select: { shop: true, shopName: true, subscriptionStatus: true, subscriptionTest: true } },
+          lsOrders: { select: { variantId: true, credits: true, createdAt: true } },
         },
       }),
       prisma.spin.count(),
@@ -60,12 +63,32 @@ export default async function AdminPage() {
       prisma.spinUsage.count({ where: { kind: "overage", counted: true, usageRecordGid: { not: null } } }),
     ]);
 
-  const activeSubs = users.filter((u) =>
-    u.shopifyConnections.some((c) => c.subscriptionStatus === "ACTIVE"),
+  const activeSubs = users.filter(
+    (u) =>
+      u.shopifyConnections.some((c) => c.subscriptionStatus === "ACTIVE") ||
+      lsStatusIsActive(u.lsSubscriptionStatus),
   ).length;
   const mrr = activeSubs * parseFloat(proPriceUsd());
   const overageRevenue = billedOverages * parseFloat(overagePriceUsd());
   const estCogs = totalSpins * EST_COGS_PER_SPIN;
+
+  // Per-user usage ledger, grouped once for the whole table.
+  const usageRows = await prisma.spinUsage.groupBy({
+    by: ["userId", "kind"],
+    where: { counted: true },
+    _count: { _all: true },
+  });
+  const usageByUser = new Map<string, Record<string, number>>();
+  for (const r of usageRows) {
+    const m = usageByUser.get(r.userId) ?? {};
+    m[r.kind] = r._count._all;
+    usageByUser.set(r.userId, m);
+  }
+
+  // One-time purchase pricing by LS variant (for paid totals).
+  const variants = lsVariantIds();
+  const priceForVariant = (variantId: string) =>
+    variantId === variants.pack ? 39 : variantId === variants.topup ? 12.5 : 0;
 
   // EVERY spin ever created (founder call: complaints get investigated by
   // watching the actual video, which lives on fal.media). Fine unpaginated
@@ -106,29 +129,84 @@ export default async function AdminPage() {
         </div>
 
         <h2 className="mt-12 text-[18px] font-bold text-fw-text">Users</h2>
+        <div className="mt-2 rounded-2xl border border-fw-border bg-fw-disabled/40 px-4 py-3 text-[12px] leading-[19px] text-fw-darkGray">
+          <span className="font-semibold text-fw-text">Support playbook:</span> money refunds
+          happen at the source — Lemon Squeezy dashboard → Orders → Refund (web packs/subs),
+          Shopify Partner dashboard for Shopify charges. After refunding a pack, claw the
+          credits back here with a negative grant. Goodwill for a bad generation = grant a
+          credit or two instead of refunding money.
+        </div>
         <div className="mt-3 overflow-x-auto rounded-2xl border border-fw-border bg-white">
           <table className="w-full text-left text-[13px]">
             <thead className="border-b border-fw-border text-[11px] uppercase tracking-wider text-fw-lightGray">
               <tr>
                 <th className="px-4 py-3">User</th>
                 <th className="px-4 py-3">Joined</th>
-                <th className="px-4 py-3">Spins</th>
+                <th className="px-4 py-3">Usage</th>
+                <th className="px-4 py-3">Billing</th>
                 <th className="px-4 py-3">Store</th>
-                <th className="px-4 py-3">Plan</th>
+                <th className="px-4 py-3">Grant credits</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => {
                 const conn = u.shopifyConnections[0];
-                const sub = conn?.subscriptionStatus;
+                const shopifySub = conn?.subscriptionStatus;
+                const webPro = lsStatusIsActive(u.lsSubscriptionStatus);
+                const usage = usageByUser.get(u.id) ?? {};
+                const usedTotal =
+                  (usage.free ?? 0) + (usage.included ?? 0) + (usage.overage ?? 0) + (usage.credit ?? 0);
+                const creditBalance = Math.max(0, u.extraCredits - (usage.credit ?? 0));
+                const freeLeft = Math.max(0, freeSpins() - (usage.free ?? 0));
+                const packsBought = u.lsOrders.filter((o) => o.variantId === variants.pack).length;
+                const topupsBought = u.lsOrders.filter((o) => o.variantId === variants.topup).length;
+                const webPaid = u.lsOrders.reduce((s, o) => s + priceForVariant(o.variantId), 0);
+                const shopifyOveragePaid = (usage.overage ?? 0) * parseFloat(overagePriceUsd());
                 return (
-                  <tr key={u.id} className="border-b border-fw-border/60 last:border-0">
+                  <tr key={u.id} className="border-b border-fw-border/60 last:border-0 align-top">
                     <td className="px-4 py-3">
                       <div className="font-semibold text-fw-text">{u.name ?? "—"}</div>
                       <div className="text-fw-darkGray">{u.email}</div>
                     </td>
                     <td className="px-4 py-3 text-fw-darkGray">{u.createdAt.toISOString().slice(0, 10)}</td>
-                    <td className="px-4 py-3 text-fw-text">{u._count.spins}</td>
+                    <td className="px-4 py-3 text-fw-darkGray">
+                      <div className="font-semibold text-fw-text">
+                        {usedTotal} used · {u._count.spins} spins
+                      </div>
+                      <div className="text-[12px]">
+                        {freeLeft} free left · {creditBalance} credits
+                        {(usage.included ?? 0) > 0 && ` · ${usage.included} included`}
+                        {(usage.overage ?? 0) > 0 && ` · ${usage.overage} overage`}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {shopifySub === "ACTIVE" ? (
+                        <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                          Pro · Shopify{conn?.subscriptionTest ? " (test)" : ""}
+                        </span>
+                      ) : webPro ? (
+                        <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                          Pro · Web
+                        </span>
+                      ) : shopifySub === "CANCELLED" || u.lsSubscriptionStatus === "cancelled" ? (
+                        <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-700">
+                          Cancelled
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-fw-disabled px-2.5 py-1 text-[11px] font-semibold text-fw-darkGray">
+                          Free
+                        </span>
+                      )}
+                      <div className="mt-1 text-[12px] text-fw-darkGray">
+                        {webPaid > 0 &&
+                          `web $${webPaid.toFixed(2)} (${packsBought > 0 ? `${packsBought} pack` : ""}${
+                            packsBought > 0 && topupsBought > 0 ? ", " : ""
+                          }${topupsBought > 0 ? `${topupsBought} top-up` : ""})`}
+                        {webPaid > 0 && shopifyOveragePaid > 0 && " · "}
+                        {shopifyOveragePaid > 0 && `overage $${shopifyOveragePaid.toFixed(2)}`}
+                        {webPaid === 0 && shopifyOveragePaid === 0 && "—"}
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-fw-darkGray">
                       {conn ? (
                         <a
@@ -144,15 +222,23 @@ export default async function AdminPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {sub === "ACTIVE" ? (
-                        <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                          Pro{conn?.subscriptionTest ? " (test)" : ""}
-                        </span>
-                      ) : sub === "CANCELLED" ? (
-                        <span className="rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-700">Cancelled</span>
-                      ) : (
-                        <span className="rounded-full bg-fw-disabled px-2.5 py-1 text-[11px] font-semibold text-fw-darkGray">Free</span>
-                      )}
+                      <form action={grantCredits} className="flex items-center gap-1.5">
+                        <input type="hidden" name="userId" value={u.id} />
+                        <input
+                          type="number"
+                          name="delta"
+                          defaultValue={1}
+                          min={-100}
+                          max={100}
+                          className="w-16 rounded-lg border border-fw-border px-2 py-1 text-[13px]"
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-fw-black px-3 py-1.5 text-[12px] font-semibold text-white"
+                        >
+                          Grant
+                        </button>
+                      </form>
                     </td>
                   </tr>
                 );

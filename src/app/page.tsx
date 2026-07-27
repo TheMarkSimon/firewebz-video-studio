@@ -170,8 +170,7 @@ export default function WelcomePage() {
             Why stores are switching
           </p>
           <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-[28px] font-bold leading-tight text-fw-text md:text-[36px]">
-            Flat photos leave money on the table.<br className="hidden md:block" /> The
-            research is loud about it.
+            Flat photos leave money on the table.
           </h2>
           <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
             <div className="rounded-3xl border border-fw-border bg-white p-7 text-center">
@@ -179,7 +178,7 @@ export default function WelcomePage() {
                 +94%
               </p>
               <p className="mt-2 text-[17px] font-bold text-fw-text">more conversions</p>
-              <p className="mx-auto mt-2 max-w-[240px] text-[14px] leading-[22px] text-fw-darkGray">
+              <p className="mx-auto mt-2 max-w-[240px] text-[14px] font-medium leading-[22px] text-fw-text">
                 for products with interactive 3D content vs. flat photos — Shopify&apos;s own
                 platform research
               </p>
@@ -189,7 +188,7 @@ export default function WelcomePage() {
                 40%
               </p>
               <p className="mt-2 text-[17px] font-bold text-fw-text">fewer returns</p>
-              <p className="mx-auto mt-2 max-w-[240px] text-[14px] leading-[22px] text-fw-darkGray">
+              <p className="mx-auto mt-2 max-w-[240px] text-[14px] font-medium leading-[22px] text-fw-text">
                 when shoppers inspect every angle before buying — what arrives matches what
                 they expected
               </p>
@@ -199,7 +198,7 @@ export default function WelcomePage() {
                 63%
               </p>
               <p className="mt-2 text-[17px] font-bold text-fw-text">of shoppers want 360°</p>
-              <p className="mx-auto mt-2 max-w-[240px] text-[14px] leading-[22px] text-fw-darkGray">
+              <p className="mx-auto mt-2 max-w-[240px] text-[14px] font-medium leading-[22px] text-fw-text">
                 before they purchase — and most product pages still don&apos;t offer one
               </p>
             </div>
@@ -219,10 +218,6 @@ export default function WelcomePage() {
               </Link>
             </Button>
           </div>
-          <p className="mt-6 text-center text-[11px] text-fw-lightGray">
-            Sources: Shopify research on 3D/interactive product content · Adobe Analytics ·
-            published retailer results (ASOS). Industry benchmarks, not guarantees.
-          </p>
         </section>
 
         {/* Social proof — the HONEST version. No unlicensed brand logos, no
@@ -310,7 +305,7 @@ export default function WelcomePage() {
             includes unlimited 360° views, no bandwidth caps.
           </p>
           <div className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="flex flex-col rounded-3xl border border-fw-border bg-white p-8">
+            <div className="flex flex-col rounded-3xl border border-fw-black bg-white p-8">
               <p className="text-[13px] font-bold uppercase tracking-wider text-fw-darkGray">Free</p>
               <p className="mt-3 font-display text-[40px] font-bold text-fw-text">$0</p>
               <p className="mt-1 text-[13px] text-fw-darkGray">3 spins to see it on your own store</p>
@@ -324,7 +319,7 @@ export default function WelcomePage() {
                 <Link href="/onboarding">Start free</Link>
               </Button>
             </div>
-            <div className="flex flex-col rounded-3xl border border-fw-border bg-white p-8">
+            <div className="flex flex-col rounded-3xl border border-fw-black bg-white p-8">
               <p className="text-[13px] font-bold uppercase tracking-wider text-fw-darkGray">
                 Spin Pack
               </p>
@@ -359,13 +354,11 @@ export default function WelcomePage() {
                 <PriceLine>Discounted extra spins (${overagePriceUsd()} each)</PriceLine>
                 <PriceLine>Import & one-click push for Shopify stores</PriceLine>
                 <PriceLine>Priority rendering</PriceLine>
+                <PriceLine>Billed through Shopify or card — cancel anytime</PriceLine>
               </ul>
               <Button asChild className="mt-8 w-full">
                 <Link href="/onboarding">Start free, upgrade in Studio</Link>
               </Button>
-              <p className="mt-3 text-center text-[11px] text-fw-lightGray">
-                Billed through Shopify or card — cancel anytime.
-              </p>
             </div>
           </div>
           <p className="mx-auto mt-8 max-w-2xl text-center text-[13px] text-fw-darkGray">
