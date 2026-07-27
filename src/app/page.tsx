@@ -165,40 +165,51 @@ export default function WelcomePage() {
             third-party research findings presented as such, never Spinr
             results (we have none yet) and NEVER copied into the Shopify
             listing (req 4.3.3 bans stats there). */}
-        <section className="mt-24 rounded-3xl bg-fw-black p-10 text-white md:p-14">
-          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-fw-purple">
+        <section className="mt-24">
+          <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-fw-lightGray">
             Why stores are switching
           </p>
-          <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-[28px] font-bold leading-tight md:text-[36px]">
+          <h2 className="mx-auto mt-3 max-w-2xl text-center font-display text-[28px] font-bold leading-tight text-fw-text md:text-[36px]">
             Flat photos leave money on the table.<br className="hidden md:block" /> The
             research is loud about it.
           </h2>
-          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-8 text-center md:grid-cols-3">
-            <div>
-              <p className="font-display text-[52px] font-bold leading-none text-fw-purple">+94%</p>
-              <p className="mx-auto mt-3 max-w-[240px] text-[14px] leading-[22px] text-white/75">
-                higher conversion for products with interactive 3D content vs. flat photos —
-                Shopify&apos;s own platform research
+          <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-3">
+            <div className="rounded-3xl border border-fw-border bg-white p-7 text-center">
+              <p className="inline-block rounded-2xl bg-fw-purple px-4 py-1.5 font-display text-[44px] font-bold leading-tight text-fw-black">
+                +94%
+              </p>
+              <p className="mt-2 text-[17px] font-bold text-fw-text">more conversions</p>
+              <p className="mx-auto mt-2 max-w-[240px] text-[14px] leading-[22px] text-fw-darkGray">
+                for products with interactive 3D content vs. flat photos — Shopify&apos;s own
+                platform research
               </p>
             </div>
-            <div>
-              <p className="font-display text-[52px] font-bold leading-none text-fw-purple">−40%</p>
-              <p className="mx-auto mt-3 max-w-[240px] text-[14px] leading-[22px] text-white/75">
-                fewer returns when shoppers can inspect every angle before buying — what
-                arrives matches what they expected
+            <div className="rounded-3xl border border-fw-border bg-white p-7 text-center">
+              <p className="inline-block rounded-2xl bg-fw-purple px-4 py-1.5 font-display text-[44px] font-bold leading-tight text-fw-black">
+                40%
+              </p>
+              <p className="mt-2 text-[17px] font-bold text-fw-text">fewer returns</p>
+              <p className="mx-auto mt-2 max-w-[240px] text-[14px] leading-[22px] text-fw-darkGray">
+                when shoppers inspect every angle before buying — what arrives matches what
+                they expected
               </p>
             </div>
-            <div>
-              <p className="font-display text-[52px] font-bold leading-none text-fw-purple">63%</p>
-              <p className="mx-auto mt-3 max-w-[240px] text-[14px] leading-[22px] text-white/75">
-                of shoppers say they want a 360° view before they purchase — most product
-                pages still don&apos;t offer one
+            <div className="rounded-3xl border border-fw-border bg-white p-7 text-center">
+              <p className="inline-block rounded-2xl bg-fw-purple px-4 py-1.5 font-display text-[44px] font-bold leading-tight text-fw-black">
+                63%
+              </p>
+              <p className="mt-2 text-[17px] font-bold text-fw-text">of shoppers want 360°</p>
+              <p className="mx-auto mt-2 max-w-[240px] text-[14px] leading-[22px] text-fw-darkGray">
+                before they purchase — and most product pages still don&apos;t offer one
               </p>
             </div>
           </div>
-          <p className="mx-auto mt-8 max-w-2xl text-center text-[13px] leading-[21px] text-white/60">
+          <p className="mx-auto mt-8 max-w-2xl text-center text-[15px] leading-[24px] text-fw-darkGray">
             When ASOS added 360° views, published results showed conversion nearly doubling
-            — from 1.33% to 2.48%. Your products already have the photos it takes.
+            — from 1.33% to 2.48%.{" "}
+            <span className="font-semibold text-fw-text">
+              Your products already have the photos it takes.
+            </span>
           </p>
           <div className="mt-8 flex justify-center">
             <Button asChild size="lg" className="h-auto py-3.5">
@@ -208,7 +219,7 @@ export default function WelcomePage() {
               </Link>
             </Button>
           </div>
-          <p className="mt-6 text-center text-[10px] text-white/40">
+          <p className="mt-6 text-center text-[11px] text-fw-lightGray">
             Sources: Shopify research on 3D/interactive product content · Adobe Analytics ·
             published retailer results (ASOS). Industry benchmarks, not guarantees.
           </p>
