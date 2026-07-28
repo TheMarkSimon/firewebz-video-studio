@@ -208,7 +208,12 @@ call getSessionUser in app/page.tsx — it kills static rendering).
   (autoplay, not draggable) + widget below is the strongest demo combo.
   Remaining validation before building: category quality sweep, 3–5
   merchant conversations.
-- Phase 5: Stripe billing (chosen over PayPal deliberately).
+- **APPROVED & PUBLISHED on the Shopify App Store 2026-07-28**:
+  https://apps.shopify.com/spinr (billing live with dev-store test
+  guard; visibility flip to public = founder step in Partner Dashboard).
+- Phase 5 DONE both rails: Shopify Billing + Lemon Squeezy web billing
+  (packs $39/10, Pro $29/10mo, subscriber top-ups $12.50/5; LS store
+  activation pending founder identity/payout onboarding).
 - Phase 6: admin dashboard (users/revenue/fal spend), FAQ/support chat.
 
 Deferred/scale work lives in **SCALING.md** (living checklist — the

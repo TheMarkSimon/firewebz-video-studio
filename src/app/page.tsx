@@ -48,6 +48,8 @@ const JSON_LD = {
       "@type": "SoftwareApplication",
       name: "Spinr",
       url: "https://thespinr.com",
+      sameAs: ["https://apps.shopify.com/spinr"],
+      installUrl: "https://apps.shopify.com/spinr",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       description:
@@ -141,6 +143,22 @@ export default function WelcomePage() {
               </Link>
             </Button>
           </div>
+
+          {/* Official Shopify App Store badge (approved 2026-07-28) — per
+              Shopify brand rules: unaltered, ≥30px tall, links to listing. */}
+          <a
+            href="https://apps.shopify.com/spinr"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-5 inline-block transition-opacity hover:opacity-80"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/badge-shopify-app-store-light.svg"
+              alt="Available on Shopify App Store"
+              className="h-11 w-auto"
+            />
+          </a>
 
           {/* Demo reel — founder-provided clips playing back-to-back in a
               loop (main → handbag → furniture). Muted autoplay, the
@@ -420,6 +438,19 @@ export default function WelcomePage() {
               </Link>
             </Button>
           </div>
+          <a
+            href="https://apps.shopify.com/spinr"
+            target="_blank"
+            rel="noreferrer"
+            className="mt-6 inline-block transition-opacity hover:opacity-80"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/badge-shopify-app-store-dark.svg"
+              alt="Available on Shopify App Store"
+              className="h-11 w-auto"
+            />
+          </a>
         </section>
       </div>
     </AppShell>

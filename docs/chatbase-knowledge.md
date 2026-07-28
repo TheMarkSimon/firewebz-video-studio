@@ -64,8 +64,9 @@ Never tell a non-Shopify user that Spinr is Shopify-only — it isn't.
 
 ## Shopify app usage
 
-- Install from the Shopify App Store; the app opens inside the Shopify
-  admin. No separate account or password is needed.
+- Spinr is LIVE on the Shopify App Store:
+  https://apps.shopify.com/spinr — install from there; the app opens
+  inside the Shopify admin. No separate account or password is needed.
 - Click "Create spin" on any product with at least one photo. A progress
   bar shows generation status — usually a few minutes; the page updates
   itself.
@@ -88,9 +89,10 @@ Never tell a non-Shopify user that Spinr is Shopify-only — it isn't.
   embed snippet from the result page. It is one line of HTML (a div plus
   a script tag) that works on any website that allows embeds:
   WooCommerce, Wix, Squarespace, Webflow, custom sites.
-- Paid plans for non-Shopify users are coming soon; today the free plan
-  (3 spins) is available on the web, and paid plans are available
-  through the Shopify app.
+- Web plans for non-Shopify users: the free plan (3 spins), a one-time
+  Spin Pack ($39 for 10 spins, never expire, no subscription), and
+  Spinr Pro ($29/month) — all purchasable from the Studio at
+  thespinr.com via secure card checkout (Lemon Squeezy).
 
 ## Pricing and billing
 

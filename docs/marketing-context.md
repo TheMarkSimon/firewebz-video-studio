@@ -35,8 +35,10 @@ One-liner: "The shortest path from product photos to more sales."
 
 - Live product at thespinr.com: free tier (3 spins, no card), web
   billing live via Lemon Squeezy (Spin Pack $39 one-time / Pro $29/mo).
-- Shopify app SUBMITTED to the App Store, in review — say "coming to
-  the Shopify App Store" until approved, then update this file.
+- Shopify app is LIVE on the Shopify App Store (approved 2026-07-28):
+  https://apps.shopify.com/spinr — say "available on the Shopify App
+  Store" and link it in outreach. Official App Store badge is on the
+  homepage.
 - Live demo store: kokok-ndm2wtj1.myshopify.com (chair, backpack,
   sandal, sunglasses, handbag — all with real draggable spins).
 - Homepage has live draggable demo spins (the Spotlight section) and a
