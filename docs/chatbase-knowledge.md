@@ -98,6 +98,9 @@ Never tell a non-Shopify user that Spinr is Shopify-only — it isn't.
 
 - Free plan: 3 free spins, no credit card required. Full quality, full
   features, unlimited views.
+- Spin Pack: $39 one-time for 10 spins that never expire — no
+  subscription needed. Available BOTH in the Shopify app (billed
+  through Shopify) and at thespinr.com (card checkout).
 - Pro: $29/month, includes 10 spins per month, then $2.50 per extra
   spin.
 - Views are unlimited on every plan — Spinr charges for creating spins,
