@@ -77,9 +77,11 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
                 : `${spins.length} spin${spins.length === 1 ? "" : "s"}`}
             </p>
             {/* Ambient plan status + purchase door (web billing rail).
-                Hidden for Shopify-billed users — their plan lives in the
-                Shopify card below. */}
-            {shopifyConnection?.subscriptionStatus !== "ACTIVE" && quotaEnforced() && (
+                Shown ONLY to users with no Shopify connection: connected
+                merchants must buy through Shopify Billing (packs + Pro in
+                the embedded app) — off-platform charges for Shopify-app
+                users would breach App Store billing rules. */}
+            {!shopifyConnection && quotaEnforced() && (
               <WebPlanCard
                 plan={{
                   plan: planState.plan,

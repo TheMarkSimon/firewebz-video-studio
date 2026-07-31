@@ -499,6 +499,82 @@ export async function createAppSubscription(
   };
 }
 
+// One-time Spin Pack purchase (10 spins / $39) — the no-subscription offer
+// for catalog-project merchants, matching the web (Lemon Squeezy) pack.
+// Merchant approves on Shopify's confirmation screen; the return URL gets
+// ?charge_id=<numeric id> appended, which the callback verifies via the
+// Admin API before granting credits (never trust the query string alone).
+export const SPINR_PACK_NAME = "Spinr Spin Pack — 10 spins";
+
+export function packPriceUsd(): string {
+  return process.env.SPINR_PACK_PRICE_USD ?? "39";
+}
+export function packCredits(): number {
+  return parseInt(process.env.SPINR_PACK_CREDITS ?? "10", 10);
+}
+
+export async function createAppPackPurchase(
+  shop: string,
+  accessToken: string,
+  returnUrl: string,
+  opts: { forceTest?: boolean } = {},
+): Promise<{ confirmationUrl: string; purchaseGid: string }> {
+  const data = await shopifyGraphQL<{
+    appPurchaseOneTimeCreate: {
+      confirmationUrl: string | null;
+      appPurchaseOneTime: { id: string } | null;
+      userErrors: Array<{ field: string[] | null; message: string }>;
+    };
+  }>(
+    shop,
+    accessToken,
+    `mutation Pack($name: String!, $price: MoneyInput!, $returnUrl: URL!, $test: Boolean!) {
+      appPurchaseOneTimeCreate(name: $name, price: $price, returnUrl: $returnUrl, test: $test) {
+        confirmationUrl
+        appPurchaseOneTime { id }
+        userErrors { field message }
+      }
+    }`,
+    {
+      name: SPINR_PACK_NAME,
+      price: { amount: packPriceUsd(), currencyCode: "USD" },
+      returnUrl,
+      test: billingIsTest() || opts.forceTest === true,
+    },
+  );
+  const result = data.appPurchaseOneTimeCreate;
+  if (result.userErrors?.length) {
+    throw new Error(`appPurchaseOneTimeCreate: ${result.userErrors.map((e) => e.message).join("; ").slice(0, 300)}`);
+  }
+  if (!result.confirmationUrl || !result.appPurchaseOneTime?.id) {
+    throw new Error("appPurchaseOneTimeCreate returned no confirmationUrl");
+  }
+  return { confirmationUrl: result.confirmationUrl, purchaseGid: result.appPurchaseOneTime.id };
+}
+
+// Verify a one-time purchase by id straight from the Admin API — used by
+// the return-URL callback. Returns status + whether it was a test charge.
+export async function getAppPurchaseOneTime(
+  shop: string,
+  accessToken: string,
+  purchaseGid: string,
+): Promise<{ status: string; test: boolean; name: string } | null> {
+  const data = await shopifyGraphQL<{
+    node: { status?: string; test?: boolean; name?: string } | null;
+  }>(
+    shop,
+    accessToken,
+    `query Pack($id: ID!) {
+      node(id: $id) {
+        ... on AppPurchaseOneTime { status test name }
+      }
+    }`,
+    { id: purchaseGid },
+  );
+  if (!data.node?.status) return null;
+  return { status: data.node.status, test: Boolean(data.node.test), name: data.node.name ?? "" };
+}
+
 // Bill one overage spin against the subscription's usage line. Returns the
 // usage record gid. Throws if the capped amount is exhausted.
 export async function createAppUsageRecord(

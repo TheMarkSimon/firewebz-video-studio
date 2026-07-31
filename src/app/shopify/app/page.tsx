@@ -81,9 +81,11 @@ interface EmbeddedState {
     test: boolean;
     enforced: boolean;
     remaining: number;
+    packCredits: number;
     priceUsd: string;
     includedSpins: number;
     overageUsd: string;
+    packUsd: string;
   };
   products: Array<{
     gid: string;
@@ -247,6 +249,17 @@ function EmbeddedApp() {
     }
   }
 
+  async function buyPack() {
+    setNotice(null);
+    try {
+      const res = await api("/api/embedded/pack", { method: "POST", body: JSON.stringify({}) });
+      if (res.confirmationUrl) window.open(res.confirmationUrl, "_top");
+      else setNotice(res.error ?? "Couldn't start the purchase.");
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "Couldn't start the purchase.");
+    }
+  }
+
   async function cancelPlan() {
     setNotice(null);
     try {
@@ -329,19 +342,22 @@ function EmbeddedApp() {
               <Text as="p" tone="subdued" variant="bodySm">
                 {pro
                   ? state.plan.enforced
-                    ? `${state.plan.remaining} of ${state.plan.includedSpins} included spins left this cycle · extras ${usd(state.plan.overageUsd)}/spin on your Shopify invoice. Views are never metered.`
+                    ? `${state.plan.remaining} of ${state.plan.includedSpins} included spins left this cycle${state.plan.packCredits > 0 ? ` · ${state.plan.packCredits} pack credits` : ""} · extras ${usd(state.plan.overageUsd)}/spin on your Shopify invoice. Views are never metered.`
                     : `${state.plan.includedSpins} spins/month included, then ${usd(state.plan.overageUsd)}/spin — on your Shopify invoice. Views are never metered.`
                   : state.plan.enforced
-                    ? `You have ${state.plan.remaining} free spins left. Pro: ${usd(state.plan.priceUsd)}/mo for ${state.plan.includedSpins} spins, then ${usd(state.plan.overageUsd)}/spin.`
+                    ? `You have ${state.plan.remaining} free spins${state.plan.packCredits > 0 ? ` + ${state.plan.packCredits} pack credits` : ""} left. Pack: ${usd(state.plan.packUsd)} one-time for 10 spins · Pro: ${usd(state.plan.priceUsd)}/mo for ${state.plan.includedSpins} spins, then ${usd(state.plan.overageUsd)}/spin.`
                     : `Pro: ${usd(state.plan.priceUsd)}/mo for ${state.plan.includedSpins} spins a month, then ${usd(state.plan.overageUsd)}/spin. Billed through Shopify.`}
               </Text>
             </BlockStack>
             {pro ? (
               <Button onClick={() => void cancelPlan()}>Cancel plan</Button>
             ) : (
-              <Button variant="primary" onClick={() => void upgrade()}>
-                Upgrade to Pro
-              </Button>
+              <InlineStack gap="200">
+                <Button onClick={() => void buyPack()}>10-spin pack — ${state.plan.packUsd}</Button>
+                <Button variant="primary" onClick={() => void upgrade()}>
+                  Upgrade to Pro
+                </Button>
+              </InlineStack>
             )}
           </InlineStack>
         </Card>

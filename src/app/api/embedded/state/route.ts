@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { EmbeddedAuthError, requireShopContext } from "@/lib/embedded-auth";
-import { fetchProducts, getShopToken, overagePriceUsd, proIncludedSpins, proPriceUsd, quotaEnforced } from "@/lib/shopify";
+import { fetchProducts, getShopToken, overagePriceUsd, packPriceUsd, proIncludedSpins, proPriceUsd, quotaEnforced } from "@/lib/shopify";
 import { getPlanState } from "@/lib/billing";
 import { reconcileSpinGeneration } from "@/lib/spin-completion";
 import { getAppOrigin } from "@/lib/app-origin";
@@ -105,9 +105,11 @@ async function buildState(req: NextRequest) {
         test: connection.subscriptionTest,
         enforced: quotaEnforced(),
         remaining: plan.remaining,
+        packCredits: plan.packCredits,
         priceUsd: proPriceUsd(),
         includedSpins: proIncludedSpins(),
         overageUsd: overagePriceUsd(),
+        packUsd: packPriceUsd(),
       },
       unlinkedSpins,
       products: products.map((p) => {
