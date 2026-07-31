@@ -115,6 +115,22 @@ One-liner: "The shortest path from product photos to more sales."
 - Track in a simple sheet: store, contact, channel, date, offer,
   response, learning.
 
+## Partner/agency outreach (second audience besides merchants)
+
+- Targets: boutique Shopify agencies (2–20 people, via the Shopify
+  Partner Directory), top Fiverr/Upwork Shopify-setup freelancers,
+  "best Shopify apps" YouTubers/newsletters.
+- Their motivation: better client deliverables with zero extra work —
+  never pitch "promote my app", pitch "your builds get 360° product
+  pages".
+- Offer stack: free on all development stores (true today — dev stores
+  auto-get test billing); same-day concierge spins from client photos;
+  affiliate commission (20–30% recurring) — ONLY promise this once the
+  Lemon Squeezy affiliate hub is actually enabled, say "launching
+  soon" until then.
+- Keep partner emails peer-to-peer ("from one builder to another"),
+  reference a real project of theirs, one 15-minute ask.
+
 ## What the founder wants from conversations (validation stage)
 
 1. Do merchants care enough to try it on a real product page?
