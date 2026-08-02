@@ -33,6 +33,8 @@ export interface PlanState {
   overagePriceUsd: string;
   // Shopify Pro only: whether overage billing is possible.
   canUseOverage: boolean;
+  // Shopify Pro on a TEST subscription (dev store / reviewer).
+  testSub: boolean;
 }
 
 export async function getPlanState(userId: string): Promise<PlanState> {
@@ -63,7 +65,13 @@ export async function getPlanState(userId: string): Promise<PlanState> {
       remaining: Math.max(0, proIncludedSpins() - used),
       packCredits,
       overagePriceUsd: overagePriceUsd(),
-      canUseOverage: shopifyPro && Boolean(connection?.usageLineItemGid),
+      // Test-mode subscriptions (dev stores, reviewers) get included spins
+      // only: overage there bills fake money against our real COGS — a
+      // drive-by tester burned 12 overage spins (~$8.50 real fal spend)
+      // on a test sub 2026-07-28.
+      canUseOverage:
+        shopifyPro && Boolean(connection?.usageLineItemGid) && connection?.subscriptionTest !== true,
+      testSub: shopifyPro && connection?.subscriptionTest === true,
     };
   }
 
@@ -78,6 +86,7 @@ export async function getPlanState(userId: string): Promise<PlanState> {
     packCredits,
     overagePriceUsd: overagePriceUsd(),
     canUseOverage: false,
+    testSub: false,
   };
 }
 
@@ -119,6 +128,11 @@ export async function consumeSpinCredit(userId: string, spinId: string): Promise
       return {
         ok: false,
         error: `You've used your ${proIncludedSpins()} included spins this month. Top up 5 extra spins from your Studio plan card to keep going.`,
+      };
+    } else if (state.testSub) {
+      return {
+        ok: false,
+        error: `Test-mode subscriptions include ${proIncludedSpins()} spins per month. On a live store, extra spins bill automatically at $${overagePriceUsd()} each.`,
       };
     } else {
       return {
